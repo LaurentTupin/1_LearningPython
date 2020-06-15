@@ -1,0 +1,15 @@
+﻿PCF,Dir_Dest,folderDate,folderDateOffset,fileName,fileDate,DateOffset
+AmundiBeta,UK_Amundi\Output,%Y%m%d,0,PCFMKTN.{fileDate}.txt,%Y%m%d,0
+EASY_COMO,HK_Easy\Easy {folderDate}\Easy Commodity - open {folderDate},%Y%m%d,0,PCFGSCE{fileDate}.txt,%Y%m%d,0
+EASY_COMO,HK_Easy\Easy {folderDate}\Easy Commodity - open {folderDate},%Y%m%d,0,PCFGSCU{fileDate}.txt,%Y%m%d,0
+EASY_COMO,HK_Easy\Easy {folderDate}\Easy Commodity - open {folderDate},%Y%m%d,0,LU1291109616_{fileDate}.txt,%Y%m%d,0
+EASY_COMO,HK_Easy\Easy {folderDate}\Easy Commodity - open {folderDate},%Y%m%d,0,LU1291109533_{fileDate}.txt,%Y%m%d,0
+EASY_COMO,HK_Easy\Easy {folderDate}\Easy Commodity - open {folderDate},%Y%m%d,0,COGSDE_GSCE_{fileDate}.txt,%Y%m%d,0
+EASY_COMO,HK_Easy\Easy {folderDate}\Easy Commodity - open {folderDate},%Y%m%d,0,COGSCU_{fileDate}.txt,%Y%m%d,0
+EASY_FI,HK_Easy\Easy {folderDate}\Easy FI - open {folderDate},%Y%m%d,0,COELQC_{fileDate}.txt,%Y%m%d,0
+EASY_FI,HK_Easy\Easy {folderDate}\Easy FI - open {folderDate},%Y%m%d,0,COGOMA_{fileDate}.txt,%Y%m%d,0
+EASY_FI,HK_Easy\Easy {folderDate}\Easy FI - open {folderDate},%Y%m%d,0,PCFELQC{fileDate}.txt,%Y%m%d,0
+EASY_FI,HK_Easy\Easy {folderDate}\Easy FI - open {folderDate},%Y%m%d,0,PCFGOMA{fileDate}.txt,%Y%m%d,0
+HK_Samsung,HK_Samsung\Samsung HK open {folderDate},%Y%m%d,0,SAMSUNG_3175_{fileDate}.xls,%Y%m%d,0
+HK_Samsung,HK_Samsung\Samsung HK open {folderDate},%Y%m%d,0,SAMSUNG_2812_{fileDate}.xlsx,%Y%m%d,0
+YUANTA,Auto_Py\Yuanta\Yuanta {folderDate},%Y%m%d,1,YuantaETFs-PCF.xlsx,%Y%m%d,0

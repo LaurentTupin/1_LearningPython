@@ -1,0 +1,44 @@
+Perimeter,FileUploadMode,ID,FTP_server,FTP_uid,FTP_pwd,FTP_directory,fileName,fileDate,DateOffset,Dir_Source,folderDate
+BetaShares_FTPold,FTP,BS_PCF_xls_FTP,182.160.160.203,markitpcf@betashares.com.au,Level11,/Domestic Equities,PCF_{fileDate}.xls,%Y%m%d,0,BGLR_BetaShares\{folderDate} open,%Y%m%d
+BetaShares_FTPold,FTP,BS_QOZ_FTP,182.160.160.203,markitpcf@betashares.com.au,Level11,/Domestic Equities,QOZBSK{fileDate}.txt,%Y%m%d,0,BGLR_BetaShares\{folderDate} open,%Y%m%d
+BetaShares_FTPold,FTP,BS_QFN_FTP,182.160.160.203,markitpcf@betashares.com.au,Level11,/Domestic Equities,QFNBSK{fileDate}.txt,%Y%m%d,0,BGLR_BetaShares\{folderDate} open,%Y%m%d
+BetaShares_FTPold,FTP,BS_QRE_FTP,182.160.160.203,markitpcf@betashares.com.au,Level11,/Domestic Equities,QREBSK{fileDate}.txt,%Y%m%d,0,BGLR_BetaShares\{folderDate} open,%Y%m%d
+BetaShares_FTPold,FTP,BS_EX20_FTP,182.160.160.203,markitpcf@betashares.com.au,Level11,/Domestic Equities,EX2BSK{fileDate}.txt,%Y%m%d,0,BGLR_BetaShares\{folderDate} open,%Y%m%d
+BetaShares_FTPold,FTP,BS_FAIR_FTP,182.160.160.203,markitpcf@betashares.com.au,Level11,/Domestic Equities,FAIBSK{fileDate}.txt,%Y%m%d,0,BGLR_BetaShares\{folderDate} open,%Y%m%d
+BetaShares_FTPold,FTP,BS_A200_FTP,182.160.160.203,markitpcf@betashares.com.au,Level11,/Domestic Equities,A20BSK{fileDate}.txt,%Y%m%d,0,BGLR_BetaShares\{folderDate} open,%Y%m%d
+BetaShares_FTPold,FTP,BS_GEAR_FTP,182.160.160.203,markitpcf@betashares.com.au,Level11,/GEAR,GEABSK{fileDate}.txt,%Y%m%d,0,BGLR_BetaShares\{folderDate} open,%Y%m%d
+BetaShares_FTPold,FTP,BS_GEAR_xls_FTP,182.160.160.203,markitpcf@betashares.com.au,Level11,/GEAR,GEAR_{fileDate}.xls,%Y%m%d,0,BGLR_BetaShares\{folderDate} open,%Y%m%d
+HK_ChinaAMC,FTP,HK_ChinaAMC,ftp.wallst.com,CAM-HK-DB-PF,VPtgKvyC,/,Daily Dealing Summary_NQ100_-1x_Dealing Date_{fileDate}.xls,%Y%m%d,-1,HK_ChinaAMC\ChinaAMC open {folderDate}\raw,%Y%m%d
+HK_ChinaAMC,FTP,HK_ChinaAMC,ftp.wallst.com,CAM-HK-DB-PF,VPtgKvyC,/,Daily Dealing Summary_NQ100_2x_Dealing Date_{fileDate}.xls,%Y%m%d,-1,HK_ChinaAMC\ChinaAMC open {folderDate}\raw,%Y%m%d
+HK_ChinaAMC,FTP,HK_ChinaAMC,ftp.wallst.com,CAM-HK-DB-PF,VPtgKvyC,/,Daily Dealing Summary_NQ100_-2x_Dealing Date_{fileDate}.xls,%Y%m%d,-1,HK_ChinaAMC\ChinaAMC open {folderDate}\raw,%Y%m%d
+HK_WisdomTree_XLS,FTP_SSL,WisdomTreePCF_COMS_,ftp.wisdomtree.com,markiteu,eternalsunshine,/,WisdomTreePCF_COMS_{fileDate}.xlsx,%Y%m%d,0,HK_WisdomTree Commodity\WCOE open {folderDate},%Y%m%d
+HK_WisdomTree_XLS,FTP_SSL,WisdomTreePCF_WCOE_,ftp.wisdomtree.com,markiteu,eternalsunshine,/,WisdomTreePCF_WCOE_{fileDate}.xlsx,%Y%m%d,0,HK_WisdomTree Commodity\WCOE open {folderDate},%Y%m%d
+HK_WisdomTree_XLS,FTP_SSL,WisdomTreePCF_WCOG_,ftp.wisdomtree.com,markiteu,eternalsunshine,/,WisdomTreePCF_WCOG_{fileDate}.xlsx,%Y%m%d,0,HK_WisdomTree Commodity\WCOE open {folderDate},%Y%m%d
+HK_WisdomTree_XLS,FTP_SSL,WisdomTreePCF_WCOM_,ftp.wisdomtree.com,markiteu,eternalsunshine,/,WisdomTreePCF_WCOM_{fileDate}.xlsx,%Y%m%d,0,HK_WisdomTree Commodity\WCOE open {folderDate},%Y%m%d
+HK_WisdomTree_XLS,FTP_SSL,WisdomTreePCF_WCOA_,ftp.wisdomtree.com,markiteu,eternalsunshine,/,WisdomTreePCF_WCOA_{fileDate}.xlsx,%Y%m%d,0,HK_WisdomTree Commodity\WCOE open {folderDate},%Y%m%d
+BetaShares,SFTP_Paramiko,BS_PCF_xls,sftp.betashares.com.au,markit,&8&TPphtWL,/pcf/Domestic Equities,PCF_{fileDate}.xls,%Y%m%d,0,BGLR_BetaShares\{folderDate} open,%Y%m%d
+BetaShares,SFTP_Paramiko,BS_QOZ,sftp.betashares.com.au,markit,&8&TPphtWL,/pcf/Domestic Equities,QOZBSK{fileDate}.txt,%Y%m%d,0,BGLR_BetaShares\{folderDate} open,%Y%m%d
+BetaShares,SFTP_Paramiko,BS_QFN,sftp.betashares.com.au,markit,&8&TPphtWL,/pcf/Domestic Equities,QFNBSK{fileDate}.txt,%Y%m%d,0,BGLR_BetaShares\{folderDate} open,%Y%m%d
+BetaShares,SFTP_Paramiko,BS_QRE,sftp.betashares.com.au,markit,&8&TPphtWL,/pcf/Domestic Equities,QREBSK{fileDate}.txt,%Y%m%d,0,BGLR_BetaShares\{folderDate} open,%Y%m%d
+BetaShares,SFTP_Paramiko,BS_EX20,sftp.betashares.com.au,markit,&8&TPphtWL,/pcf/Domestic Equities,EX2BSK{fileDate}.txt,%Y%m%d,0,BGLR_BetaShares\{folderDate} open,%Y%m%d
+BetaShares,SFTP_Paramiko,BS_FAIR,sftp.betashares.com.au,markit,&8&TPphtWL,/pcf/Domestic Equities,FAIBSK{fileDate}.txt,%Y%m%d,0,BGLR_BetaShares\{folderDate} open,%Y%m%d
+BetaShares,SFTP_Paramiko,BS_A200,sftp.betashares.com.au,markit,&8&TPphtWL,/pcf/Domestic Equities,A20BSK{fileDate}.txt,%Y%m%d,0,BGLR_BetaShares\{folderDate} open,%Y%m%d
+BetaShares_GEAR,SFTP_Paramiko,BS_GEAR,sftp.betashares.com.au,markit,&8&TPphtWL,/pcf/GEAR,GEABSK{fileDate}.txt,%Y%m%d,0,BGLR_BetaShares\{folderDate} open,%Y%m%d
+BetaShares_GEAR,SFTP_Paramiko,BS_GEAR_xls,sftp.betashares.com.au,markit,&8&TPphtWL,/pcf/GEAR,GEAR_{fileDate}.xls,%Y%m%d,0,BGLR_BetaShares\{folderDate} open,%Y%m%d
+BS_ASX,SFTP_Paramiko,ASX_QOZ,asxonline.com,Markit_QOZ,Markit20!,/,QOZBSK{fileDate}.txt,%Y%m%d,0,BGLR_BetaShares\{folderDate} open,%Y%m%d
+BS_ASX,SFTP_Paramiko,ASX_QFN,asxonline.com,Markit_QFN,Markit20!,/,QFNBSK{fileDate}.txt,%Y%m%d,0,BGLR_BetaShares\{folderDate} open,%Y%m%d
+BS_ASX,SFTP_Paramiko,ASX_QRE,asxonline.com,Markit_QRE,Markit20!,/,QREBSK{fileDate}.txt,%Y%m%d,0,BGLR_BetaShares\{folderDate} open,%Y%m%d
+BS_ASX,SFTP_Paramiko,ASX_EX20,asxonline.com,Markit_EX20,Markit20!,/,EX2BSK{fileDate}.txt,%Y%m%d,0,BGLR_BetaShares\{folderDate} open,%Y%m%d
+BS_ASX,SFTP_Paramiko,ASX_FAIR,asxonline.com,Markit_FAIR,Markit21?!,/,FAIBSK{fileDate}.txt,%Y%m%d,0,BGLR_BetaShares\{folderDate} open,%Y%m%d
+BS_ASX,SFTP_Paramiko,ASX_A200,asxonline.com,Markit_A200,Markit21?!,/,A20BSK{fileDate}.txt,%Y%m%d,0,BGLR_BetaShares\{folderDate} open,%Y%m%d
+BS_ASX,SFTP_Paramiko,ASX_GEAR,asxonline.com,Markit_GEAR,Markit20!,/,GEABSK{fileDate}.txt,%Y%m%d,0,BGLR_BetaShares\{folderDate} open,%Y%m%d
+HK_EASY_FI,SFTP_Paramiko,PCFELQC,upload.data.euronext.com,IHSMarkit,Pj35TANS2,/,PCFELQC{fileDate}.txt,%Y%m%d,0,HK_Easy\Easy {folderDate}\Easy FI - open,%Y%m%d
+HK_EASY_FI,SFTP_Paramiko,PCFSRIC,upload.data.euronext.com,IHSMarkit,Pj35TANS2,/,PCFSRIC{fileDate}.txt,%Y%m%d,0,HK_Easy\Easy {folderDate}\Easy FI - open,%Y%m%d
+HK_EASY_FI,SFTP_Paramiko,PCFSRIC3,upload.data.euronext.com,IHSMarkit,Pj35TANS2,/,PCFSRIC3{fileDate}.txt,%Y%m%d,0,HK_Easy\Easy {folderDate}\Easy FI - open,%Y%m%d
+HK_EASY_FI,SFTP_Paramiko,PCFSRIC5,upload.data.euronext.com,IHSMarkit,Pj35TANS2,/,PCFSRIC5{fileDate}.txt,%Y%m%d,0,HK_Easy\Easy {folderDate}\Easy FI - open,%Y%m%d
+HK_EASY_FI_pro,SFTP_Paramiko,PCFELQC_processed,upload.data.euronext.com,IHSMarkit,Pj35TANS2,/,PCFELQC{fileDate}.txt.processed,%Y%m%d,0,HK_Easy\Easy {folderDate}\Easy FI - open,%Y%m%d
+HK_EASY_FI_pro,SFTP_Paramiko,PCFSRIC_processed,upload.data.euronext.com,IHSMarkit,Pj35TANS2,/,PCFSRIC{fileDate}.txt.processed,%Y%m%d,0,HK_Easy\Easy {folderDate}\Easy FI - open,%Y%m%d
+HK_EASY_FI_pro,SFTP_Paramiko,PCFSRIC3_processed,upload.data.euronext.com,IHSMarkit,Pj35TANS2,/,PCFSRIC3{fileDate}.txt.processed,%Y%m%d,0,HK_Easy\Easy {folderDate}\Easy FI - open,%Y%m%d
+HK_EASY_FI_pro,SFTP_Paramiko,PCFSRIC5_processed,upload.data.euronext.com,IHSMarkit,Pj35TANS2,/,PCFSRIC5{fileDate}.txt.processed,%Y%m%d,0,HK_Easy\Easy {folderDate}\Easy FI - open,%Y%m%d
+HK_Samsung,SFTP_Paramiko,SFTP_ParamikoDM1,edx.standardandpoors.com,Ca0731,aC2241,/Inbox,{fileDate}_SPGSCI_FIN_STD.HDX,%Y%m%d,-1,HK_Samsung\Samsung HK open {folderDate}\raw,%Y%m%d
+HK_Samsung,SFTP_Paramiko,SFTP_ParamikoDM2,edx.standardandpoors.com,Ca0731,aC2241,/Inbox,{fileDate}_SPGSCI_FIN_STD.HDX,%Y%m%d,-2,HK_Samsung\Samsung HK open {folderDate}\raw,%Y%m%d

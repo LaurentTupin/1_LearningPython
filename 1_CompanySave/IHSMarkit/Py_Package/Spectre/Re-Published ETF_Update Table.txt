@@ -1,0 +1,162 @@
+
+
+----1 . Add a column to the Table: tblDataSetChange
+--ALTER TABLE [SolaDBServer].[dbo].[tblDataSetChange]
+--ADD [IsRePublish] BIT
+--ALTER TABLE [SolaDBServer].[dbo].[tblDataSetChange]
+--ADD [TaskRunID] BIGINT
+
+----2. Initiate that Features to NULL before to Apply this process (Nothing to do)
+
+----3. Set everything to 0 as historic calculation will take a lot of time
+--UPDATE  [SolaDBServer].[dbo].[tblDataSetChange]
+--SET [IsRePublish] = 0
+
+----4. Process
+SET NOCOUNT ON;
+
+------------------------------------------------------------------------------------------
+IF OBJECT_ID ('tempdb..#DataSetChange') IS NOT NULL		DROP TABLE #DataSetChange
+IF OBJECT_ID ('tempdb..#TaskRunID') IS NOT NULL			DROP TABLE #TaskRunID
+IF OBJECT_ID ('tempdb..#TaskRunID2') IS NOT NULL		DROP TABLE #TaskRunID2
+IF OBJECT_ID ('tempdb..#First_Stat') IS NOT NULL		DROP TABLE #First_Stat
+IF OBJECT_ID ('tempdb..#TaskRunID_previous') IS NOT NULL DROP TABLE #TaskRunID_previous
+IF OBJECT_ID ('tempdb..#Second_Stat') IS NOT NULL		DROP TABLE #Second_Stat
+IF OBJECT_ID ('tempdb..#ChangeByBasketType') IS NOT NULL DROP TABLE #ChangeByBasketType
+IF OBJECT_ID ('tempdb..#Change') IS NOT NULL			DROP TABLE #Change
+IF OBJECT_ID ('tempdb..#Final') IS NOT NULL				DROP TABLE #Final
+
+
+-- A. Permieter: By SecurityID, most ancient to make step by step (compare 2 by 2)
+-- ++ DataSetType is only made for ETF for simplifying reasons, you may need to use other Table for Index and the rest ++
+SELECT top 500 e.[FamilyID]
+	,e.[ETFID]
+	,a.[DataSetID] AS [SecurityID]
+	,a.[TimeStamp]
+	,a.[AsAtDate]
+	,a.[DataSetChangeID]
+	,ROW_NUMBER() OVER(PARTITION BY [DataSetID] ORDER BY [TimeStamp],[AsAtDate]) AS [RANK]
+	into #DataSetChange
+FROM [PRDREP047WD].[SolaQC].[dbo].[tblDataSetChange] a
+	LEFT JOIN [SolaDBServer].[dbo].[tblETF] e on e.[SecurityID] = a.[DataSetID]
+WHERE DataSetName = 'DailyTradeDataClose'
+	AND YEAR([TimeStamp]) >= 2019
+	AND DataSetType = 'ETF'
+	AND [IsRePublish] IS NULL
+ORDER BY [RANK], [TimeStamp], [SecurityID]
+	--SELECT * FROM #DataSetChange WHERE [RANK] = 1
+
+-- B. Get The Task ID
+SELECT a.[FamilyID],a.[ETFID],a.[SecurityID] ,a.[TimeStamp],a.[AsAtDate],a.[DataSetChangeID]
+	,p.[TaskRunID],p.[InsertedDateTime] AS [ProcessTime]
+	,ROW_NUMBER() OVER(PARTITION BY p.[FamilyID],p.[CloseDate] ORDER BY ABS(DATEDIFF(MINUTE,p.[InsertedDateTime],a.[TimeStamp]))) AS [RANK_Closer]
+	into #TaskRunID
+FROM #DataSetChange a
+	INNER JOIN [PRDCOB002WI].[SolaDBServer].[dbo].[tblFamilyToPublish] p 
+		ON p.[FamilyID] = a.[FamilyID]
+		AND p.[CloseDate] = a.[AsAtDate]
+WHERE a.[RANK] = 1
+	--SELECT * FROM #TaskRunID WHERE [FamilyID] = 57399
+
+-- C. Join by reverse order
+SELECT * into #TaskRunID2
+FROM #TaskRunID p
+WHERE [RANK_Closer] = 1 AND DATEDIFF(MINUTE,[TimeStamp],[ProcessTime]) BETWEEN -60 AND 60
+	--SELECT *, DATEDIFF(MINUTE,[TimeStamp],[ProcessTime]) AS [Diff] FROM #TaskRunID2 ORDER BY [Diff] DESC
+
+-- D. Check the data of the process
+SELECT distinct t.[FamilyID],t.[ETFID],t.[SecurityID],t.[TimeStamp],t.[AsAtDate],t.[DataSetChangeID],t.[TaskRunID]
+	,epa.[Divisor]		,epa.[AUM]		,epa.[CreationUnits]		,epa.[SharesOutstanding]
+	,bpa.[TotalCash]	,bpa.[NAV]		,bpa.[CalculatedNAV]		,bpa.[ConstituentCount]
+	,bpa.[BasketID]		--,bt.[Name] AS [BasketType]
+	into #First_Stat
+FROM #TaskRunID2 t
+	INNER JOIN [PRDCOB002WI].[SolaAudit].[dbo].[tblETFPositionAudit] epa ON epa.[TaskRunID] = t.[TaskRunID] AND epa.[AsAtDate] = t.[AsAtDate] AND epa.[ETFID] = t.[ETFID] 
+	INNER JOIN [PRDCOB002WI].[SolaDBServer].[dbo].[tblBasket] b ON b.[ETFID] = epa.[ETFID]
+	INNER JOIN [PRDCOB002WI].[SolaAudit].[dbo].[tblBasketPositionAudit] bpa ON bpa.[TaskRunID] = epa.[TaskRunID] AND bpa.[AsAtDate] = epa.[AsAtDate] AND b.[BasketID] = bpa.[BasketID]
+	--INNER JOIN [PRDCOB002WI].[SolaDBServer].[dbo].[tblBasketType] bt ON bt.[BasketTypeID] = b.[BasketTypeID]
+ORDER BY [FamilyID]
+	--SELECT * FROM #First_Stat
+
+-----------------------------------------------------------------------------
+-- E. Second Process to Compare
+-----------------------------------------------------------------------------
+SELECT t.[FamilyID],t.[ETFID],t.[SecurityID],t.[TimeStamp],t.[AsAtDate],t.[DataSetChangeID],t.[TaskRunID]
+	,MAX(p.[TaskRunID]) AS [TaskRunID_previous]
+	into #TaskRunID_previous
+FROM #TaskRunID2 t
+	INNER JOIN [PRDCOB002WI].[SolaDBServer].[dbo].[tblFamilyToPublish] p
+		ON  p.[FamilyID] = t.[FamilyID]
+		AND p.[CloseDate] = t.[AsAtDate]
+		AND p.[TaskRunID] < t.[TaskRunID]
+GROUP BY t.[FamilyID],t.[ETFID],t.[SecurityID],t.[TimeStamp],t.[AsAtDate],t.[DataSetChangeID],t.[TaskRunID]
+	--SELECT * FROM #TaskRunID_previous ORDER BY [FamilyID] DESC
+
+-- F. Check the data of the process
+SELECT distinct t.[FamilyID],t.[ETFID],t.[SecurityID],t.[TimeStamp],t.[AsAtDate],t.[DataSetChangeID],t.[TaskRunID],t.[TaskRunID_previous]
+	,epa.[Divisor]		,epa.[AUM]		,epa.[CreationUnits]		,epa.[SharesOutstanding]
+	,bpa.[TotalCash]	,bpa.[NAV]		,bpa.[CalculatedNAV]		,bpa.[ConstituentCount]
+	,bpa.[BasketID]		--,bt.[Name] AS [BasketType]
+	into #Second_Stat
+FROM #TaskRunID_previous t
+	INNER JOIN [PRDCOB002WI].[SolaAudit].[dbo].[tblETFPositionAudit] epa ON epa.[TaskRunID] = t.[TaskRunID_previous] AND epa.[AsAtDate] = t.[AsAtDate] AND epa.[ETFID] = t.[ETFID] 
+	INNER JOIN [PRDCOB002WI].[SolaDBServer].[dbo].[tblBasket] b ON b.[ETFID] = epa.[ETFID]
+	INNER JOIN [PRDCOB002WI].[SolaAudit].[dbo].[tblBasketPositionAudit] bpa ON bpa.[TaskRunID] = epa.[TaskRunID] AND bpa.[AsAtDate] = epa.[AsAtDate] AND b.[BasketID] = bpa.[BasketID]
+	--INNER JOIN [PRDCOB002WI].[SolaDBServer].[dbo].[tblBasketType] bt ON bt.[BasketTypeID] = b.[BasketTypeID]
+ORDER BY [FamilyID]
+	--SELECT * FROM #Second_Stat
+
+-----------------------------------------------------------------------------
+-- G. Decision
+-----------------------------------------------------------------------------
+SELECT F.[SecurityID],F.[AsAtDate],F.[DataSetChangeID],F.[TimeStamp],F.[TaskRunID]
+	,CASE WHEN S.[Divisor] = F.[Divisor] THEN 0 ELSE 1 END [Divisor]
+	,CASE WHEN S.[CreationUnits] = F.[CreationUnits] THEN 0 ELSE 1 END [CreationUnits]
+	,CASE WHEN S.[AUM] = F.[AUM] THEN 0 ELSE 1 END [AUM]
+	,CASE WHEN S.[SharesOutstanding] = F.[SharesOutstanding] THEN 0 ELSE 1 END [SharesOutstanding]
+	,CASE WHEN S.[NAV] = F.[NAV] THEN 0 ELSE 1 END [NAV]
+	,CASE WHEN S.[CalculatedNAV] = F.[CalculatedNAV] THEN 0 ELSE 1 END [CalculatedNAV]
+	,CASE WHEN S.[TotalCash] = F.[TotalCash] THEN 0 ELSE 1 END [TotalCash]
+	,CASE WHEN S.[ConstituentCount] = F.[ConstituentCount] THEN 0 ELSE 1 END [ConstituentCount]
+	into #ChangeByBasketType
+FROM #First_Stat F
+	INNER JOIN #Second_Stat S ON S.[FamilyID] = F.[FamilyID] AND S.[SecurityID] = F.[SecurityID] AND S.[AsAtDate] = F.[AsAtDate] AND S.[BasketID] = F.[BasketID]
+
+SELECT [SecurityID],[AsAtDate],[DataSetChangeID],[TimeStamp],[TaskRunID]
+	,MAX([Divisor] + [CreationUnits] + [AUM] + [SharesOutstanding] + [NAV] + [CalculatedNAV] + [TotalCash] + [ConstituentCount]) AS [Difference]
+	into #Change
+FROM #ChangeByBasketType
+GROUP BY [SecurityID],[AsAtDate],[DataSetChangeID],[TimeStamp],[TaskRunID]
+	--SELECT * FROM #Change
+
+
+-----------------------------------------------------------------------------
+-- H. If the record is not found, we set as 0 because its the first record of the day or absent in Table Audit
+-----------------------------------------------------------------------------
+SELECT D.[SecurityID],D.[AsAtDate],D.[DataSetChangeID]
+	,C.[TaskRunID]
+	,CASE WHEN C.[Difference] > 0 THEN 1 ELSE 0 END AS [IsRePublish]
+	,D.[TimeStamp]
+	into #Final
+FROM #DataSetChange D
+	LEFT JOIN #Change C ON C.[SecurityID] = D.[SecurityID] AND C.[AsAtDate] = D.[AsAtDate] AND C.[DataSetChangeID] = D.[DataSetChangeID]
+WHERE [RANK] = 1
+ORDER BY [IsRePublish] DESC, [TaskRunID] DESC
+	--SELECT * FROM #Final ORDER BY [IsRePublish] DESC
+
+
+
+--Synchronize
+MERGE [SolaQC].[dbo].[tblDataSetChange] AS TARGET
+USING #Final AS SOURCE
+	ON (TARGET.[DataSetID] = SOURCE.[SecurityID] 
+		AND TARGET.[AsAtDate] = SOURCE.[AsAtDate] 
+		AND TARGET.[DataSetChangeID] = SOURCE.[DataSetChangeID])
+	
+--When records are matched, update the records if there is any change
+WHEN MATCHED THEN 
+	UPDATE SET TARGET.[IsRePublish] = SOURCE.[IsRePublish]
+		,TARGET.[TaskRunID] = SOURCE.[TaskRunID]
+			
+OUTPUT $action, SOURCE.*
+;
