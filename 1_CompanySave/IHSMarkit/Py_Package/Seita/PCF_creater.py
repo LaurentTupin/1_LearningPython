@@ -724,16 +724,25 @@ def pcf_Nikko63(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df):
 
     # 1. Variables
     try:
-        str_modelfolder = fl.fStr_BuildPath(str_folderRoot, 'HK_Nikko')
-        str_modelFileName = 'NikkoAMGlobalInternetETF.xlsx'
-        str_modelFileName_SGX = 'NikkoSGX.xlsx'
+        # NAV Date
         dte_navDate = df_NAV[df_NAV['Share currency'] =='USD']['NAV date'].values[0]
         if len(str(dte_navDate)) == 7:
             dte_navDate = '0' + str(dte_navDate)
         dte_navDate = dat.fDte_formatToDate(str(dte_navDate), '%d%m%Y')
-        l_pcfFileName = ['Nikko AM Global Internet ETF - Basket - ' + dte_navDate.strftime('%Y%m%d') + '.xlsx', 
-                         'Nikko AM Global Internet ETF - Fund - ' + dte_navDate.strftime('%Y%m%d') + '.xlsx',
-                         'Nikko AM Global Internet ETF - SGX - ' + dte_navDate.strftime('%Y%m%d') + '.xlsx']
+        # Model Path
+        str_modelfolder = fl.fStr_BuildPath(str_folderRoot, 'HK_Nikko')
+        if '63' in str_PCF:
+            str_modelFileName = 'Nikko63_model.xlsx'
+            str_modelFileName_SGX = 'Nikko63_SGX.xlsx'
+            l_pcfFileName = ['NikkoAM E-Games Active ETF - Basket - ' + dte_navDate.strftime('%Y%m%d') + '.xlsx', 
+                             'NikkoAM E-Games Active ETF - Fund - ' + dte_navDate.strftime('%Y%m%d') + '.xlsx',
+                             'NikkoAM E-Games Active ETF - SGX - ' + dte_navDate.strftime('%Y%m%d') + '.xlsx']
+        else:
+            str_modelFileName = 'NikkoAMGlobalInternetETF.xlsx'
+            str_modelFileName_SGX = 'NikkoSGX.xlsx'
+            l_pcfFileName = ['Nikko AM Global Internet ETF - Basket - ' + dte_navDate.strftime('%Y%m%d') + '.xlsx', 
+                             'Nikko AM Global Internet ETF - Fund - ' + dte_navDate.strftime('%Y%m%d') + '.xlsx',
+                             'Nikko AM Global Internet ETF - SGX - ' + dte_navDate.strftime('%Y%m%d') + '.xlsx']
         # Rounding issue from pandas
         df_NAV['Price share CCY'] = df_NAV['Price share CCY'].apply(lambda x: round(x, 13))
         flt_Nav = df_NAV[df_NAV['Share currency'] =='USD']['Price share CCY'].values[0]
@@ -848,9 +857,9 @@ def pcf_Nikko63(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df):
         shutil.copyfile(fl.fStr_BuildPath(str_modelfolder, str_modelFileName), str_path1)
         shutil.copyfile(fl.fStr_BuildPath(str_modelfolder, str_modelFileName_SGX), str_path2)
         # Fill in 
-        str_path0 = fl.fStr_fillXls_celByCel(str_path0, df_BasketFinal, '', 0, len(df_BasketFinal) - 41, 35)
-        str_path1 = fl.fStr_fillXls_celByCel(str_path1, df_FundFinal, '', 0, len(df_FundFinal) - 41, 35)
-        str_path2 = fl.fStr_fillXls_celByCel(str_path2, df_SGXfinal, '', 0, len(df_SGX) - 30, 40)
+        str_path0 = fl.fStr_fillXls_celByCel(str_path0, df_BasketFinal, '', 0, len(df_BasketFinal) - 41, 13)
+        str_path1 = fl.fStr_fillXls_celByCel(str_path1, df_FundFinal, '', 0, len(df_FundFinal) - 41, 13)
+        str_path2 = fl.fStr_fillXls_celByCel(str_path2, df_SGXfinal, '', 0, len(df_SGX) - 30, 22)
         l_pathAttach = [str_path0, str_path1, str_path2]
     except Exception as err:    return 'ERROR: 4. Create the files - {} | {}'.format(str_PCF, str(err)), []
 
@@ -2231,7 +2240,7 @@ def pcf_Nikko(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df):
         shutil.copyfile(str_modelfolder + str_modelFileName, str_folder + l_pcfFileName[0])
         i_len = len(df_BasketFinal) - 41
         if i_len != 0:      str_path = fl.fStr_fillXls_celByCel(str_folder + l_pcfFileName[0], df_BasketFinal, '', 0, i_len, 35)
-        else:               str_path = fl.fStr_fillXls_celByCel(str_folder + l_pcfFileName[0], df_BasketFinal)        
+        else:               str_path = fl.fStr_fillXls_celByCel(str_folder + l_pcfFileName[0], df_BasketFinal)
         l_path0 = [str_path]
         # B. FUND
         shutil.copyfile(str_modelfolder + str_modelFileName, str_folder + l_pcfFileName[1])

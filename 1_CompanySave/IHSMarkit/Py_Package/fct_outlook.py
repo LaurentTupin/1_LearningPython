@@ -3,6 +3,18 @@ import numpy as np
 import win32com.client as win32
 
 
+# WEBMAIL:
+# https://towardsdatascience.com/download-email-attachment-from-microsoft-exchange-web-services-automatically-9e20770f90ea
+
+
+
+
+
+
+
+
+
+
 #____________________________________________________________________________
 def fBl_SendMail_outlook(bl_draft = True, str_from = '', str_to='', str_cc='', str_bcc='', str_subject='', l_pathAttach=[], str_message=''):
     try:
