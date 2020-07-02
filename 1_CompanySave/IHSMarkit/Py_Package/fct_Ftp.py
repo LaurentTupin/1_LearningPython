@@ -1,7 +1,8 @@
 import os, datetime as dt, numpy as np
 import ftplib
 from ssl import SSLSocket
-import paramiko as pmiko
+try:    import paramiko as pmiko
+except: print('paramiko library is missing. Please Open Anaconda prompt and type the following: pip install paramiko')
 import fct_Files as fl
 
 

@@ -51,10 +51,22 @@ def producePCF(str_pcf, str_folderRoot, dte_date, bl_ArchiveMails = False):
         str_resultFigures, l_pathPcf = pcf_CATHAY(str_pcf, str_folderRoot, dte_date, str_resultFigures, dic_df)
     
     #-----------------------------------------------------------------
+    # Singapore
+    #-----------------------------------------------------------------
+    elif str_pcf == 'SG_EASY_MSCI':
+        str_resultFigures, l_pathPcf = pcf_sgEasyMsci(str_pcf, str_folderRoot, dte_date, str_resultFigures, dic_df)
+    
+    #-----------------------------------------------------------------
     # US
     #-----------------------------------------------------------------
     elif str_pcf == 'US_Harvest_China':
         str_resultFigures, l_pathPcf = pcf_Harvest(str_pcf, str_folderRoot, dte_date, str_resultFigures, dic_df)
+    
+    #-----------------------------------------------------------------
+    # Uk - London
+    #-----------------------------------------------------------------
+    elif str_pcf == 'UK_Phillip_Cap':
+        str_resultFigures, l_pathPcf = pcf_PhillipCap(str_pcf, str_folderRoot, dte_date, str_resultFigures, dic_df)
     
     #-----------------------------------------------------------------
     # HONG KONG - AM
@@ -604,6 +616,225 @@ def pcf_BglrSamsung(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df
 
 
 
+
+
+#------------------------------------------------------------------------------
+# Singapore
+#------------------------------------------------------------------------------
+def pcf_sgEasyMsci(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df):
+    # Dataframe
+    try:
+        df_1NavIndic = dic_df['fol_1Nav_Indicative']
+        df_2Val_Dmc = dic_df['out_2Val_Dmc']
+        #df_5FX = dic_df['sql_5FX']
+        str_folder =    dic_df['Folder']
+        l_pathAttach = []
+    except Exception as err:    return 'ERROR: Dataframe - {} | {}'.format(str_PCF, str(err)), []
+    
+    # 0. Define the perimeter
+    try:
+        df_lConfig = pd.read_csv(fl.fStr_BuildPath(str_folderRoot, r'SG_Easy\SgEasy_listPerimeter.csv'))
+    except Exception as err:    return 'ERROR: # 0. Define the perimeter - {} | {}'.format(str_PCF, str(err)), []
+    
+        
+    # 2. DividendReinvestOptions = 2
+    try:
+        df_lConfig_2 = df_lConfig.loc[df_lConfig['DividendReinvestOptions'] == 'FundRMethod2']
+        # DATE NAV
+        dte_navDate = df_1NavIndic[df_1NavIndic['Fund Code'] == 'LU1753045332']['Index Date'].values[0]
+        dte_navDate = dat.fDte_formatToDate(str(dte_navDate), '%d/%m/%Y')
+        # Input 3 : Compo
+        str_req = """exec spExcelGetComposition @Code = '<RIC>',@AsAtDate = '<DATE>', @RequestedSecurityType = 'Index',@DateType = 'Open'"""
+        d_CompoDf = pp.fDf_loopOnRic_SqlReq_SaveCsv(df_lConfig_2, str_req, dte_date, str_folder, '_comp')
+        # Input 4 : Corporate Actions
+        str_req = """SET NOCOUNT ON;            \n      IF OBJECT_ID ('tempdb..#Listing') IS NOT NULL DROP TABLE #Listing
+                    DECLARE @Filter BIGINT      \n      DECLARE @FamilyID BIGINT    \n      DECLARE @RIC NVARCHAR(50) = '<RIC>'
+                    SELECT @Filter = MIN(Filter) FROM vwIndexSummary WHERE Ric = @RIC
+                    SELECT @FamilyID = MIN(FamilyID) FROM vwIndexSummary WHERE Ric = @RIC
+                    SELECT @FamilyID = MIN(RefFamilyID) FROM tblFamily WHERE FamilyID = @FamilyID
+                    SELECT ListingID into #Listing FROM  tblConstituent c WHERE FamilyID = @FamilyID and FilterValue like @Filter 
+                    and CURRENT_TIMESTAMP BETWEEN StartDate AND EndDate
+                    SELECT s.Isin, s.Ric, ca.* 
+                    FROM tblDistribution ca   
+                    	JOIN vwSecurityListing s on ca.ListingID = s.ListingID
+                    	JOIN #Listing l ON l.ListingID = s.ListingID
+                    WHERE CorporateActionSetID = 1 AND ca.XdDate = '<DATE>'
+                    ORDER BY Ric asc, ca.XdDate desc
+                    IF OBJECT_ID ('tempdb..#Listing') IS NOT NULL DROP TABLE #Listing"""
+        d_CorpActDf = pp.fDf_loopOnRic_SqlReq_SaveCsv(df_lConfig_2, str_req, dte_navDate, str_folder, '_CA')
+        # Create Files for Output
+        d_param = {'df_lConfig': df_lConfig_2,  'df_1NavIndic': df_1NavIndic,   'df_2Val_Dmc': df_2Val_Dmc,     'd_CompoDf': d_CompoDf,
+                   'd_CorpActDf': d_CorpActDf,  'dte_date': dte_date,       'dte_navDate': dte_navDate, 'str_folder': str_folder}
+        l_pathAttach_2 = pp.fDf_loopOnRic_CreateFile(d_param)
+    except Exception as err:    return 'ERROR: 2. DividendReinvestOptions = 2 - {} | {}'.format(str_PCF, str(err)), []
+    
+    
+    
+    
+    
+    l_pathAttach = l_pathAttach_2
+    l_pathAttach = [path.replace(str_folderRoot, '') for path in l_pathAttach]
+    
+    return str_resultFigures, l_pathAttach
+#___________________________________________________________________________________________
+
+
+
+
+
+#------------------------------------------------------------------------------
+# UK - London
+#------------------------------------------------------------------------------
+def pcf_PhillipCap(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df):
+    # Dataframe
+    try:
+        try:        df_COMPO = dic_df['ZIP_Compo']
+        except:     df_COMPO = dic_df['FOL_Compo']
+        try:        df_FX = dic_df['ZIP_FX']
+        except:     df_FX = dic_df['FOL_FX']
+        df_NAV =    dic_df['FOL_NAV']
+        df_FundDiv= dic_df['SQL_FundDiv']
+        df_PAF =    dic_df['SQL_PAF']
+        str_folder= dic_df['Folder']
+    except Exception as err:    return 'ERROR: Dataframe - {} | {}'.format(str_PCF, str(err)), []
+    
+    l_pcfFileName = ['Phillip SGX FX_{}.xlsx'.format(dte_date.strftime('%Y%m%d')),
+                     'Phillip SGX_{}.xls'.format(dte_date.strftime('%Y%m%d'))]
+    
+    # 1. Variables
+    try:
+        str_DivDate = dat.fDat_GetCorrectOffsetDate_Calendar(dte_date,'%Y%m%d', 1, 367, bl_Backward = False)
+        str_pcfDate = dat.fDat_GetCorrectOffsetDate_Calendar(dte_date,'%d/%m/%Y', 1, 367, bl_Backward = False)
+        df_NAV.columns = ['Date','CODE','Units','Bid_Price']
+        flt_Nav = df_NAV[df_NAV['CODE'] == 'SG1DB9000009']['Bid_Price'].values[0]
+        flt_share = df_NAV[df_NAV['CODE'] == 'SG1DB9000009']['Units'].values[0]
+        int_CreationUnits = 50000
+        if len(df_FundDiv) > 0:     
+            flt_FundDiv = df_FundDiv['NetAmount'].sum()
+            flt_Nav = (flt_Nav - flt_FundDiv)
+        if len(df_PAF) > 0:         
+            flt_PAF = df_PAF['PriceAdjustmentFactor'].sum()
+            flt_Nav = flt_Nav * flt_PAF
+            flt_share = flt_share / flt_PAF
+    except Exception as err:    return 'ERROR: 1. Variables - {} | {}'.format(str_PCF, str(err)), []
+    
+    # 2. reform Holdings DF
+    try:
+        # just take some rows of your Compo DATAFRAME
+        df_COMPO.columns = ['Company Name', 'Quantity', 'Currency', 'Unit Cost', 'Book Value', 'Price', ' Market Value',
+                            'Accrued', 'Total Market', 'Total G/L', 'Col11', 'RIC', 'ISIN']
+        int_endCompo = int(pd.DataFrame([i for i, x in enumerate(df_COMPO['Company Name'] == 'TOTAL ORDINARY SHARES') if x]).iloc[0])
+        df_COMPO = dframe.fDf_CleanPrepareDF(df_COMPO.iloc[10:int_endCompo], l_colToDropNA = ['Quantity'], 
+                                             l_colToBeFloat = ['Quantity','Price'], l_colSort = ['ISIN'])
+        df_COMPO['ISIN'] = df_COMPO['ISIN'].str.upper()
+        # Add new columns
+        df_COMPO['Shares (Basket)'] = ((df_COMPO['Quantity'] / (flt_share / int_CreationUnits)).apply(np.trunc)).astype(int)
+    except Exception as err:    return 'ERROR: 2. reform Holdings DF - {} | {}'.format(str_PCF, str(err)), []
+    
+    # 2.2 Check Error on Input files
+    try:
+        for it_comp in range(len(df_COMPO)):
+            if len(df_COMPO['ISIN'].iloc[it_comp]) != 12:
+                print('  ERROR: The ISIN column in the vendor file contains a non valid ISIN identifier (more than 12 char)')
+                print('  * No output has been generated')
+                print('  - Value that caused the error: {}'.format(str(df_COMPO['ISIN'].iloc[it_comp])))
+                return str_resultFigures, []
+    except Exception as err:    return 'ERROR: 2.2 Check Error on Input files - {} | {}'.format(str_PCF, str(err)), []
+    
+    # 3. Reform FX DF
+    try:
+        # just take some rows of your Compo DATAFRAME
+        int_lenCol = len(df_FX.columns)
+        df_FX.columns = ['1', 'Currency', 'Description', 'Close_Price', 'Exchange Rate', 'Fx_secondary', ' Date'][:int_lenCol]
+        df_FX = df_FX[['Currency','Exchange Rate']].copy()
+        df_FX['Currency'].replace(['SGD=', 'HKD=', 'AUD=', 'CNY=', 'THB='], ['SGD', 'HKD', 'AUD', 'CNY', 'THB'], inplace=True)
+        df_FX = dframe.fDf_DropRowsIfNa_resetIndex(df_FX, ['Exchange Rate'])
+        print(df_FX.dtypes)
+        df_FX = dframe.fDf_fillColUnderCondition(df_FX, 'Exchange Rate', lambda x:1/x, 'Currency', 'AUD', True)
+        df_FX.loc[len(df_FX)] = ['USD',1.0]
+        df_COMPO = dframe.fDf_JoinDf(df_COMPO, df_FX, 'Currency', 'left')
+    except Exception as err:    return 'ERROR: 3. reform FX DF - {} | {}'.format(str_PCF, str(err)), []
+    
+    # 4. Dividend & Change df_COMPO
+    try:
+        df_codePivot = pp.fDf_phillipCap_GetPivotCode_wDiv(df_COMPO, 'RIC', str_folder + 'raw', 
+                                                           'PivotCode_uk_PhilippCap.csv', str_DivDate)
+        df_COMPO = pd.merge(df_COMPO, df_codePivot, on = 'RIC', how = 'left')
+        df_COMPO['AdjustedPrice'] = df_COMPO['Price'] - df_COMPO['GrossAmount']
+        df_COMPO['1_col'] = ''
+        df_COMPO = df_COMPO[['1_col','Company Name', 'Currency', 'AdjustedPrice', 'Shares (Basket)',
+                             'ISIN', 'Sedol', 'RIC', 'Bloomberg', 'Exchange Rate', 'Quantity']].copy()
+    except Exception as err:    return 'ERROR: 4. Dividend & Change df_COMPO - {} | {}'.format(str_PCF, str(err)), []
+    
+    # 5. Re-Made FX
+    try:
+        df_Forex = dframe.fDf_FilterOnCol(df_FX, 'Currency', ['AUD', 'CNY', 'HKD', 'SGD', 'THB'])
+        df_Forex['Close Date'] = dte_date.strftime("%m/%d/%Y")
+        df_Forex['Currency Code'] = df_Forex['Currency']
+        df_Forex['From Currency'] = df_Forex['Currency']
+        # Dont know how to do ...
+        df_Forex = dframe.fDf_fillColUnderCondition(df_Forex, 'From Currency', 'Australian Dollar', 'Currency', 'AUD')
+        df_Forex = dframe.fDf_fillColUnderCondition(df_Forex, 'From Currency', 'Chinese Renminbi', 'Currency', 'CNY')
+        df_Forex = dframe.fDf_fillColUnderCondition(df_Forex, 'From Currency', 'Hong Kong Dollar', 'Currency', 'HKD')
+        df_Forex = dframe.fDf_fillColUnderCondition(df_Forex, 'From Currency', 'Singapore Dollar', 'Currency', 'SGD')
+        df_Forex = dframe.fDf_fillColUnderCondition(df_Forex, 'From Currency', 'Thai Baht', 'Currency', 'THB')
+        df_Forex = df_Forex[['From Currency', 'Currency Code','Exchange Rate', 'Close Date']].copy()
+        df_Forex.sort_values('From Currency', inplace = True)
+    except Exception as err:    return 'ERROR: 5. FX out - {} | {}'.format(str_PCF, str(err)), []
+    
+    # 6. From Final File
+    try:
+        # MARKET CAP
+        flt_MarketCap = (df_COMPO['AdjustedPrice'] * df_COMPO['Shares (Basket)'] * df_COMPO['Exchange Rate']).sum()
+        # HEADER LEVEL OUTPUT
+        df_PCFHeader = pd.DataFrame(columns = range(3))
+        df_PCFHeader.loc[0] = ['', '', '']
+        df_PCFHeader.loc[1] = ['', '', '']
+        df_PCFHeader.loc[2] = ['', 'Phillip Capital', '']
+        df_PCFHeader.loc[3] = ['', '', '']
+        df_PCFHeader.loc[4] = ['', 'Indicative Creation / Redemption basket Composition for trade date', str_pcfDate]
+        df_PCFHeader.loc[5] = ['', '', '']
+        df_PCFHeader.loc[6] = ['', 'FUND INFORMATION', '']
+        df_PCFHeader.loc[7] = ['', 'Fund Name', 'PHILLIP SGX APAC DIVIDEND LEADERS REIT ETF']
+        df_PCFHeader.loc[8] = ['', 'ISIN', 'SG1DB9000009']
+        df_PCFHeader.loc[9] = ['', 'BBG Ticker', 'PAREIT SP Equity']
+        df_PCFHeader.loc[10] = ['', 'Reuters', 'PHIL.SI']
+        df_PCFHeader.loc[11] = ['', 'Fund Currency', 'USD']
+        df_PCFHeader.loc[12] = ['', 'NAV per Share', flt_Nav]
+        df_PCFHeader.loc[13] = ['', 'Number of Fund Shares in Issue', flt_share]
+        df_PCFHeader.loc[14] = ['', 'Total NAV of Basket', flt_Nav * int_CreationUnits]
+        df_PCFHeader.loc[15] = ['', 'Estimated Cash Position of Basket', round((flt_Nav * int_CreationUnits) - (flt_MarketCap), 2)]
+        df_PCFHeader.loc[16] = ['', 'Creation Redemption', int_CreationUnits]
+        df_PCFHeader.loc[17] = ['', '', '']
+        # ADD a title row
+        df_COMPO.columns = ['', 'Company Name', 'Currency', 'Price', 'Shares (Basket)', 'ISIN', 'SEDOL', 
+                            'RIC', 'Bloomberg', 'FX Rate', 'Shares (Fund)']
+        # CONCAT
+        df_PCF = dframe.fDf_Concat_wColOfDf1(df_PCFHeader, df_COMPO, bl_colDf2_AsARow = True)
+    except Exception as err:    return 'ERROR: 6. From Final File - {} | {}'.format(str_PCF, str(err)), []
+    
+    # 7. Create the files
+    try:
+        # FX
+        str_path0 = fl.fStr_BuildPath(str_folder, l_pcfFileName[0])
+        str_path0 = fl.fStr_createExcel_1Sh(str_path0, '', df_Forex, bl_header = True)
+        fl.fStr_StyleIntoExcel(str_path0, str_styleName = 'Border_Header', l_border = ['thin', 'FF000000'])                                                             
+        # PCF 
+        str_path1 = fl.fStr_BuildPath(str_folder, l_pcfFileName[1])
+        str_path1 = fl.fStr_createExcel_1Sh(str_path1, '', df_PCF)
+        l_pathAttach = [str_path0, str_path1]
+    except Exception as err:    return 'ERROR: 7. Create the files - {} | {}'.format(str_PCF, str(err)), []
+
+    l_pathAttach = [path.replace(str_folderRoot, '') for path in l_pathAttach]
+
+    return str_resultFigures, l_pathAttach
+#___________________________________________________________________________________________
+
+
+
+
+
+
 #------------------------------------------------------------------------------
 # US
 #------------------------------------------------------------------------------
@@ -625,8 +856,8 @@ def pcf_Harvest(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df):
         # You need to do a Model of xlsx file that would be the model for all your pcf created: ModelHarvest.xlsx
         str_modelfolder = fl.fStr_BuildPath(str_folderRoot, 'US_Harvest')
         str_modelFileName = 'ModelHarvest.xlsx'
-        l_pcfFileName = ['PCF Final file Name number 1' + dte_date.strftime('%Y%m%d') + '.xlsx', 
-                         'PCF Final file Name number 2' + dte_date.strftime('%Y%m%d') + '.xlsx']
+        l_pcfFileName = ['PCF Final file Name number 1{}.xlsx'.format(dte_date.strftime('%Y%m%d')), 
+                         'PCF Final file Name number 2.xlsx'.format(dte_date.strftime('%Y%m%d'))]
         #==============================================
     except Exception as err:    return 'ERROR: 0. define Model - {} | {}'.format(str_PCF, str(err)), []
     
@@ -732,7 +963,8 @@ def pcf_Nikko63(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df):
         # Model Path
         str_modelfolder = fl.fStr_BuildPath(str_folderRoot, 'HK_Nikko')
         if '63' in str_PCF:
-            str_modelFileName = 'Nikko63_model.xlsx'
+            str_modelFileName = 'Nikko63_model_Basket.xlsx'
+            #str_modelFileName_fund = 'Nikko63_model_Fund.xlsx'
             str_modelFileName_SGX = 'Nikko63_SGX.xlsx'
             l_pcfFileName = ['NikkoAM E-Games Active ETF - Basket - ' + dte_navDate.strftime('%Y%m%d') + '.xlsx', 
                              'NikkoAM E-Games Active ETF - Fund - ' + dte_navDate.strftime('%Y%m%d') + '.xlsx',
@@ -760,8 +992,8 @@ def pcf_Nikko63(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df):
         df_HOLD.columns = ['GTI', 'Name','Isin','Sedol','Ccy','Qty','Price','Fx', 'Fund_MktCap']
         df_HOLD = df_HOLD.fillna(value = '').copy()
         # Split between HOLDINGS and Cash
-        df_Holdings =   df_HOLD[df_HOLD['Isin'] != '']
-        df_Cash =       df_HOLD[df_HOLD['Isin'] == '']
+        df_Holdings =   df_HOLD[df_HOLD['Isin'] != ''].copy()
+        df_Cash =       df_HOLD[df_HOLD['Isin'] == ''].copy()
         if len(df_Cash[df_Cash['GTI'].str.startswith('S', na = False)]) > 0:
             print(' WARNING in pcf_Nikko63: Cash has holdings')
             print(df_Cash[df_Cash['GTI'].str.startswith('S', na = False)])
@@ -778,6 +1010,9 @@ def pcf_Nikko63(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df):
             print(' WARNING in pcf_Nikko63: holdings has empty GTI')
             print(df_Holdings[df_Holdings['GTI'] == ''])
         df_Holdings.reset_index(drop = True, inplace = True)
+        # Sort by Isin (June 2020)
+        if '63' in str_PCF:
+            df_Holdings.sort_values('Isin', inplace=True)
     except Exception as err:    return 'ERROR: 20. reform Holdings DF - {} | {}'.format(str_PCF, str(err)), []
     # 21. Build Df on Basket
     try:
@@ -801,11 +1036,13 @@ def pcf_Nikko63(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df):
         df_SGX = dframe.fDf_InsertColumnOfIndex(df_SGX, 1, 0)
         df_SGX['Price'] = df_SGX['Price'].apply(lambda x : round(x,6))
         df_SGX = df_SGX[['ind', 'Name','Ccy','Price','Qty_basket','Isin','Sedol','Fx']]
-        # Back to normal basket: Fill the last ROW ...
+    except Exception as err:    return 'ERROR: # 22. SGX customization - {} | {}'.format(str_PCF, str(err)), []
+    # 23. Finish Basket (select columns only now because other columns were necessary for SGX)
+    try:
         df_Basket = df_Basket[['Name','Isin','Sedol','Ccy','Qty_basket','Price','Basket_MktCap','Weight']].copy()
         df_Basket.loc[len(df_Basket)] = ['CASH COMPONENT','NIL','NIL','USD',str(flt_BasketCash),'0',str(flt_BasketCash),str(flt_BasketCashWeight)]
-    except Exception as err:    return 'ERROR: # 22. SGX customization - {} | {}'.format(str_PCF, str(err)), []
-    # 22. Build Df on Fund
+    except Exception as err:    return 'ERROR: # 23. Finish Basket - {} | {}'.format(str_PCF, str(err)), []
+    # 24. Build Df on Fund
     try:
         df_Fund = df_Holdings[['Name','Isin','Sedol','Ccy','Qty','Price','Fund_MktCap']].copy()
         df_Fund['Qty'] = df_Fund['Qty'].apply(lambda x: math.floor(x))
@@ -817,11 +1054,11 @@ def pcf_Nikko63(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df):
             print('  ***  Warning : AUM is not the same from source')
             print('  ***  flt_aum: ', flt_aum)
             print('  ***  flt_aum2: ', flt_aum2)
+        # To Fill the last ROW ...
         flt_FundCash = flt_aum2 - flt_FundMarketCap
         flt_FundCashWeight = flt_FundCash / flt_aum       
-        # To Fill the last ROW ...
         df_Fund.loc[len(df_Fund)] = ['CASH COMPONENT','NIL','NIL','USD', str(flt_FundCash),'0', str(round(flt_FundCash, 2)), str(flt_FundCashWeight)]
-    except Exception as err:    return 'ERROR: 22. Build Df on Fund - {} | {}'.format(str_PCF, str(err)), []
+    except Exception as err:    return 'ERROR: 24. Build Df on Fund - {} | {}'.format(str_PCF, str(err)), []
     
     # 3. Build last DF from Model
     try:
@@ -841,9 +1078,12 @@ def pcf_Nikko63(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df):
         df_SGXfinal.iloc[14, 2] = str(int_CreationUnits)
         df_SGXfinal.iloc[15, 2] = str(flt_BasketCash)
         # CONCAT
-        df_FundFinal =  dframe.fDf_Concat_wColOfDf1(df_Final.loc[:9], df_Fund)
-        if '63' in str_PCF:         df_Final.iloc[6, 1] = str(flt_aum_share)                # Exception for 63
         df_BasketFinal= dframe.fDf_Concat_wColOfDf1(df_Final.loc[:9], df_Basket)
+        df_FundFinal =  dframe.fDf_Concat_wColOfDf1(df_Final.loc[:9], df_Fund)
+        # Exception for 63
+        if '63' in str_PCF:
+            df_FundFinal.iloc[6, 0] = 'Asset Under Management (Total fund)'
+            df_FundFinal.iloc[6, 1] = str(flt_aum_share)        
         df_SGXfinal =  dframe.fDf_Concat_wColOfDf1(df_SGXfinal.loc[:18], df_SGX)
     except Exception as err:    return 'ERROR: 3. Build last DF from Model - {} | {}'.format(str_PCF, str(err)), []
 
@@ -939,7 +1179,7 @@ def pcf_EasyFi(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df):
 
 
 
-def IsDateMatching_WT(dte_NAVDate, df_IndexValue, df_FX):
+def IsDateMatching(dte_NAVDate, df_IndexValue, df_FX):
     # Index date
     dte_IndexDate = df_IndexValue.loc[df_IndexValue['Index'] == 'Date', 'BNPIC52T'].values[0]
     dte_IndexDate = dat.fDte_formatToDate(dte_IndexDate, '%d-%b-%Y')
@@ -991,14 +1231,14 @@ def pcf_EasyComo(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df):
         else:
             dte_NAVDate = dte_NAVDate_LU1291109533
         # LOOP until we match the Date
-        if not IsDateMatching_WT(dte_NAVDate, df_IndexValue_dm2, df_FX_dm2):
+        if not IsDateMatching(dte_NAVDate, df_IndexValue_dm2, df_FX_dm2):
             l_listPast = ['3', '4', '5']
             for str_i in l_listPast:
                 str_indexID = 'OUT_INDEXVALUE_Dm{}'.format(str_i)
                 str_fxID = 'Como_sql_FX_dm{}'.format(str_i)
                 df_IndexValue_dm2 = dic_df[str_indexID]
                 df_FX_dm2 = dic_df[str_fxID]
-                if IsDateMatching_WT(dte_NAVDate, df_IndexValue_dm2, df_FX_dm2):
+                if IsDateMatching(dte_NAVDate, df_IndexValue_dm2, df_FX_dm2):
                     print('We found the right date for D minus {0}: {1}'.format(str_i, dte_NAVDate))
                     break
                 else:
@@ -2457,7 +2697,7 @@ def pcf_SAM_ICE(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df):
         
         # Take the list in the DF... DELETE the enpty rows
         df_PCF_2812_list = df_PCF_2812.loc[21:].copy()
-        df_PCF_2812_list.dropna(axis = 'index', subset = ['Unnamed: 2'], inplace = True)        
+        df_PCF_2812_list.dropna(axis = 'index', subset = ['Unnamed: 2'], inplace = True)
         int_nbRow = len(df_PCF_2812_list)
     except: return 'ERROR: PCF_2812 Define variables - {}'.format(str_PCF), []
     

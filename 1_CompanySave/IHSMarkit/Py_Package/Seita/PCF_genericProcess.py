@@ -348,13 +348,33 @@ def pcf_sendMail(dte_date, l_pathAttach, str_pcf, str_MailType, bl_draft):
 #-----------------------------------------------------------------
 # Code Pivot
 #-----------------------------------------------------------------
+def fDf_phillipCap_GetPivotCode_wDiv(df_Compo, str_colName, str_folder, str_fileName, str_date):
+    try:
+        # Pivot Code
+        l_ric = df_Compo[str_colName].tolist()
+        str_req =  """{0}{1} SELECT Ric AS [{2}],Isin,Bloomberg,Sedol,ISNULL(XdDate,'{4}'),ISNULL(Sum(GrossAmount), 0) as GrossAmount
+                        {1} FROM tblCodePivot sp {1} LEFT JOIN tblDistribution d on d.ListingID = sp.ListingID 
+                            and CorporateActionTypeID in (1,2,69) {1} and CorporateActionSetID = 1
+                            and XdDate = '{4}'
+                        {1} WHERE Ric in ('{3}') 
+                        {1} GROUP BY Ric,Isin,Bloomberg,Sedol,sp.ListingID,XdDate {1} order by Isin
+                        """.format('SET NOCOUNT ON;', '\n', str_colName, "','".join(l_ric), str_date)
+        df_codePivot = db.fDf_GetRequest_or_fromCsvFile(str_req, str_fileName, 1, str_folder)
+        df_codePivot.fillna(value = '', inplace = True)
+    except: 
+        print('ERROR fDf_phillipCap_GetPivotCode_wDiv')
+        raise
+    return df_codePivot
+
+
+
 def WisdomTree_GetPivotCode(df_Compo, str_colName, str_folder, str_fileName):
     try:
         # Pivot Code
         l_bbg = df_Compo[str_colName].tolist()
-        str_req =  "{0} SELECT Bloomberg AS [{1}], CurrentName, Mic, CurrencyCode, Ric ".format('SET NOCOUNT ON; \n', str_colName)
-        str_req += "{0} FROM SolaDBServer..tblCodePivot ".format('\n')
-        str_req += "{0} WHERE Bloomberg IN ('{1}') ".format('\n', "','".join(l_bbg))
+        str_req =  """{0}{1} SELECT Bloomberg AS [{2}], CurrentName, Mic, CurrencyCode, Ric 
+                        {1} FROM SolaDBServer..tblCodePivot {1} WHERE Bloomberg IN ('{3}') 
+                        """.format('SET NOCOUNT ON;', '\n', str_colName, "','".join(l_bbg))
         df_codePivot = db.fDf_GetRequest_or_fromCsvFile(str_req, str_fileName, 1, str_folder)
         df_codePivot.fillna(value = '', inplace = True)
     except: 
@@ -585,13 +605,18 @@ def f2Flt_rollover(dte_date):
 
 def fStr_ZipFilePath(df_Param, row, dte_date, str_folderRoot):
     # Replace Date
-    str_folderDate = str(df_Param.loc[row, 'folderDate'])
+    str_folderDateFormat = str(df_Param.loc[row, 'folderDate'])
+    str_dteFormat_DirSource = str(df_Param.loc[row, 'dteFormat_DirSource'])
     folderDateOffset = df_Param.loc[row, 'folderDateOffset']
     CalendarID = df_Param.loc[row, 'DateCalendarID']
-    str_Zip_Date = dat.fDat_GetCorrectOffsetDate_Calendar(dte_date, str_folderDate, int(folderDateOffset), str(CalendarID))
-    str_ZipPath = df_Param.loc[row, 'Dir_Source'].replace('{folderDate}', str_Zip_Date)
+    str_Zip_Date = dat.fDat_GetCorrectOffsetDate_Calendar(dte_date, str_dteFormat_DirSource, int(folderDateOffset), str(CalendarID))
+    str_folderDate = dat.fDat_GetCorrectOffsetDate_Calendar(dte_date, str_folderDateFormat, int(folderDateOffset), str(CalendarID))
+    str_ZipPath = df_Param.loc[row, 'Dir_Source']
+    str_ZipPath = str_ZipPath.replace('{dteFormat_DirSource}', str_Zip_Date)
+    str_ZipPath = str_ZipPath.replace('{folderDate}', str_folderDate)
     # Put root folder or not
-    if not str_ZipPath[:2] == '\\\\': str_ZipPath = str_folderRoot + str_ZipPath
+    str_ZipPath = fl.fStr_BuildFolder_wRoot(str_ZipPath, str_folderRoot)
+    #if not str_ZipPath[:2] == '\\\\': str_ZipPath = str_folderRoot + str_ZipPath
     # Replace the XXXX in the string
     str_folder = '\\'.join(str_ZipPath.split('\\')[:-1]) + '\\'
     str_fileName = str_ZipPath.split('\\')[-1]
@@ -608,83 +633,52 @@ def fStr_ZipFilePath(df_Param, row, dte_date, str_folderRoot):
 #-----------------------------------------------------------------------------------------------------
 def Act_DownFiles_outlook(df_Param, row, str_folderRaw, str_FileName, bl_ArchiveMails):
     # Param
-    str_outlook_Acct = str(df_Param.loc[row, 'outlook_Acct'])
-    str_outlook_mailBox = str(df_Param.loc[row, 'outlook_mailBox'])
-    str_outlook_folder = str(df_Param.loc[row, 'outlook_folder'])
-    str_outlook_folderToArchive = str(df_Param.loc[row, 'outlook_folderToArchive'])
-    str_outlook_subject = str(df_Param.loc[row, 'outlook_subject'])
+    str_outlkAcctName = str(df_Param.loc[row, 'outlook_Acct'])
+    str_outlkMailbox = str(df_Param.loc[row, 'outlook_mailBox'])
+    str_folder = str(df_Param.loc[row, 'outlook_folder'])
+    str_folderToArchive = str(df_Param.loc[row, 'outlook_folderToArchive'])
+    str_mailSubject = str(df_Param.loc[row, 'outlook_subject'])
     str_to = str(df_Param.loc[row, 'outlook_To'])
     str_cc = str(df_Param.loc[row, 'outlook_Cc'])
     str_ExactName = str(df_Param.loc[row, 'File_ExactName'])
     int_File_startW = df_Param.loc[row, 'File_startW']
     int_File_endW = df_Param.loc[row, 'File_endW']
-    l_files = []
-    if not str_ExactName.lower() == 'true':
+    if str_ExactName.lower() == 'true':
+        str_File_startW = str_FileName
+        str_File_endW = ''
+    else:
         str_File_startW = str_FileName[:int(int_File_startW)]
         if int_File_endW == 0:          str_File_endW = ''
         else:                           str_File_endW = str_FileName[-int(int_File_endW):]
     
-    # Get Mails (ALL of them, can be very heavy)
-    o_mails, o_folderToMove = out.fMail_getMails(str_outlook_Acct, str_outlook_mailBox, str_outlook_folder, str_outlook_folderToArchive)
-    if o_mails == False: 
-        print(' EMPTY: Cannot Get Mails')
-        print(' - ', str_outlook_Acct, str_outlook_mailBox, str_outlook_folder, str_outlook_folderToArchive)
-        return False
-    
-    # Filter the Mail: Filter with the criteria: SUbject + Name of Attach... + Sort more Recent
-    if str_ExactName.lower() == 'true':
-        l_mail = out.fMail_GetMailWithAttach(o_mails, str_outlook_subject, str_to, str_cc, str_FileName)
-    else:
-        l_mail = out.fMail_GetMailWithAttach(o_mails, str_outlook_subject, str_to, str_cc, '', str_File_startW, str_File_endW)
-        #    # Filter on Subject and take most Recent mail
-        #    if str_ExactName.lower() == 'true': 
-        #        l_mail = out.fMail_getmail_mostRecent(o_mails, [str_outlook_subject], str_to, str_cc, str_FileName)
-        #    else: l_mail = out.fMail_getmail_mostRecent(o_mails, [str_outlook_subject], str_to, str_cc, '')
-    
+    # With Class, version Jun 2020
+    inst_outlookMail = out.c_outlookMail()
+    inst_outlookMail.outlk_DefineOutlook('MAPI')
+    inst_outlookMail.outlk_getAccount(str_outlkAcctName)
+    inst_outlookMail.outlk_DefineFolder(str_outlkMailbox, [str_folder])
+    inst_outlookMail.outlk_GetMails()
+    inst_outlookMail.outlk_FilterMails(str_mailSubject, str_to, str_cc, str_File_startW, str_File_endW)
     #==============================================================================================
     # If the Mail cannot be found, We search in Inbox (and move it to the right folder using the Archive functionality)
-    if l_mail == False and str_outlook_folder!= '' :
-        print(' EMPTY: Cannot Get Most Recent Mails')
-        print(' -> We will search in MailBox: #', str_outlook_mailBox, '#')
+    if inst_outlookMail.o_mails == False and str_folder != '':
+        print(' EMPTY: Cannot Get the Mail in the folder {}'.format(str_folder))
+        print(' -> We will search in MailBox: #', str_outlkMailbox, '#')
         bl_ArchiveMails = True
-        str_outlook_folderToArchive = str_outlook_folder
-        str_outlook_folder = ''
-        # Get Mails
-        o_mails, o_folderToMove = out.fMail_getMails(str_outlook_Acct, str_outlook_mailBox, str_outlook_folder, str_outlook_folderToArchive)
-        # Filter the Mail: Filter with the criteria: SUbject + Name of Attach... + Sort more Recent
-        if str_ExactName.lower() == 'true': 
-            l_mail = out.fMail_GetMailWithAttach(o_mails, str_outlook_subject, str_to, str_cc, str_FileName)
-        else: 
-            l_mail = out.fMail_GetMailWithAttach(o_mails, str_outlook_subject, str_to, str_cc, '', str_File_startW, str_File_endW)
-        #        # Filter on Subject and take most Recent mail
-        #        if str_ExactName.lower() == 'true': 
-        #            l_mail = out.fMail_getmail_mostRecent(o_mails, [str_outlook_subject], str_to, str_cc, str_FileName)
-        #        else: l_mail = out.fMail_getmail_mostRecent(o_mails, [str_outlook_subject], str_to, str_cc)       
+        str_folderToArchive = str_folder
+        str_folder = ''
+        inst_outlookMail.outlk_DefineFolder(str_outlkMailbox, [str_folder])
+        inst_outlookMail.outlk_GetLastMails()
+        inst_outlookMail.outlk_FilterMails(str_mailSubject, str_to, str_cc, str_File_startW, str_File_endW)
     #==============================================================================================
-    
-    if not l_mail: 
-        print(' EMPTY: Mails Filtrered this way returned empty, Subject: {}, Attach: {}'.format(str_outlook_subject, str_FileName))
-        return False
-    
-    # Download PJ
-    if str_ExactName.lower() == 'true':
-        l_files = out.fBl_downMailAttch2(str_folderRaw, l_mail, str_FileName)
-    else:
-        l_files = out.fBl_downMailAttch2(str_folderRaw, l_mail, str_File_startW, str_File_endW)
-    
-    if not l_files:
-        print(' EMPTY: Cannot download Attach from mail')
-        print(' - Mail Subject: ' + str_outlook_subject)
-        print(' - Outlook Folder: ' + str_outlook_folder)
-        return False
-        #    # Rename the file - RENAMING
-        #    if not str_ExactName.lower() == 'true':
-        #        str_file = str(l_files[0])
-        #        fl.Act_Rename(str_folderRaw, str_file, str_FileName)
+    inst_outlookMail.outlk_GetLatestMail()
+    inst_outlookMail.outlk_DownloadEmailsPJ(str_folderRaw, str_File_startW, str_File_endW)
     # Archive PJ
     if bl_ArchiveMails:
-        bl_success = out.fBl_archiveMail(l_mail, o_folderToMove)
-        if not bl_success: print('Cannot Archive mail')
+        inst_outlookMail.outlk_DefineArchiveFolder([str_folderToArchive])
+        inst_outlookMail.outlk_ArchiveEmail()
+    # END
+    if inst_outlookMail.l_docDownloaded == []:
+        return False
     return True
 
 
@@ -786,13 +780,13 @@ def Act_DownFiles_FTP(df_Param, row, str_folderRaw, str_FileName, str_FileDownlo
 
 
 #------------------------------------------------------------------------------------------------------------------------------------
-def Act_DownFiles_SQL(df_Param, row, str_folderRaw, str_FileName,  dte_date):
+def Act_DownFiles_SQL(df_Param, row, str_folderRaw, str_FileName, dte_date, bl_EmptyMessage = True):
     # Param
     str_PCF = str(df_Param.loc[row, 'PCF'])
     str_req = fStr_generateSQLReq(df_Param, row, dte_date)
     # Execute Req
     try:
-        df_sql = db.db_SelectReq(str_req)
+        df_sql = db.db_SelectReq(str_req, bl_EmptyMessage = bl_EmptyMessage)
     except:
         print('     ERROR in Act_DownFiles_SQL: We could not execute the SQL in PCF: ', str_PCF)
         print('     - ', str_req)
@@ -853,9 +847,10 @@ def Act_DownFiles(df_Param, row, str_folderRaw, str_FileName, dte_date, str_fold
         # Folder
         elif str_FileDownloadMode == 'FOLDER':
             try:
-                str_pathSource = df_Param.loc[row, 'Dir_Source'].replace('{folderDate}', 
-                                             (dte_date + BDay(int(df_Param.loc[row, 'DateOffset']))).strftime(df_Param.loc[row, 'folderDate']))
-                if not str_pathSource[:2] == '\\\\': str_pathSource = str_folderRoot + str_pathSource
+                str_pathSource = df_Param.loc[row, 'Dir_Source'].replace('{dteFormat_DirSource}', 
+                                             (dte_date + BDay(int(df_Param.loc[row, 'DateOffset']))).strftime(df_Param.loc[row, 'dteFormat_DirSource']))
+                str_pathSource = fl.fStr_BuildFolder_wRoot(str_pathSource, str_folderRoot)
+                #if not str_pathSource[:2] == '\\\\': str_pathSource = str_folderRoot + str_pathSource
                 # Name of the file with XX
                 try:
                     if str_FileName.count('{') and str_FileName.count('}') > 0 :
@@ -887,7 +882,11 @@ def Act_DownFiles(df_Param, row, str_folderRaw, str_FileName, dte_date, str_fold
         # SQL
         elif str_FileDownloadMode == 'SQL':
             bl_success = Act_DownFiles_SQL(df_Param, row, str_folderRaw, str_FileName, dte_date)
-            if not bl_success: return False        
+            if not bl_success: return False
+        # SQL
+        elif str_FileDownloadMode == 'SQL_noMsg':
+            bl_success = Act_DownFiles_SQL(df_Param, row, str_folderRaw, str_FileName, dte_date, bl_EmptyMessage = False)
+            if not bl_success: return False
         # ZIP
         elif str_FileDownloadMode == 'ZIP':
             bl_success = Act_DownFiles_ZIP(df_Param, row, str_folderRaw, str_FileName, dte_date, str_folderRoot)
@@ -1088,7 +1087,9 @@ def fDf_getDfFromDownloaded(df_Param, row, str_folderRaw, str_FileName, bl_heade
                 ## Do note that this will cause the offending lines to be skipped.
                 #df_data = pd.read_csvstr_path, header = bl_header, error_bad_lines = False)
                 df_data = 1
-            elif 'WISDOMTREEUCITS_BSKT' in str_FileName.upper() :
+            elif 'FX 5.30PM' in str_FileName.upper():
+                df_data = pd.read_csv(str_path, header = bl_header, skiprows = 1)
+            elif 'WISDOMTREEUCITS_BSKT' in str_FileName.upper():
                 df_data = pd.read_csv(str_path, header = bl_header, skiprows = 8)
             else:
                 df_data = pd.read_csv(str_path, header = bl_header)
@@ -1158,7 +1159,8 @@ def fStr_generateFolderRaw(df_Param, row, str_folderRoot, dte_date):
     str_NewDate = dat.fDat_GetCorrectOffsetDate_Calendar(dte_date, str_folderDate, int(folderDateOffset), str(CalendarID))
     # Build the Folder
     str_folderRaw = str_Dir_Dest.replace('{folderDate}', str_NewDate)
-    if str_Dir_Dest[:2] != '\\\\': str_folderRaw = str_folderRoot + str_folderRaw
+    str_folderRaw = fl.fStr_BuildFolder_wRoot(str_folderRaw, str_folderRoot)
+    #if str_Dir_Dest[:2] != '\\\\': str_folderRaw = str_folderRoot + str_folderRaw
     if str_Dir_Dest[-1] != '\\' : str_folderRaw = str_folderRaw + '\\'
     return str_folderRaw
 def fStr_generateSQLReq(df_Param, row, dte_date):
@@ -1303,6 +1305,135 @@ def fStr_CreateEtfFile(str_folder, str_fileName, dte_date, str_Isin1, str_id, st
     return os.path.join(str_folder, str_fileName)
 
 
+#------------------------------------------------------------------------------
+# Function for SG Easy Msci
+#------------------------------------------------------------------------------
+def fDf_loopOnRic_SqlReq_SaveCsv(df_lConfig, str_req, dte_date, str_folder, str_filenameExtension = ''):
+    inst_db = db.c_sqlDB()
+    inst_db.server = 'D1PRDSOLADB.infocloud.local'
+    str_cloudPathForCsv = inst_db.cloudPathForCsv
+    #inst_db.cloudPathForCsv = str_folder + r'\raw'
+    d_Df = {}
+    for i_row, t_row in df_lConfig.iterrows():
+        str_IndexRic = t_row['IndexRic']
+        if not str_IndexRic in d_Df:        #Avoid Double
+            str_fileName =  '{}{}.txt'.format(t_row['Pcf_FileName'].replace('PCF',''), str_filenameExtension)
+            str_req_loop = str_req.replace('<RIC>', str_IndexRic).replace('<DATE>', dte_date.strftime('%Y%m%d'))
+            df_sqlResult = db.fDf_GetRequest_or_fromCsvFile(str_req_loop, str_fileName, 30, str_folder + r'raw', bl_EmptyMessage = False)
+            #            df_sqlResult = db.db_SelectReq(str_req_loop, 'D1PRDSOLADB.infocloud.local', bl_EmptyMessage = False)
+            #            # Save a CSV to keep it
+            #            fl.fStr_CreateTxtFile(fl.fStr_BuildPath(str_folder + r'\raw', str_fileName), '', df_sqlResult)
+            # Save into dictionary
+            d_Df[str_IndexRic] = df_sqlResult
+        else:   pass
+    inst_db.cloudPathForCsv = str_cloudPathForCsv
+    return d_Df
+
+def fDf_loopOnRic_CreateFile(d_param):
+    df_lConfig =    d_param['df_lConfig']
+    df_1NavIndic =  d_param['df_1NavIndic']
+    df_2Val_Dmc =   d_param['df_2Val_Dmc']
+    d_CompoDf =     d_param['d_CompoDf']
+    d_CorpActDf =   d_param['d_CorpActDf']
+    dte_date =      d_param['dte_date']
+    dte_navDate =   d_param['dte_navDate']
+    str_folder =    d_param['str_folder']
+    l_pathAttach = []
+    for i_row, t_row in df_lConfig.iterrows():
+        # GET INPUT
+        str_IndexRic =  t_row['IndexRic']
+        str_ric =       t_row['ETF_RIC']
+        str_isin =      t_row['Isin']
+        int_divisor =   t_row['Divisor']
+        # NAV Df
+        flt_nav = df_1NavIndic[df_1NavIndic['Fund Code'] == str_isin]['Calculated Target Nav'].values[0]
+        flt_TotalNav = flt_nav * int_divisor
+        flt_shareNb = df_2Val_Dmc[df_2Val_Dmc['ISIN Code'] == str_isin]['Share Nb'].values[0]
+        flt_indexReturn = df_1NavIndic[df_1NavIndic['Fund Code'] == str_isin]['Index Return Converted'].values[0]
+        # Dataframe from dico
+        df_compo =  d_CompoDf[str_IndexRic].copy()
+        df_CA =     d_CorpActDf[str_IndexRic][['Isin','NetAmount']].copy()
+        df_compo =  dframe.fDf_JoinDf(df_compo, df_CA, 'Isin', str_how = 'left')
+        # Calculate WEIGHT
+        df_compo['Weight'] = df_compo['IndexQuantity'] * df_compo['UnadjustedPrice'] * df_compo['FXRate']
+        flt_sumProduct = df_compo['Weight'].sum()
+        df_compo['Weight'] = df_compo['Weight'] / flt_sumProduct
+        
+        #-------------------
+        # PCF - COMPO
+        #-------------------
+        df_compo['1col'] = 'B'
+        df_compo['2col'] = t_row['Isin']
+        df_compo['3col'] = 'Equity'
+        df_compo['6col'] = '-'
+        df_compo = dframe.fDf_InsertColumnOfIndex(df_compo, l_colSort = ['Ric'])
+        df_compo['15col'] = 'T'
+        df_compo.fillna({'NetAmount' : 0}, inplace = True)
+        df_compo['PRICE'] = (df_compo['UnadjustedPrice'] - df_compo['NetAmount']) * df_compo['FXRate']
+        df_compo['PRICE_r'] = df_compo['PRICE'].apply(lambda x:round(x, 4))
+        df_compo['FXRate_r'] = df_compo['FXRate'].apply(lambda x:round(x, 4))
+        df_compo['UNIT'] = flt_TotalNav * df_compo['Weight'] / df_compo['UnadjustedPrice']
+        df_compo['UNIT_r'] = df_compo['UNIT'].apply(lambda x:round(x, 4))
+        # Get the cash
+        df_compo['CASH']  = df_compo['UNIT'] * df_compo['FXRate'] * df_compo['NetAmount']
+        flt_cash = df_compo['CASH'].sum() / int_divisor
+        t_row['flt_cash'] = flt_cash
+        # Get Number of rows in Composition
+        int_nbCompo = len(df_compo)
+        t_row['int_nbCompo'] = int_nbCompo
+        # FINAL COMPO
+        df_compo_pcf = df_compo[['1col','2col','3col','Isin','Ric','6col','MIC','SecurityName', 'UNIT_r','6col','6col',
+                                 'ind','PRICE_r','FXRate_r','15col','Isin']].copy()
+        #-------------------
+        # PCF - Header
+        #-------------------
+        df_header = pd.DataFrame([['H', t_row['ISINiNAV'], t_row['EuronextCategory'], int(int_nbCompo), '1',
+                                  dte_date.strftime('%Y%m%d'), dte_navDate.strftime('%Y%m%d'), round(flt_nav, 4),
+                                  '-','-', round(flt_cash, 13),'-', int(flt_shareNb), round(flt_nav * int_divisor, 4),
+                                  str(int_divisor), t_row['ETF CCY'], t_row['Underlying index CCY'], t_row['ETF CCY'],
+                                  str_isin, str_ric, t_row['ETF BBG Code'],t_row['UnderlyingIndexRIC'],
+                                  t_row['Indicative NAV ID'],'-','-','-','-','-','-',flt_indexReturn]]
+                                , columns = range(30))
+        # CONCAT
+        df_pcf = dframe.fDf_Concat_wColOfDf1(df_header, df_compo_pcf)
+        # Create PCF Files
+        str_pcfFilename =  '{}{}.txt'.format(t_row['Pcf_FileName'], dte_date.strftime('%Y%m%d'))
+        str_path = fl.fStr_CreateTxtFile(str_folder, str_pcfFilename, df_pcf)
+        l_pathAttach.append(str_path)
+        
+        #-------------------
+        # CO - COMPO
+        #-------------------
+        df_compo['1col'] = '3'
+        df_compo['SHARES'] = df_compo['UNIT'].apply(lambda x:round(x, 0))
+        df_compo['MCap'] = df_compo['SHARES'] * df_compo['PRICE_r']
+        df_compo['Weight_100'] = df_compo['Weight'] * 100
+        df_compo['CO'] = df_compo['Isin'].apply(lambda str_isin : str_isin[:2])
+        # FINAL COMPO
+        df_compo_CO = df_compo[['1col','ind','2col','Isin','SecurityName','SHARES','PRICE_r','MCap', 'Weight_100','CO','6col']].copy()
+        #-------------------
+        # CO - Header
+        #-------------------
+        df_compo['CASH'] = (df_compo['UNIT_r'] - df_compo['SHARES']) * df_compo['PRICE_r']
+        flt_cash = df_compo['CASH'].sum()
+        df_header_1 = pd.DataFrame([['1','-', str_isin, t_row['TrackerMnemoCode'], t_row['ETF Name'], '-', t_row['UnderlyingName'],
+                                     t_row['ISINiNAV'], '-', t_row['iNAVName'], t_row['ManagementStyle'], t_row['Category'], t_row['Region'], 
+                                     '-', t_row['InvestableUniverse'], '-', str_isin, '-', '-','']]
+                                , columns = range(20))
+        df_header_2 = pd.DataFrame([['2', dte_date.strftime('%Y%m%d'), str_isin, str(int_divisor), int_divisor*round(flt_nav, 4),
+                                     round(int_divisor * flt_nav - flt_cash, 2), round(flt_nav, 4), flt_cash, 100*flt_cash / (int_divisor*flt_nav), 
+                                     t_row['ETF CCY'], int(flt_shareNb), round(flt_shareNb * flt_nav, 2), '-', '-', '-', t_row['ManagementFee'],
+                                     round(flt_nav, 4), dte_navDate.strftime('%Y%m%d'), flt_indexReturn, dte_date.strftime('%Y%m%d')]]
+                                , columns = range(20))
+        # CONCAT
+        df_pcf = dframe.fDf_Concat_wColOfDf1(df_header_1, df_header_2)
+        df_pcf = dframe.fDf_Concat_wColOfDf1(df_pcf, df_compo_CO)
+        # Create PCF Files
+        str_COfilename =  '{}_{}.txt'.format(t_row['CO_FileName'], dte_date.strftime('%Y%m%d'))
+        str_path = fl.fStr_CreateTxtFile(str_folder, str_COfilename, df_pcf)
+        l_pathAttach.append(str_path)
+        
+    return l_pathAttach
 
 
 
@@ -1444,11 +1575,6 @@ def fDf_GetFeesSpread(str_secId):
 
 
 
-
-
-
-
-
 #====================================================================================================
 # DEPRECATED
 #====================================================================================================
@@ -1456,892 +1582,5 @@ def fDf_GetFeesSpread(str_secId):
 
 
 
-#-----------------------------------------------------------------
-# DEPREACTED - To delete when all is cleaned
-#-----------------------------------------------------------------
-def fL_downFTP(str_host, str_uid, str_pwd, l_folder, str_fileName, str_filePathDest):
-    print('DEPREACTED fL_downFTP')
-    bl_success = ftp.fBl_ftpDownFileBinary(str_host, str_uid, str_pwd,l_folder, str_fileName, str_filePathDest)
-    if not bl_success: return False    
-    return True
 
 
-def fDf_sqlFx(l_where = ["FXRateSetID = '1'", "FromCurrencyCode = 'USD'"]):
-    print('DEPREACTED fDf_sqlFx')
-    return db.fDf_sqlBuildSelect('tblFXRate', '*', l_where)
-
-
-def fDf_sqlMapping(str_from, str_select = '*', l_where = [], str_orderBy = ''):
-    print('DEPREACTED fDf_sqlMapping')
-    return db.fDf_sqlBuildSelect(str_from, str_select, l_where, '', str_orderBy)
-
-
-def fDte_dateFutures2(dte_date, int_Month = 1):
-    print('DEPREACTED fDte_dateFutures2')
-    a = dat.fDte_AddMonth(dte_date, int_Month)
-    print(a)
-    b = dat.fDte_formatMoisAnnee(a)
-    print(b)
-    return b
-
-def fBl_createFolder(str_folder):
-    print('  DEPRECATED: replace fBl_createFolder by fl.fBl_createDir')
-    #    str_folderShortName = '\\' + '\\'.join(str_folder.split('\\')[-5:])
-    bl_success = fl.fBl_createDir(str_folder)
-    return bl_success
-
-def fL_CreateTxtFile_v2(str_folder, str_FileName, df_data, bl_header = False, str_sep = ','):
-    print('  DEPRECATED: replace fL_CreateTxtFile_v2 by fl.fStr_CreateTxtFile')
-    str_PcfPath = fl.fStr_CreateTxtFile(str_folder, str_FileName, df_data, str_sep, bl_header) 
-    #    try:
-    #        if str_FileName == '':      str_PcfPath = str_folder
-    #        else:                       str_PcfPath = os.path.join(str_folder, str_FileName)
-    #        df_data.to_csv(str_PcfPath, index = False, header = bl_header, sep = str_sep) 
-    #    except:
-    #        print('  ERROR in fL_CreateTxtFile_v2: Could not create the file: ')
-    #        print('  - str_folder :',str_folder, 'str_FileName :', str_FileName, 'bl_header :',  bl_header, 'str_sep :',  str_sep)
-    #        return False
-    return str_PcfPath
-
-def fL_CreateTxtFile_RetunPath(str_pathPcf, l_pcfFileName, df_data, bl_header = False, str_sep = ','):
-    print('  DEPRECATED: replace fL_CreateTxtFile_RetunPath by fl.fStr_CreateTxtFile')
-    str_Path = fl.fStr_CreateTxtFile(str_pathPcf, l_pcfFileName[0], df_data, str_sep, bl_header) 
-    #    try:
-    #        l_pathPcf = [str_pathPcf + file for file in l_pcfFileName]
-    #        for str_Pcf in l_pathPcf:
-    #            df_data.to_csv(str_Pcf, index = False, header = bl_header, sep = str_sep) 
-    ##            #For Amundi 
-    ##            if 'PCFMKTN' in str_Pcf:
-    ##                df_data.to_csv(str_Pcf.replace('PCFMKTN', 'PCFMKTN_2'), index=False, header = None, sep='\t')
-    #    except:
-    #        print('  ERROR: Could not create the file: ')
-    #        print('  - str_pathPcf :',str_pathPcf, 'l_pcfFileName :', l_pcfFileName, 'bl_header :',  bl_header)
-    #        return False
-    return [str_Path]
-
-# 1 file out - 1 Dataframe - 1 Sheet (INSERT SHEET - Not insert rows in existing sheet)
-def fL_fillExcel_v3(str_folder, str_FileName, df_data, str_SheetName = '', bl_header = False):
-    print('  DEPRECATED: replace fL_fillExcel_v3 by fl.fStr_fillExcel_InsertNewSheet')
-    str_path = fl.fStr_fillExcel_InsertNewSheet(str_folder, str_FileName, df_data, str_SheetName, bl_header)
-    #    try:
-    #        if str_FileName == '':  str_path = str_folder
-    #        else:                   str_path = os.path.join(str_folder, str_FileName)
-    #        # Define Book
-    #        xl_book = openpyxl.load_workbook(filename = str_path)
-    #        #xl_writer = pd.ExcelWriter(str_path, engine = 'openpyxl')
-    #        with pd.ExcelWriter(str_path, engine = 'openpyxl') as xl_writer:
-    #            xl_writer.book = xl_book
-    #            xl_writer.sheets = dict((ws.title, ws) for ws in xl_book.worksheets)
-    #            # Add the Sheet
-    #            if str_SheetName == '':     str_SheetName = 'Sh1'
-    #            if str_SheetName in list(xl_writer.sheets):
-    #                print(" The sheet '{}' alrdeay exist".format(str_SheetName))
-    #                while str_SheetName in list(xl_writer.sheets):
-    #                    str_SheetName = str_SheetName[1:] + str_SheetName[0] + 'x'
-    #                print(" We replace the sheet name: '{}'  but you need to improve the management of name".format(str_SheetName))
-    #            df_data.to_excel(xl_writer, header = bl_header, index = False, sheet_name = str_SheetName)
-    #            #SAVE
-    #            xl_writer.save()
-    #    except:
-    #        print('  ERROR in fL_fillExcel_vv3: Could not fill the file')
-    #        print('  - str_path', str_path)
-    #        print('  - str_SheetName', str_SheetName)
-    #        return False
-    return str_path
-
-
-# n file out - 1 Dataframe - 1 Sheet - MEANT TO DISAPEAR as it makes no sense
-def fL_fillExcel_RetunPath(str_pathPcf, l_pcfFileName, df_data, bl_header = False, 
-                           bl_insertRows = False, int_nbRows = 0, int_rowsWhere = 1):
-    print('  DEPRECATED: replace fL_fillExcel_RetunPath by fl.fStr_fillXls_celByCel')
-    str_path = str_pathPcf + l_pcfFileName[0]
-    fl.fStr_fillXls_celByCel(str_path, df_data, '', 0, int_nbRows, int_rowsWhere)
-    #    try:
-    #        l_pathPcf = [str_pathPcf + file for file in l_pcfFileName]
-    #        for str_Pcf in l_pathPcf:
-    #            xlApp = win32.Dispatch('Excel.Application')
-    #            xlApp.Visible = True 
-    #            xlWb = xlApp.Workbooks.Open(str_Pcf)
-    #            xlWs = xlWb.ActiveSheet
-    #            # ------ Insert or delete ROWS ------
-    #            if bl_insertRows:
-    #                if int_nbRows > 0:
-    #                    #xlWs.getCells().insertRows(int_rowsWhere, int_nbRows)
-    #                    #xlWs.insert_rows(int_rowsWhere, int_nbRows)
-    #                    for i in range(0, int_nbRows): xlWs.Rows(int_rowsWhere).EntireRow.Insert()
-    #                elif int_nbRows < 0:
-    #                    #xlWs.getCells().deleteRows(int_rowsWhere, -int_nbRows, True) 
-    #                    for i in range(0, -int_nbRows): xlWs.Rows(int_rowsWhere).EntireRow.Delete()                    
-    #            # -----------------------------------
-    #            for i, row in enumerate(df_data.index):
-    #                for j, col in enumerate(df_data.columns):
-    #                    xlWs.Cells(i+1, j+1).Value = str(df_data.iat[i, j])
-    #            xlApp.Visible = True
-    #            xlWb.Close(True)
-    #            #xlApp.Application.Quit()
-    #    except:
-    #        try: xlApp.Visible=True
-    #        except: print('  ERROR: xlApp visible did not work')
-    #        try: xlWb.Close(False)
-    #        except: print('  ERROR: Excel workbook could not be closed')
-    #        #try: xlApp.Application.Quit()
-    #        #except: print('  ERROR: Excel could not be closed')
-    #        print('  ERROR: Could not create the PCF: ' + str_Pcf)
-    #        return False
-    return l_pcfFileName
-
-
-
-# 1 file out - n Dataframe - n Sheet
-def fL_fillExcel_v2(str_folder, str_FileName, l_dfData, l_SheetName = [], bl_insertRows = False, 
-                    l_nbRows = [], l_rowsWhere = []):
-    print('  DEPRECATED: replace fL_fillExcel_v2 by fl.fStr_fillXls_celByCel_plsSheets')
-    str_path = fl.fStr_fillXls_celByCel_plsSheets(str_folder,str_FileName,l_dfData,l_SheetName,l_nbRows,l_rowsWhere)
-    #    try:
-    #        if str_FileName == '':      str_path = str_folder
-    #        else:                       str_path = os.path.join(str_folder, str_FileName)
-    #		
-    #        # Open the file (win32)
-    #        xlApp = win32.Dispatch('Excel.Application')
-    #        xlApp.Visible = True 
-    #        xlWb = xlApp.Workbooks.Open(str_path)
-    #		
-    #        # Dataframe
-    #        for i in range(len(l_dfData)):
-    #            df_data = l_dfData[i]
-    #            try:        str_SheetName = l_SheetName[i]
-    #            except:     str_SheetName = ''
-    #            #Sheet Name
-    #            try:                            xlWs = xlWb.Sheets(str_SheetName)
-    #            except:
-    #                if xlWb.Sheets(i + 1).name not in l_SheetName:  xlWs = xlWb.Sheets(i + 1)
-    #                elif str_SheetName != '':                       xlWs = xlWb.add_worksheet(str_SheetName)
-    #                else:	                                          xlWs = xlWb.add_worksheet()
-    #            xlWs.Select
-    #            # ------ Insert or delete ROWS ------
-    #            if bl_insertRows:
-    #                try:        int_nbRows = l_nbRows[i]
-    #                except:     int_nbRows = 0
-    #                
-    #                print('int_nbRows: ', int_nbRows)
-    #                
-    #                try:        int_rowsWhere = l_rowsWhere[i]
-    #                except:     int_rowsWhere = 1
-    #                
-    #                print('int_rowsWhere: ', int_rowsWhere)
-    #                
-    #                if int_nbRows > 0:
-    #                    for i in range(0, int_nbRows):      xlWs.Rows(int_rowsWhere).EntireRow.Insert()
-    #                elif int_nbRows < 0:
-    #                    for i in range(0, -int_nbRows): 		xlWs.Rows(int_rowsWhere).EntireRow.Delete()                    
-    #            # -----------------------------------
-    #            for i, row in enumerate(df_data.index):
-    #                for j, col in enumerate(df_data.columns):	xlWs.Cells(i+1, j+1).Value = str(df_data.iat[i, j])
-    #        #xlApp.Visible = True
-    #        xlWb.Close(True)
-    #        #xlApp.Application.Quit()
-    #    except:
-    #        try: 		xlApp.Visible=True
-    #        except: 	print('  ERROR: xlApp visible did not work')
-    #        try: 		xlWb.Close(False)
-    #        except: 	print('  ERROR: Excel workbook could not be closed')
-    #        #try: 		xlApp.Application.Quit()
-    #        #except: 	print('  ERROR: Excel could not be closed')
-    #        print('  ERROR: Could not create the PCF: ' + str_path)
-    #        return False
-    return str_path
-
-
-# 1 file out - 1 Dataframe - 1 Sheet
-def fL_createExcel_v3(str_folder, str_FileName, df_Data, str_SheetName = '', bl_header = False):
-    print('  DEPRECATED: replace fL_createExcel_v3 by fl.fStr_createExcel_1Sh')
-    str_path = fl.fStr_createExcel_1Sh(str_folder, str_FileName, df_Data, str_SheetName, bl_header)
-    #    try:        
-    #        if str_FileName == '':      str_path = str_folder
-    #        else:                       str_path = os.path.join(str_folder, str_FileName)
-    #        
-    #        if str_SheetName != '':     df_Data.to_excel(str_path, header = bl_header, index = False, sheet_name = str_SheetName)
-    #        else:                       df_Data.to_excel(str_path, header = bl_header, index = False)
-    #    except:
-    #        print('  ERROR: fL_createExcel_v3 did not work ')
-    #        print('  - str_path: ', str_path)
-    #        print('  - str_SheetName: ', str_SheetName)
-    #        return False
-    return str_path
-
-
-# n file out - 1 Dataframe - 1 Sheet - MEANT TO DISAPEAR as it makes no sense
-def fL_createExcel_RetunPath(str_folder, l_pcfFileName, df_Data, bl_header = False, str_SheetName = ''):
-    print('  DEPRECATED: replace fL_createExcel_RetunPath by fl.fStr_createExcel_1Sh')
-    str_path = fl.fStr_createExcel_1Sh(str_folder, l_pcfFileName[0], df_Data, str_SheetName, bl_header)
-    #    try:
-    #        l_pathPcf = [str_pathPcf + file for file in l_pcfFileName]
-    #        for str_Pcf in l_pathPcf:
-    #            # Create the file (xlsxwriter cannot modify files)
-    #            xlWb = xlsxwriter.Workbook(str_Pcf)
-    #            #Sheet Name
-    #            if str_SheetName != '':     xlWs = xlWb.add_worksheet(str_SheetName)             
-    #            else:                       xlWs = xlWb.add_worksheet()   
-    #            # fill in
-    #            for i, row in enumerate(df_data.index):
-    #                for j, col in enumerate(df_data.columns):
-    #                    xlWs.write(i, j, str(df_data.iat[i, j]))
-    #                    #xlWs.Cells(i+1, j+1).Value = str(df_data.iat[i, j])
-    #        xlWb.close()
-    #    except:
-    #        try:        xlWb.close()
-    #        except:     print('Could not close the file')
-    #        print('  ERROR: fL_createExcel_RetunPath did not work ')
-    #        print(str_pathPcf, l_pcfFileName)
-    #        print('str_SheetName: ', str_SheetName)
-    #        return False
-    return [str_path]
-
-
-# 1 file out - n Dataframe - n Sheet
-def fL_createExcel_v2(str_folder, str_FileName, l_dfData, l_SheetName = [], bl_header = False):
-    print('  DEPRECATED: replace fL_createExcel_v2 by fl.fStr_createExcel_SevSh')
-    str_path = fl.fStr_createExcel_SevSh(str_folder, str_FileName, l_dfData, l_SheetName, bl_header)
-    #    try:        
-    #        if str_FileName == '':      str_path = str_folder
-    #        else:                       str_path = os.path.join(str_folder, str_FileName)
-    #        # Create the file (xlsxwriter cannot modify files)
-    #        xlWb = xlsxwriter.Workbook(str_path)
-    #        # Dataframe
-    #        for i in range(len(l_dfData)):
-    #            df_data = l_dfData[i]
-    #            try:        str_SheetName = l_SheetName[i]
-    #            except:     str_SheetName = ''
-    #            #Sheet Name
-    #            if str_SheetName != '':     xlWs = xlWb.add_worksheet(str_SheetName)             
-    #            else:                       xlWs = xlWb.add_worksheet()   
-    #            # fill in
-    #            for i, row in enumerate(df_data.index):
-    #                for j, col in enumerate(df_data.columns):
-    #                    xlWs.write(i, j, str(df_data.iat[i, j]))
-    #                    #xlWs.Cells(i+1, j+1).Value = str(df_data.iat[i, j])
-    #        xlWb.close()
-    #    except:
-    #        try:        xlWb.close()
-    #        except:     print('Could not close the file')
-    #        print('  ERROR: fL_createExcel_v2 did not work ')
-    #        print('  - ', str_folder, str_FileName)
-    #        print('  - l_SheetName: ', l_SheetName)
-    #        return False
-    return str_path
-
-
-
-#-----------------------------------------------------------------
-# DB_AM
-#-----------------------------------------------------------------
-def fDf_DB_AM_Proc():
-    print('DEPREACTED')
-    return -1
-    str_req = """SET NOCOUNT ON; 
-        IF OBJECT_ID ('tempdb..#tmpInterim') IS NOT NULL DROP TABLE #tmpInterim
-        BEGIN
-        	SELECT distinct '' [Fund Code]
-        		,CASE WHEN sc.Code='XD00BQXKVQ19' 
-        			THEN  'IE'+substring(sc.Code,3,10)
-        			ELSE  'LU'+substring(sc.Code,3,10)
-        			END AS Isin
-        		,sp.Name as [Fund Name]
-        		, '' [Share Class]
-        		,ep.CurrencyCode as [Currency]
-        		,ep.AsAtDate as [NAV Date]
-        		,CAST(0.0 AS DECIMAL(25,13)) as [NAV Per Share]
-        		,ep.SharesOutstanding as [Total Shares In Issue]
-        		,CAST(0.0 AS DECIMAL(25,13)) as [Total Fund NAV]
-        		,'' [Price equivalent in EUR]
-        		,'' [Price equivalent in GBP]	
-        		,'' [Price equivalent in JPY]	
-        		,'' [Price equivalent in HKD]	
-        		,'' [(No column name)]	
-        		,'' [Price equivalent in USD]
-        		,'' [(No column name2)]
-        		,'' [Aktien gewinn]
-        		,'' [Zwischen gewinn]	
-        		,'' [Zwischen gewinn in EUR]	
-        		,'' [Zwischen gewinn in EUR2]
-        		,'' [TID]	
-        		,'' [WKN (Germany)]
-        		,'' [Valoren (Switzerland)]
-        		,'' [Reuters Code]	
-        		,'' [Bloomberg code]
-        		,'' [Fees]	
-        		,'' [Quantity]
-        		,CAST(0.0 AS DECIMAL(25,13)) as MTM	
-        		,ep.AsAtDate as NAVDate
-        		,ep.SharesOutstanding as TotalSharesInIssue
-        		,eprice.CustodianDate as SSNAVDate
-        		,eprice.PreviousNAV as SSNAV
-        		,ep.SharesOutstanding as SSSO
-        		,ep.AUM as SSAUM
-        		,CAST(eprice.CustodianMTM AS DECIMAL(25,13)) as SSMTM
-        		,CASE WHEN lc.Code IS NULL THEN s.CurrentName ELSE s.CurrentName + ' - ' + lc.Code END as Benchmark
-        		,cd.OpenDate as BenchmarkCurrentDate
-        		,ip.CurrencyCode as BenchMarkCurrency
-        		,ip.Value as BenchMarkValueOpen
-        		,CAST(CASE WHEN ip.CurrencyCode = ep.CurrencyCode THEN ip.Value ELSE ip.Value * fxe.Value / fxb.Value END AS DECIMAL(25,13)) AS BenchMarkValueOpenBase
-        		,eprice.CustodianDate as BenchmarkPrevDate
-        		,ipc.Value as BenchMarkValueClose
-        		,CAST(CASE WHEN ip.CurrencyCode = ep.CurrencyCode THEN ipc.Value ELSE ipc.Value * fxec.Value / fxbc.Value END AS DECIMAL(25,13)) AS BenchMarkValueCloseBase
-        		,CAST(0.0 AS DECIMAL(25,13)) as BMPerformance
-        		,round(CAST(e.DailySwapRate AS DECIMAL(25,25)) * 10000 * 360,2) as Spread
-        		,CAST(e.AnnualManagementFeeRate AS DECIMAL(25,13)) *10000 as TER
-        		,d.GrossAmount as Distribution
-        		,ca.SharesAdjustmentFactor as Split
-        	INTO #tmpInterim
-        	FROM tblSecurityCode sc  
-        		inner join tblETF e on e.SecurityID = sc.SecurityID 
-        		left join tblFamily f On f.FamilyID = e.FamilyID
-        		left join tblSecurityProperty sp on sp.SecurityID = sc.SecurityID and sp.StartDate <= f.OpenDate and sp.EndDate > f.OpenDate
-        		left join tblETFPosition ep on ep.ETFID = e.ETFID and ep.AsAtDate = f.OpenDate
-        		left join tblBasket b on b.ETFID = e.ETFID
-        		left join tblBasketType bt on bt.BasketTypeID = b.BasketTypeID
-        		left join tblBasketPosition bp on bp.BasketID = b.BasketID and bp.AsAtDate = f.OpenDate   
-        		left join tblListing l on l.ListingID = e.ReferenceIndexListingID        
-        		left join tblSecurity s on s.SecurityID = l.SecurityID      
-        		left outer join tblListingCode lc on lc.ListingID = l.ListingID and lc.CodeTypeID = 10 and lc.StartDate <= f.OpenDate and lc.EndDate > f.OpenDate
-        		left outer join tblIndex i on i.SecurityID = s.SecurityID
-        		left join tblFamily fi on fi.FamilyID = i.FamilyID
-        		left join tblCalendarDate cd on cd.CalendarID = fi.CalendarID and f.CurrentDate = cd.OpenDate
-        		left join tblETFPricing eprice on eprice.ETFID = e.ETFID and eprice.AsAtDate = f.CurrentDate 
-        		left join tblDistribution d on d.ListingID = l.ListingID and d.XdDate = f.OpenDate
-        		left join tblCorporateAction ca on ca.ListingID = l.ListingID and ca.CorporateActionTypeID = 9 and ca.XdDate = f.OpenDate
-        		left join tblRate r on r.RateSetID = e.FundingSpreadRateSetID and r.AsAtDate = f.CurrentDate
-        		left join tblIndexPosition ip on ip.IndexID = i.IndexID and ip.CurrencyCode = l.CurrencyCode and ip.VariantID = l.VariantID and ip.AsAtDate = cd.OpenDate  
-        		left join tblIndexPosition ipc on ipc.IndexID = i.IndexID and ipc.CurrencyCode = l.CurrencyCode and ipc.VariantID = l.VariantID 
-                and ipc.AsAtDate = eprice.CustodianDate
-        		LEFT JOIN tblFXRate fxe on fxe.FXRateSetID = f.FXRateSetID and fxe.AsAtDate = cd.OpenDate and fxe.FromCurrencyCode = 'USD' 
-                and fxe.ToCurrencyCode = ep.CurrencyCode
-        		LEFT JOIN tblFXRate fxb on fxb.FXRateSetID = f.FXRateSetID and fxb.AsAtDate = cd.OpenDate and fxb.FromCurrencyCode = 'USD' 
-                and fxb.ToCurrencyCode = ip.CurrencyCode
-        		LEFT JOIN tblFXRate fxec on fxec.FXRateSetID = f.FXRateSetID and fxec.AsAtDate = eprice.CustodianDate and fxec.FromCurrencyCode = 'USD' 
-                and fxec.ToCurrencyCode = ep.CurrencyCode
-        		LEFT JOIN tblFXRate fxbc on fxbc.FXRateSetID = f.FXRateSetID and fxbc.AsAtDate = eprice.CustodianDate and fxbc.FromCurrencyCode = 'USD' 
-                and fxbc.ToCurrencyCode = ip.CurrencyCode
-        		WHERE e.FamilyID IN(
-                     SELECT f.FamilyID FROM tblFamily f
-        				JOIN tblFamilyTask ft ON ft.FamilyID  = f.FamilyID
-        				JOIN tblTask t ON t.TaskID = ft.TaskID
-        				JOIN tblProcess p ON p.ProcessID = t.ProcessID
-                     WHERE p.ProcessID in (33, 34))
-        		AND b.BasketTypeID = 5
-        		and sc.Code in ('XD00BQXKVQ19','XD0274208692','XD0274210672','XD0292096186','XD0292107645','XD0292107991','XD0292109690','XD0322251520','XD0322252171',
-        			'XD0322252502','XD0322252924','XD0432553047','XD0455008887','XD0455009265','XD0455009851','XD0476289623','XD0476289896','XD0490618542',	'XD0514695187')		
-        	UPDATE #tmpInterim
-        	SET BMPerformance = (BenchMarkValueOpenBase - BenchMarkValueCloseBase) / BenchMarkValueCloseBase
-        	WHERE BenchMarkValueCloseBase IS NOT NULL
-        	UPDATE #tmpInterim
-        	SET MTM = SSMTM * (1 + BMPerformance)
-        		   ,[NAV Per Share] = SSNAV * (1 + BMPerformance) - ((( CAST(DATEDIFF(DAY,SSNAVDate,NAVDate) AS DECIMAL(38,34))) / CAST(360 AS DECIMAL(25,13))) * 
-                   ((ISNULL(Spread,0.00000000000000) + TER) / 10000) * SSNAV * (1 + BMPerformance))
-        	UPDATE #tmpInterim
-        	SET [Total Fund NAV] = [NAV Per Share] * TotalSharesInIssue
-        
-        	select * from #tmpInterim          
-        	order by 6 asc
-        	DROP TABLE #tmpInterim
-        END"""
-    df_proc = db.db_SelectReq(str_req)
-    return df_proc
-
-
-#-----------------------------------------------------------------
-# EASY_FI
-#-----------------------------------------------------------------
-def fDf_EasyFi_COELQC1_Proc(str_bbg):
-    print('DEPREACTED')
-    return -1
-    str_req = """SET NOCOUNT ON; 
-        DECLARE @Code VARCHAR (30) = '""" + str_bbg + """'
-        DECLARE @BasketType VARCHAR (20) = 'Creation'
-        
-        SELECT  '1' AS [Structure Line Counting Unit]
-        	,'-' AS [Counter Line]
-        	,sc.Code AS [ETF ISIN code] 
-        	,lc2.Code AS [Listing ID]
-        	,s.CurrentName  AS [Sec Name]
-        	,'-' AS [6]
-        	,Isp.Name AS [Index Name]
-        	,Isc.Code AS [index iNAV Isin]
-        	,'-' AS [9],'-' AS [10],'P' AS [11],'S' AS [12],'-' AS [13]
-          ,'-' AS [14],'-' AS [15],'-' AS [16],'-' AS [17],'-' AS [18],'-' AS [19]
-        FROM tblListingCode lc
-        	INNER JOIN tblListingCode lc2 ON lc2.ListingID = lc.ListingID AND lc2.CodeTypeID = 23
-        	INNER JOIN tblListing l ON l.ListingID = lc.ListingID
-        	INNER JOIN tblSecurity s ON s.SecurityID = l.SecurityID
-        	INNER JOIN tblETF e ON e.SecurityID = l.SecurityID
-        	INNER JOIN tblSecurityCode sc ON  sc.SecurityID = l.SecurityID
-        		AND sc.CodeTypeID = (SELECT CodeTypeID FROM tblCodeType WHERE Name = 'Isin')
-        	LEFT JOIN tblSecurityCode Isc ON  Isc.SecurityID = l.SecurityID
-        		AND Isc.CodeTypeID = (SELECT CodeTypeID FROM tblCodeType WHERE Name = 'iNAV ISIN')
-        	INNER JOIN tblListing Il ON Il.ListingID = e.ReferenceIndexListingID
-        	INNER JOIN tblSecurityProperty Isp ON Isp.SecurityID = Il.SecurityID
-        WHERE lc.Code = @Code"""
-    df_proc = db.db_SelectReq(str_req)
-    return df_proc
-
-
-def fDf_EasyFi_COELQC2_Proc(str_bbg):
-    print('DEPREACTED')
-    return -1
-    str_req = """DECLARE @RefFamilyID INT, @Filter VARCHAR(100), @ListingID INT, @PCFCurrency VARCHAR(255), @RIC VARCHAR(25), 
-    	@CalculationMask INT, @ETFID INT, @BasketID INT, @BasketTypeID INT, @BasketName VARCHAR (20), @CloseDate DATE, 
-    	@UnderlyingIndexCurrency char (3), @AsAtDate DATE, @BasketType VARCHAR (20) = 'Creation', @Bloomberg varchar(50), 
-    	@Code VARCHAR (30) = '""" + str_bbg + """'
-        
-        SELECT
-        	@RefFamilyID = RefFamilyID,
-        	@Filter = bp.Filter,
-        	@ListingID = l.ListingID,
-        	@PCFCurrency = l.CurrencyCode,
-        	@RIC = lc.Code,
-        	@CalculationMask = bp.CalculationMask,
-        	@ETFID = e.ETFID,
-        	@BasketID = b.BasketID,
-        	@BasketTypeID = bt.BasketTypeID,
-        	@BasketName = bt.Name,
-        	@AsAtDate =f.OpenDate,
-        	@CloseDate=f.CurrentDate
-        FROM tblFamily f
-        	INNER JOIN tblETF e ON e.FamilyID = f.FamilyID
-        	INNER JOIN tblSecurity s ON s.SecurityID = e.SecurityID
-        	INNER JOIN tblBasket b ON b.ETFID = e.ETFID
-        	INNER JOIN tblBasketProperty bp ON bp.BasketID = b.BasketID AND bp.StartDate <= f.CurrentDate AND bp.EndDate > f.CurrentDate
-        	INNER JOIN tblBasketType bt on bt.BasketTypeID = b.BasketTypeID
-        	INNER JOIN tblListing l ON l.SecurityID = s.SecurityID
-        	INNER JOIN tblListingCode lc ON lc.ListingID = l.ListingID AND lc.StartDate <=f.CurrentDate AND lc.EndDate >f.CurrentDate
-        WHERE  lc.Code = @Code AND UPPER(bt.Name) = UPPER(@BasketType)	
-        
-        SELECT @Bloomberg = Code 
-        FROM tblListingCode GG 
-        WHERE  GG.ListingID = @ListingID 
-        	AND GG.StartDate <= @AsAtDate 
-        	AND GG.EndDate > @AsAtDate 
-        	AND GG.CodeTypeID = (select CodeTypeID from tblCodeType WHERE Name = 'Bloomberg')
-        
-        SELECT '2' AS [Structure Line Counting Unit], 
-        	CONVERT(VARCHAR(10), CL.OpenDate, 112) AS [iNAV Calculation Date], 
-        	G.Code AS [ETF ISIN Code],
-        	cast(A.Divisor as float) AS [Number of Shares of a Creation Unit], 
-        	A.NAV*A.Divisor AS [Value of One Creation Unit],
-        	A.NAV*A.Divisor-H.EstimatedCash AS [Value of Equity],
-        	A.NAV AS [NAV], 
-        	H.EstimatedCash AS [Cash Component of the NAV],
-        	100*H.EstimatedCash/(A.NAV*A.Divisor) AS [Cash in Percentage],
-        	B.CurrencyCode AS [Currency Used to Value the Fund],
-        	A.SharesOutstanding AS [Outstanding Shares],
-        	A.NAV*A.Divisor AS [NAV of the Fund],
-        	d.GrossAmount AS [Dividend Amount], 
-        	d.XdDate AS [Ex Date], 
-        	'' AS [Dividend Frequency],
-        	B.TotalExpenseRatio AS [Management Fees],
-        	A.NAV AS [NAV 2],
-        	CONVERT(VARCHAR(10),A.AsAtDate, 112) AS [NAV Valuation Date], 
-        	L.Value AS [Underlying Index Level], 
-        	CONVERT(VARCHAR(10),A.AsAtDate, 112) AS [Effective Date of the C/R File], 
-        	'-' AS [Exposure to Risky Assets],
-        	'-' AS [Reference Basket Level], 
-        	'-' AS [NAV Floor], 
-        	'-' AS [Multiplier] 
-        FROM tblETFPosition A
-        	INNER JOIN tblETF B ON B.ETFID = A.ETFID
-        	INNER JOIN tblFamily C ON C.FamilyID = B.FamilyID
-        	INNER JOIN tblSecurity D ON D.SecurityID = B.SecurityID
-        	INNER JOIN tblSecurityProperty E ON E.SecurityID = D.SecurityID AND E.StartDate <= @AsAtDate AND E.EndDate > @AsAtDate
-        	LEFT JOIN tblListing F ON F.SecurityID = D.SecurityID  
-        	LEFT JOIN tblSecurityCode G ON  G.SecurityID = D.SecurityID AND G.StartDate <= @AsAtDate AND G.EndDate > @AsAtDate AND G.CodeTypeID = (SELECT CodeTypeID 
-            FROM tblCodeType WHERE Name = 'Isin')
-        	LEFT JOIN tblSecurityCode II ON II.SecurityID = F.SecurityID AND II.StartDate <= @AsAtDate AND II.EndDate > @AsAtDate AND II.CodeTypeID = (select CodeTypeID 
-            from tblCodeType WHERE Name = 'iNAV ISIN')
-        	INNER JOIN tblBasketPosition H ON H.BasketID = @BasketID AND H.AsAtDate = A.AsAtDate
-        	INNER JOIN tblBasketPosition I ON I.BasketID = @BasketID AND I.AsAtDate IN (SELECT MAX(I2.AsAtDate) FROM tblBasketPosition I2 WHERE I2.BasketID = I.BasketID 
-            AND I2.AsAtDate < H.AsAtDate)
-        	INNER JOIN tblListing UI ON UI.ListingID = B.ReferenceIndexListingID
-        	INNER JOIN tblCalendarDateLite CL ON CL.CalendarID = C.CalendarID AND CL.AsAtDate = @CloseDate
-        	JOIN tblIndex K ON K.SecurityID = UI.SecurityID
-        	JOIN tblIndexPosition L ON L.IndexID = K.IndexID AND L.AsAtDate = A.AsAtDate AND L.VariantID = UI.VariantID AND L.CurrencyCode = UI.CurrencyCode
-        	LEFT JOIN tblSecurityCode M ON M.SecurityID = UI.SecurityID AND M.StartDate <= @AsAtDate AND M.EndDate > @AsAtDate AND M.CodeTypeID = 4   
-        	JOIN tblSecurityProperty sp ON sp.SecurityID = UI.SecurityID AND sp.StartDate < @AsAtDate AND sp.EndDate > @AsAtDate                                                                                                                             
-        	LEFT JOIN tblDistribution d ON d.ListingID = F.ListingID AND d.XdDate = CL.OpenDate AND d.CorporateActionSetID = 1
-        WHERE  F.ListingID = @ListingID AND A.AsAtDate = @AsAtDate   
-        ORDER BY A.AsAtDate DESC"""
-    df_proc = db.db_SelectReq(str_req)
-    return df_proc
-
-
-def fDf_EasyFi_COELQC3_Proc(str_bbg):
-    print('DEPREACTED')
-    return -1
-    str_req = """SET NOCOUNT ON; 
-       DECLARE @RefFamilyID INT, @Filter VARCHAR(100), @ListingID INT, @PCFCurrency VARCHAR(255),
-           @RIC VARCHAR(25), @CalculationMask INT, @ETFID INT, @BasketID INT, @BasketTypeID INT,
-           @BasketName VARCHAR (20), @UnderlyingIndexCurrency char (3), @AsAtDate DATE, 
-           @BasketType VARCHAR (20) = 'Creation', @CloseDate DATE, @Bloomberg varchar(50),
-           @Code VARCHAR (30) = '""" + str_bbg + """'
-        SELECT
-        	@RefFamilyID = RefFamilyID,
-        	@Filter = bp.Filter,
-        	@ListingID = l.ListingID,
-        	@PCFCurrency = l.CurrencyCode,
-        	@RIC = lc.Code,
-        	@CalculationMask = bp.CalculationMask,
-        	@ETFID = e.ETFID,
-        	@BasketID = b.BasketID,
-        	@BasketTypeID = bt.BasketTypeID,
-        	@BasketName = bt.Name,
-        	@AsAtDate =f.OpenDate,
-        	@CloseDate = f.CurrentDate
-        FROM tblFamily f
-        	INNER JOIN tblETF e ON e.FamilyID = f.FamilyID
-        	INNER JOIN tblSecurity s ON s.SecurityID = e.SecurityID
-        	INNER JOIN tblBasket b ON b.ETFID = e.ETFID
-        	INNER JOIN tblBasketProperty bp ON bp.BasketID = b.BasketID AND bp.StartDate <= f.CurrentDate AND bp.EndDate > f.CurrentDate
-        	INNER JOIN tblBasketType bt on bt.BasketTypeID = b.BasketTypeID
-        	INNER JOIN tblListing l ON l.SecurityID = s.SecurityID
-        	INNER JOIN tblListingCode lc ON lc.ListingID = l.ListingID AND lc.StartDate <=f.CurrentDate AND lc.EndDate >f.CurrentDate
-        WHERE  lc.Code = @Code AND UPPER(bt.Name) = UPPER(@BasketType)
-        
-        SELECT '3' AS [Structure Line Counting Unit],
-        	ROW_NUMBER () OVER (ORDER BY si.Code) AS [Counter Line],
-        	sc.Code AS [ETF ID],
-        	si.Code AS [Constituent ISIN], 
-        	s.Name AS [Constituent Name], 
-        	c.NumberOfUnits AS [Constituent Shares in the Creation Unit],
-        	ISNULL(pe.Value,p.Value) AS [Dirty Price], 
-        	c.NumberOfUnits * IsNull(c.PriceAdjustmentFactor, 1.0) *    
-        		   CASE WHEN @CalculationMask & 1 > 0 THEN c.Factor1 ELSE 1 END *  
-        		   CASE WHEN @CalculationMask & 2 > 0 THEN c.Factor2 ELSE 1 END *  
-        		   CASE WHEN @CalculationMask & 4 > 0 THEN c.Factor3 ELSE 1 END *  
-        		   CASE WHEN @CalculationMask & 8 > 0 THEN c.Factor4 ELSE 1 END *  
-        		   CASE WHEN @CalculationMask & 16 > 0 THEN c.Factor5 ELSE 1 END *  
-        		   CASE WHEN @CalculationMask & 32 > 0 THEN c.Factor6 ELSE 1 END *  
-        		   CASE WHEN @CalculationMask & 64 > 0 THEN c.Factor7 ELSE 1 END *  
-        		   CASE WHEN @CalculationMask & 128 > 0 THEN c.Factor8 ELSE 1 END *  
-        		   CASE WHEN @CalculationMask & 256 > 0 THEN c.Factor9 ELSE 1 END * ISNULL(pe.Value,p.Value)   
-        	AS [Market Value],  
-        	CAST(NULL AS DECIMAL(28,14)) AS [Weighting in Percentage], 
-        	'-' AS [Market Origin of Company],
-        	'-' AS [Company Sector],
-        	cu.MajorCurrencyCode AS [CCY],
-        	bp.CleanPrice AS [CleanPrice], 
-          bp.AccruedInterest AS [AccruedInterest]
-        FROM tblConstituent c
-        	INNER JOIN tblListing l ON l.ListingID = c.ListingID
-        	INNER JOIN tblSecurity se ON se.SecurityID = l.SecurityID
-        	INNER JOIN tblSecurityType st ON st.SecurityTypeID = se.SecurityTypeID
-        	INNER JOIN tblSecurityProperty s ON s.SecurityID = l.SecurityID AND s.StartDate <= @AsAtDate AND s.EndDate > @AsAtDate
-        	LEFT JOIN tblListingCode lcr ON lcr.ListingID = l.ListingID AND lcr.StartDate <= @AsAtDate AND lcr.EndDate > @AsAtDate 
-        		AND lcr.CodeTypeID = (select CodeTypeID from tblCodeType WHERE Name = 'Ric')
-        	LEFT JOIN tblListingCode lcb ON lcb.ListingID = l.ListingID AND lcb.StartDate <= @AsAtDate AND lcb.EndDate > @AsAtDate 
-        		AND lcb.CodeTypeID = (select CodeTypeID from tblCodeType WHERE Name = 'Bloomberg')
-        	LEFT JOIN tblListingCode lcs ON lcs.ListingID = l.ListingID AND lcs.StartDate <= @AsAtDate AND lcs.EndDate > @AsAtDate 
-        		AND lcs.CodeTypeID = (select CodeTypeID from tblCodeType WHERE Name = 'Sedol')
-        	LEFT JOIN tblSecurityCode si ON si.SecurityID = l.SecurityID AND si.StartDate <= @AsAtDate AND si.EndDate > @AsAtDate 
-        		AND si.CodeTypeID = (select CodeTypeID from tblCodeType WHERE Name = 'Isin')
-        	INNER JOIN tblExchange ex ON ex.ExchangeID = l.ExchangeID
-        	INNER JOIN tblCurrency cu ON cu.CurrencyCode = l.CurrencyCode
-        	LEFT JOIN tblPrice p ON p.ListingID = c.ListingID AND p.AsAtDate = @CloseDate
-        	LEFT JOIN tblPriceException pe ON pe.ListingID = c.ListingID AND pe.FamilyID = c.FamilyID AND pe.AsAtDate = @CloseDate
-        	JOIN tblETF e ON e.FamilyID = c.FamilyID
-        	JOIN tblSecurityCode sc ON sc.SecurityID = e.SecurityID AND sc.StartDate <= @AsAtDate AND sc.EndDate > @AsAtDate AND sc.CodeTypeID = 4
-        	LEFT JOIN [PRDCOB001WI].SolaFixedIncome.dbo.tblBondPrice bp on bp.FamilyID = c.FamilyID and bp.AsAtDate = @AsAtDate and bp.ListingID = c.ListingID
-        WHERE c.StartDate <=@AsAtDate AND c.EndDate > @AsAtDate AND c.FamilyID = @RefFamilyID 
-        	AND c.ConstituentType = (SELECT ConstituentType FROM tblConstituentType WHERE Name = 'Normal') AND c.FilterValue LIKE @Filter"""
-    df_proc = db.db_SelectReq(str_req)
-    return df_proc
-
-
-def fDf_EasyFi_PCFELQC1_Proc(str_bbg):
-    print('DEPREACTED')
-    return -1
-    str_req = """SET NOCOUNT ON; 
-       DECLARE @Ric VARCHAR(30) ='""" + str_bbg + """',
-          @BasketType VARCHAR (20) = 'Creation',
-        	@RefFamilyID INT,
-        	@Filter VARCHAR(100),
-        	@ListingID INT,
-        	@PCFCurrency VARCHAR(255),
-        	@RIC VARCHAR(25),
-        	@CalculationMask INT,
-        	@ETFID INT,
-        	@BasketID INT,
-        	@BasketTypeID INT,
-        	@BasketName VARCHAR (20),
-        	@UnderlyingIndexCurrency char (3),
-        	@ProductType varchar(50),
-        	@ClassificationSchemeID int= 71,
-        	@ETF_ISIN varchar(12),
-        	@AsAtDate   DATE ,
-        	@SecurityID int,
-        	@iNavTicker varchar(50),
-        	@Bloomberg varchar(50),
-        	@GrossAmount numeric(28,12),
-        	@OpenDate date, 
-        	@PriceDate DATE
-        
-        SELECT
-        	@RefFamilyID = RefFamilyID,
-        	@Filter = bp.Filter,
-        	@ListingID = l.ListingID,
-        	@PCFCurrency = l.CurrencyCode,
-        	@RIC = lc.Code,
-        	@CalculationMask = bp.CalculationMask,
-        	@ETFID = e.ETFID,
-        	@BasketID = b.BasketID,
-        	@BasketTypeID = bt.BasketTypeID,
-        	@BasketName = bt.Name,
-        	@AsAtDate =f.OpenDate,
-        	@ETF_ISIN =  sc.Code
-        FROM tblFamily f
-        	INNER JOIN tblETF e ON e.FamilyID = f.FamilyID
-        	INNER JOIN tblSecurity s ON s.SecurityID = e.SecurityID
-        	INNER JOIN tblBasket b ON b.ETFID = e.ETFID
-        	INNER JOIN tblBasketProperty bp ON bp.BasketID = b.BasketID AND bp.StartDate <= GETDATE() AND bp.EndDate > GETDATE()
-        	INNER JOIN tblBasketType bt on bt.BasketTypeID = b.BasketTypeID
-        	INNER JOIN tblListing l ON l.SecurityID = s.SecurityID
-        	INNER JOIN tblListingCode lc ON lc.ListingID = l.ListingID 
-        		AND lc.StartDate <= GETDATE() 
-        		AND lc.EndDate > GETDATE() 
-        		AND lc.CodeTypeID =10 
-        	LEFT JOIN tblSecurityCode sc ON sc.SecurityID = s.SecurityID 
-        		AND sc.StartDate <= GETDATE() 
-        		AND	sc.EndDate > GETDATE() 
-        		AND sc.CodeTypeID = 4
-        WHERE  lc.Code = @Ric AND UPPER(bt.Name) = UPPER(@BasketType)
-        		
-        SELECT @ProductType=c.Code
-        FROM tblListing l 
-        	JOIN tblSecurity s On s.SecurityID = l.SecurityID
-        	JOIN tblSecurityClassification sl On sl.SecurityID = l.SecurityID AND sl.StartDate <=@AsAtDate AND sl.EndDate >@AsAtDate
-        	JOIN tblClassification c On c.ClassificationID = sl.ClassificationID
-        WHERE ListingID = @ListingID AND c.ClassificationSchemeID=@ClassificationSchemeID
-        
-        SELECT @Bloomberg = Code 
-        FROM tblListingCode GG 
-        WHERE GG.ListingID = @ListingID 
-        	AND GG.StartDate <= @AsAtDate 
-        	AND GG.EndDate > @AsAtDate 
-        	AND GG.CodeTypeID = (select CodeTypeID from tblCodeType WHERE Name = 'Bloomberg')
-        
-        SELECT @iNavTicker = Code 
-        FROM tblListingCode GG 
-        WHERE  GG.ListingID = @ListingID 
-        	AND GG.StartDate <= @AsAtDate 
-        	AND GG.EndDate > @AsAtDate 
-        	AND GG.CodeTypeID = (select CodeTypeID from tblCodeType WHERE Name = 'iNavTicker') 
-        
-        ---- Assume dividend currency is the same as the base currency																				    
-        SELECT @GrossAmount  = GrossAmount 
-        FROM  tblDistribution d 
-        WHERE d.ListingID = @ListingID AND d.XdDate = @OpenDate AND d.CorporateActionSetID = 1
-        
-        SELECT 'H' AS [Record Type]
-        	,ISNULL(HH.Code,'') AS [iNAV ISIN Code]
-        	,@ProductType AS [Category (Product Type)]
-        	,H.ConstituentCount
-        	,'1' AS [Update Count]
-        	,C.OpenDate AS [iNAV Calculation Date]
-        	,C.CurrentDate AS [NAV Valuation Date]
-        	,A.NAV AS [NAV]
-        	,'-' AS [Estimated NAV]
-        	,'-' AS [Estimated NAV Valuation Date]
-        	,H.EstimatedCash/A.Divisor AS [Cash Component of the NAV]
-        	,'-' AS [Estimated Cash of the Next Trading Day NAV]
-        	,A.SharesOutstanding AS [ETF Total Number of Outstanding Shares]
-        	,A.NAV*A.Divisor AS [Value of One Creation Unit]
-        	,A.Divisor AS [Number Shares of a Creation Unit]
-        	,B.CurrencyCode AS [Trading Currency]
-        	,UI.CurrencyCode AS [Underlying Index Currency] 
-        	,A.CurrencyCode AS [NAV (base) Currency]
-        	,G.Code AS [ETF ISIN Code]
-        	,@RIC AS [ETF RIC Code]
-        	,GG.Code AS [ETF BBG Code]
-        	,M.Code AS [Underlying Index ID]
-        	,II.Code [Indicative NAV ID]
-        	,CASE WHEN d.GrossAmount IS NULL THEN '-' 
-        		ELSE CAST(d.GrossAmount AS VARCHAR) END [Dividend Amount of One ETF Share]
-        	,CASE WHEN d.XdDate IS NULL THEN '-' 
-        		ELSE CAST(d.XdDate AS VARCHAR) END  [Dividend Ex-Date]	
-        	,'-' AS [Exposure to Risky Assets]
-        	,'-' AS [Reference Basket Level]
-        	,'-' AS [NAV Floor]
-        	,'-' AS [Multiplier]
-        	,L.Value [Underlying Index Level] 
-        FROM tblETFPosition A
-        	INNER JOIN tblETF B ON B.ETFID = A.ETFID
-        	INNER JOIN tblFamily C ON C.FamilyID = B.FamilyID
-        	INNER JOIN tblSecurity D ON D.SecurityID = B.SecurityID
-        	INNER JOIN tblSecurityProperty E ON E.SecurityID = D.SecurityID 
-        		AND E.StartDate <= @AsAtDate 
-        		AND E.EndDate > @AsAtDate
-        	INNER JOIN tblListing F ON F.SecurityID = D.SecurityID
-        	LEFT JOIN tblSecurityCode G ON G.SecurityID = D.SecurityID 
-        		AND G.StartDate <= @AsAtDate 
-        		AND G.EndDate > @AsAtDate 
-        		AND G.CodeTypeID = (SELECT CodeTypeID FROM tblCodeType WHERE Name = 'Isin')
-        	LEFT JOIN tblSecurityCode HH ON    HH.SecurityID = D.SecurityID 
-        		AND HH.StartDate <= @AsAtDate 
-        		AND HH.EndDate > @AsAtDate 
-        		AND HH.CodeTypeID = (SELECT CodeTypeID FROM tblCodeType WHERE Name = 'iNAV ISIN')
-        	LEFT JOIN tblListingCode GG ON GG.ListingID = F.ListingID 
-        		AND GG.StartDate <= @AsAtDate 
-        		AND GG.EndDate > @AsAtDate 
-        		AND GG.CodeTypeID = (select CodeTypeID from tblCodeType WHERE Name = 'Bloomberg')
-        	LEFT JOIN tblListingCode II ON II.ListingID = F.ListingID 
-        		AND II.StartDate <= @AsAtDate 
-        		AND II.EndDate > @AsAtDate 
-        		AND II.CodeTypeID = (select CodeTypeID from tblCodeType WHERE Name = 'iNavTicker')
-        	INNER JOIN tblBasketPosition H ON H.BasketID = @BasketID AND H.AsAtDate = A.AsAtDate
-        	INNER JOIN tblListing UI ON UI.ListingID = B.ReferenceIndexListingID
-        	INNER JOIN tblCalendarDateLite CL ON CL.CalendarID = C.CalendarID AND CL.AsAtDate = @AsAtDate
-        	JOIN tblIndex K ON K.SecurityID = UI.SecurityID
-        	JOIN tblIndexPosition L ON L.IndexID = K.IndexID AND L.AsAtDate = A.AsAtDate AND L.VariantID = UI.VariantID AND L.CurrencyCode = UI.CurrencyCode
-        	LEFT JOIN tblListingCode M ON M.ListingID = B.ReferenceIndexListingID 
-        		AND M.StartDate <= GETDATE () 
-        		AND M.EndDate > GETDATE () 
-        		AND M.CodeTypeID = 10																					  																		    
-        	LEFT JOIN tblDistribution d ON d.ListingID = F.ListingID 
-        		AND d.XdDate = CL.OpenDate 
-        		AND d.CorporateActionSetID = 1
-        WHERE  F.ListingID = @ListingID AND A.AsAtDate = @AsAtDate 
-        ORDER BY A.AsAtDate DESC"""
-    df_proc = db.db_SelectReq(str_req)
-    return df_proc
-
-
-
-
-def fDf_EasyFi_PCFELQC2_Proc(str_bbg):
-    print('DEPREACTED')
-    return -1
-    str_req = """SET NOCOUNT ON; 
-       DECLARE @Ric VARCHAR(30) ='""" + str_bbg + """',
-          @BasketType VARCHAR (20) = 'Creation',
-        	@RefFamilyID INT,
-        	@Filter VARCHAR(100),
-        	@ListingID INT,
-        	@PCFCurrency VARCHAR(255),
-        	@RIC VARCHAR(25),
-        	@CalculationMask INT,
-        	@ETFID INT,
-        	@BasketID INT,
-        	@BasketTypeID INT,
-        	@BasketName VARCHAR (20),
-        	@UnderlyingIndexCurrency char (3),
-        	@ProductType varchar(50),
-        	@ClassificationSchemeID int= 71,
-        	@ETF_ISIN varchar(12),
-        	@AsAtDate   DATE ,
-        	@SecurityID int,
-        	@iNavTicker varchar(50),
-        	@Bloomberg varchar(50),
-        	@GrossAmount numeric(28,12),
-        	@OpenDate date, 
-        	@PriceDate DATE
-        
-        SELECT
-        	@RefFamilyID = RefFamilyID,
-        	@Filter = bp.Filter,
-        	@ListingID = l.ListingID,
-        	@PCFCurrency = l.CurrencyCode,
-        	@RIC = lc.Code,
-        	@CalculationMask = bp.CalculationMask,
-        	@ETFID = e.ETFID,
-        	@BasketID = b.BasketID,
-        	@BasketTypeID = bt.BasketTypeID,
-        	@BasketName = bt.Name,
-        	@AsAtDate =f.OpenDate,
-        	@PriceDate=f.CurrentDate,
-        	@ETF_ISIN =  sc.Code
-        FROM tblFamily f
-        	INNER JOIN tblETF e ON e.FamilyID = f.FamilyID
-        	INNER JOIN tblSecurity s ON s.SecurityID = e.SecurityID
-        	INNER JOIN tblBasket b ON b.ETFID = e.ETFID
-        	INNER JOIN tblBasketProperty bp ON bp.BasketID = b.BasketID 
-        		AND bp.StartDate <= GETDATE() 
-        		AND bp.EndDate > GETDATE()
-        	INNER JOIN tblBasketType bt on bt.BasketTypeID = b.BasketTypeID
-        	INNER JOIN tblListing l ON l.SecurityID = s.SecurityID
-        	INNER JOIN tblListingCode lc ON lc.ListingID = l.ListingID 
-        		AND lc.StartDate <= GETDATE() 
-        		AND lc.EndDate > GETDATE()  
-        		AND lc.CodeTypeID =10 
-        	LEFT JOIN tblSecurityCode sc ON sc.SecurityID = s.SecurityID 
-        		AND sc.StartDate <= GETDATE() 
-        		AND sc.EndDate > GETDATE() 
-        		AND sc.CodeTypeID = 4
-        WHERE  lc.Code = @Ric AND UPPER(bt.Name) = UPPER(@BasketType)
-        
-        SELECT 'B' AS [Record Type]
-        	,@ETF_ISIN AS [ETF ID]
-        	,st.Name AS [Constituent Type]
-        	,si.Code AS [Constituent ISIN]
-        	,lcr.Code AS [RIC]
-        	,ISNULL(lcb.Code,'-') AS [Bloomberg]
-        	,CASE WHEN ex.MIC ='NONE' THEN '-' ELSE '' END AS [Mic]
-        	,s.Name AS [Constituent Name]
-        	,c.NumberOfUnits AS [Constituent Shares in the Creation Unit]
-        	,'-' AS [Corresponding Correlated Index Ric Code]
-        	,'-' AS [Corresponding Correlated Index Factor]
-        	,ROW_NUMBER () OVER(ORDER BY s.Name) AS [Counter line]
-        	,ISNULL(pe.Value,p.Value) AS [Closing Price of the Constituent]
-        	,'-' AS [Forex rate used to calculate the closing price used in NAV calculation]
-        	,'T' AS [Trailer Record]
-        	,@ETF_ISIN AS [ETF ID 2]
-        	,c.NumberOfUnits * IsNull(c.PriceAdjustmentFactor, 1.0) *    
-        		CASE WHEN @CalculationMask & 1 > 0 THEN c.Factor1 ELSE 1 END *  
-        		CASE WHEN @CalculationMask & 2 > 0 THEN c.Factor2 ELSE 1 END *  
-        		CASE WHEN @CalculationMask & 4 > 0 THEN c.Factor3 ELSE 1 END *  
-        		CASE WHEN @CalculationMask & 8 > 0 THEN c.Factor4 ELSE 1 END *  
-        		CASE WHEN @CalculationMask & 16 > 0 THEN c.Factor5 ELSE 1 END *  
-        		CASE WHEN @CalculationMask & 32 > 0 THEN c.Factor6 ELSE 1 END *  
-        		CASE WHEN @CalculationMask & 64 > 0 THEN c.Factor7 ELSE 1 END *  
-        		CASE WHEN @CalculationMask & 128 > 0 THEN c.Factor8 ELSE 1 END *  
-        		CASE WHEN @CalculationMask & 256 > 0 THEN c.Factor9 ELSE 1 END * ISNULL(pe.Value,p.Value) 
-        	AS [Market Value]
-        	,CAST(NULL AS DECIMAL(28,14)) AS [Weighting in Percentage]
-        	,bp.CleanPrice AS [18]
-        	,bp.AccruedInterest AS [19]
-        FROM tblConstituent c
-        	INNER JOIN tblListing l ON l.ListingID = c.ListingID
-        	INNER JOIN tblSecurity se ON se.SecurityID = l.SecurityID
-        	INNER JOIN tblSecurityType st ON st.SecurityTypeID = se.SecurityTypeID
-        	INNER JOIN tblSecurityProperty s ON s.SecurityID = l.SecurityID 
-        		AND s.StartDate <= @AsAtDate 
-        		AND s.EndDate > @AsAtDate
-        	LEFT JOIN tblListingCode lcr ON lcr.ListingID = l.ListingID 
-        		AND lcr.StartDate <= @AsAtDate 
-        		AND lcr.EndDate > @AsAtDate 
-        		AND lcr.CodeTypeID = (select CodeTypeID from tblCodeType WHERE Name = 'Ric')
-        	LEFT JOIN tblListingCode lcb ON lcb.ListingID = l.ListingID 
-        		AND lcb.StartDate <= @AsAtDate 
-        		AND lcb.EndDate > @AsAtDate 
-        		AND lcb.CodeTypeID = (select CodeTypeID from tblCodeType WHERE Name = 'Bloomberg')
-        	LEFT JOIN tblListingCode lcs ON lcs.ListingID = l.ListingID 
-        		AND lcs.StartDate <= @AsAtDate 
-        		AND lcs.EndDate > @AsAtDate 
-        		AND lcs.CodeTypeID = (select CodeTypeID from tblCodeType WHERE Name = 'Sedol')
-        	LEFT JOIN tblSecurityCode si ON si.SecurityID = l.SecurityID 
-        		AND si.StartDate <= @AsAtDate 
-        		AND si.EndDate > @AsAtDate 
-        		AND si.CodeTypeID = (select CodeTypeID from tblCodeType WHERE Name = 'Isin')
-        	INNER JOIN tblExchange ex ON ex.ExchangeID = l.ExchangeID
-        	INNER JOIN tblCurrency cu ON cu.CurrencyCode = l.CurrencyCode
-        	LEFT JOIN tblPrice p ON p.ListingID = c.ListingID 
-        		AND p.AsAtDate =@PriceDate 
-        	LEFT JOIN tblPriceException pe ON pe.ListingID = c.ListingID 
-        		AND pe.FamilyID = c.FamilyID 
-        		AND pe.AsAtDate = @PriceDate
-        	LEFT JOIN [PRDCOB001WI].SolaFixedIncome.dbo.tblBondPrice bp on bp.FamilyID = c.FamilyID 
-        		and bp.AsAtDate = @AsAtDate 
-        		and bp.ListingID = c.ListingID
-        WHERE c.StartDate <=@AsAtDate 
-        	AND c.EndDate > @AsAtDate 
-        	AND c.FamilyID = @RefFamilyID 
-        	AND c.FilterValue LIKE @Filter"""
-    df_proc = db.db_SelectReq(str_req)
-    return df_proc

@@ -42,7 +42,10 @@ def fDf_readCsv_enhanced(str_path, bl_header, str_sep = ',', l_names = None, str
 #==============================================================================
 # Operation on Dataframe
 #==============================================================================
-def fDf_CleanPrepareDF(df_in, l_colToBeFloat = [], l_colToDropNA = [], o_fillNA_by = -404):
+
+#SELECT df column by number of Col: df_OUT_LIGHTINV.col.str.get(0)
+
+def fDf_CleanPrepareDF(df_in, l_colToBeFloat = [], l_colToDropNA = [], o_fillNA_by = -404, l_colSort = [], bl_ascending = True):
     df = df_in.copy()
     # Change Null to NA (if directly out of DB)
     df.fillna(value = pd.np.nan, inplace = True)
@@ -57,22 +60,43 @@ def fDf_CleanPrepareDF(df_in, l_colToBeFloat = [], l_colToDropNA = [], o_fillNA_
     # Fill NA by...
     if o_fillNA_by != -404:
          df.fillna(value = o_fillNA_by, inplace = True)
+    if l_colSort:
+        df.sort_values(by = l_colSort, ascending = bl_ascending, inplace = True)
     return df
 
+def fDf_DropRowsIfNa_resetIndex(df, l_colToDropNA = []):
+    if l_colToDropNA:   df.dropna(axis = 'index', subset = l_colToDropNA, inplace = True)
+    else:               df.dropna(axis = 'index', inplace = True)
+    df.reset_index(drop = True, inplace = True)
+    return df
 
 def dDf_fillNaColumn(df, str_colTarget, str_colValueToInputIfNA):
     df[str_colTarget] = df[str_colTarget].fillna(df[str_colValueToInputIfNA])
     return df
     
-
-def fDf_fillColUnderCondition(df, str_colToApply, ValueToApply, str_colCondition, ValueCondition):
-    df[str_colToApply] = df[str_colToApply].mask(df[str_colCondition] == ValueCondition, ValueToApply)
+def fDf_fillColUnderCondition(df, str_colToApply, ValueToApply, str_colCondition, ValueCondition, bl_except = False):
+    '''Transform un DF avec condition
+    ValueToApply can be a value or a lambda function'''
+    if bl_except:   df[str_colToApply] = df[str_colToApply].mask(df[str_colCondition] != ValueCondition, ValueToApply)
+    else:           df[str_colToApply] = df[str_colToApply].mask(df[str_colCondition] == ValueCondition, ValueToApply)
     #df[str_colToApply] = [ValueToApply if x == ValueCondition else '-' for x in df[str_colCondition]]
+    #df['Units'] = df['Units'].where(df['column'] == 'S', - df['Units'])
+    return df
+
+def fDf_FilterOnCol(df, str_colToApply, l_isIN = [], str_startWith = ''):
+    if l_isIN:
+        df = df[df[str_colToApply].isin(l_isIN)].copy()
+        #df_Holdings = df_OUT_LIGHTINV[df_OUT_LIGHTINV['GTI'].isin(['S01','S39'])]
+    elif str_startWith != '':
+        df = df[df[str_colToApply].startswith(str_startWith, na = False)].copy()
+        #df_Fund = df_Fund[df_Fund['colForCriteria'].str.startswith('S', na = False)].copy()
     return df
 
 
-
-def fDf_InsertColumnOfIndex(df, int_StartNumber = 1, int_PositionOf_ColumnIndex = 0):
+def fDf_InsertColumnOfIndex(df, int_StartNumber = 1, int_PositionOf_ColumnIndex = 0, l_colSort = [], bl_ascending = True):
+    # Sort before to do anything else
+    if l_colSort:
+        df.sort_values(by = l_colSort, ascending = bl_ascending, inplace = True)
     # Keep the inital columns name in a list / Keep the index as well
     l_col = df.columns.tolist()
     l_index = df.index
@@ -142,6 +166,7 @@ def fDf_JoinDf(df_left, df_right, str_columnON, str_how = 'inner'):
         #df_Holds_MACI = df_Holds_MACI.join(df_Out_Fx[['Curr', 'Fx']].set_index('Curr'), on = 'Curr')
     except Exception as err:    
         print(' ERROR  in fDf_JoinDf: {}'.format(str(err)))
+        return df_left
     return df
 
 
@@ -212,7 +237,6 @@ def fDf_GetFirst_SumOnSecondCol(df_in, str_colPivot, str_colToSum_keepOnlyMax, s
 #                columns=["Isin","Sedol","LotSize"])
 #print(df)
 #print(fDf_GetFirst_IsinSedol(df, "Isin", 'Sedol', "LotSize"))
-
 
 
 #==============================================================================

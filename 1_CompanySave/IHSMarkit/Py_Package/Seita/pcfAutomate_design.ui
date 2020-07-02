@@ -88,16 +88,6 @@
    </item>
    <item>
     <property name="text">
-     <string>US_Harvest_China</string>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>----------</string>
-    </property>
-   </item>
-   <item>
-    <property name="text">
      <string>HK Morning</string>
     </property>
    </item>
@@ -164,6 +154,36 @@
    <item>
     <property name="text">
      <string>HK_EASY_JBEM</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>----------</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>SG_EASY_MSCI</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>----------</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>UK_Phillip_Cap</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>----------</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>US_Harvest_China</string>
     </property>
    </item>
    <item>

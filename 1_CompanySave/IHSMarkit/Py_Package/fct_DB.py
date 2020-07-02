@@ -1,12 +1,7 @@
-'''
-pip install pyodbc
-https://www.youtube.com/watch?v=Vm2fHhP4SVE
-'''
-
 import os, time
 import pyodbc as db
 import pandas as pd
-#import datetime as dt
+import datetime as dt
 #import sqlalchemy
 import fct_Files as fl
 
@@ -281,7 +276,7 @@ class c_sqlDB():
 #---------------------------------------------------------------
         
 # ***** EXECUTE a SP *****************
-@dec_getTimePerf(5)
+#@dec_getTimePerf(5)
 def db_DefineConnectCursor(str_req, str_server = '', str_database = '', str_uid = '', str_pwd = ''):
     inst_db = c_sqlDB()
     inst_db.server = str_server
@@ -293,7 +288,7 @@ def db_DefineConnectCursor(str_req, str_server = '', str_database = '', str_uid 
     return True
 
 # ***** Execute a Stored Proc *****************
-@dec_getTimePerf(5)
+#@dec_getTimePerf(5)
 def db_EXEC(str_req, str_server = '', str_database = '', str_uid = '', str_pwd = '', bl_prod = True):
     inst_db = c_sqlDB()
     db_DefineConnectCursor(str_req, str_server, str_database, str_uid, str_pwd)
@@ -303,7 +298,7 @@ def db_EXEC(str_req, str_server = '', str_database = '', str_uid = '', str_pwd =
     return True
 
 # ***** Select to dataframe *****************
-@dec_getTimePerf(10)
+#@dec_getTimePerf(10)
 def db_SelectReq(str_req, str_server = '',str_database = '', str_uid = '', str_pwd = '', bl_prod = True, bl_EmptyMessage = True):
     inst_db = c_sqlDB()
     db_DefineConnectCursor(str_req, str_server, str_database, str_uid, str_pwd)
@@ -313,7 +308,7 @@ def db_SelectReq(str_req, str_server = '',str_database = '', str_uid = '', str_p
     return df_result
 
 # ***** Mulitple Proc to dataframe *****************
-@dec_getTimePerf(10)
+#@dec_getTimePerf(10)
 def db_MultipleReq(str_req, str_server = '',str_database = '', str_uid = '', str_pwd = '', bl_prod = True, bl_EmptyMessage = True):
     inst_db = c_sqlDB()
     db_DefineConnectCursor(str_req, str_server, str_database, str_uid, str_pwd)
@@ -324,7 +319,7 @@ def db_MultipleReq(str_req, str_server = '',str_database = '', str_uid = '', str
     return df_result
 
 # ***** Building request & Select to dataframe *****************
-@dec_getTimePerf(10)
+#@dec_getTimePerf(10)
 def fDf_sqlBuildSelect(str_from, str_select = '*', l_where = [], str_groupBy = '', str_orderBy = ''):
     inst_db = c_sqlDB()
     #Just to go back to default value and not stay on SOLAQC database...
@@ -335,8 +330,8 @@ def fDf_sqlBuildSelect(str_from, str_select = '*', l_where = [], str_groupBy = '
     return df_result
 
 # ***** SQL Request and Save into CSV  *****************
-@dec_getTimePerf(5)
-def fDf_GetRequest_or_fromCsvFile(str_req, str_fileName, int_dayToKeep, str_cloudPathForCsv = ''):
+#@dec_getTimePerf(5)
+def fDf_GetRequest_or_fromCsvFile(str_req, str_fileName, int_dayToKeep, str_cloudPathForCsv = '', bl_EmptyMessage = True):
     inst_db = c_sqlDB()
     inst_db.cloudPathForCsv = str_cloudPathForCsv
     
@@ -344,21 +339,56 @@ def fDf_GetRequest_or_fromCsvFile(str_req, str_fileName, int_dayToKeep, str_clou
     str_Path = os.path.join(inst_db.cloudPathForCsv, str_fileName)
     
     # ----- Delete if the file is too old -----
-    try:    fl.del_fichier_ifOldEnought(str_Path,'', int_dayToKeep)
-    except: pass
+    if fl.fBl_FileExist(str_Path):
+        try:    fl.del_fichier_ifOldEnought(str_Path,'', int_dayToKeep)
+        except: pass
     
     # ----- Try to read the file (if it exists) -----
     try:    df_return = pd.read_csv(str_Path, header = 0)
     except:
         # ----- Does not EXIST -----
-        df_return = db_SelectReq(str_req)
+        df_return = db_SelectReq(str_req, bl_EmptyMessage = bl_EmptyMessage)
         # ----- Save the request on CSV -----
         try:    df_return.to_csv(str_Path, index = False, header = True)
-        except: print(' Warning in fDf_GetRequest_or_fromCsvFile: No access to {}'.format(str_Path))
+        except: print(' Warning in fDf_GetRequest_or_fromCsvFile: No access to {}\n - file: {}'.format(str_Path, str_fileName))
     return df_return
 
 
 
+##########################################################
+####### Log ###########################
+##########################################################
+def Log_Python(d_param = {}):
+    try:
+        # Check the Folder exist for the user
+        str_PathCloud = os.path.join(os.environ['USERPROFILE'], r'IHS Markit\HK PCF Services Team - General\Auto_py\file') 
+        if not fl.fBl_FolderExist(str_PathCloud):
+            print('WARNING: the following folder is not accessible from your machine: \n {}'.format(str_PathCloud))
+            print(' (*) Please Contact HK Team to have access to the folder and all the features of the App')
+            return -1
+        elif not fl.fBl_FileExist(os.path.join(str_PathCloud, 'DatabasePassword.csv')):
+            print('WARNING: you have access to the following folder but your cloud is not synch with the rest \n {}'.format(str_PathCloud))
+            print(' (*) Please Contact HK Team to import the file to manage Database')
+            return -1
+        # PARAM
+        d_param['str_uid'] = os.getlogin()
+        l_uid2 = d_param['str_uid'].replace('.',' ').split(' ')
+        d_param['str_uid2'] = ' '.join([mot[:1].upper() + mot[1:] for mot in l_uid2])
+        d_param['dte_Date'] = dt.datetime.now().date().strftime('%Y-%m-%d')
+        if not 'str_action' in d_param:     
+            print('WARNING Log_Python, you did not define Action in the dico: \n{}'.format(d_param))
+            d_param['str_action'] = ''
+        if not 'bl_error' in d_param:           d_param['bl_error'] = 0
+        if not 'str_Program' in d_param:        d_param['str_Program'] = ''
+        if not 'str_path' in d_param:           d_param['str_path'] = os.path.dirname(os.path.abspath(__file__))
+        if not 'str_comment' in d_param:        d_param['str_comment'] = ''
+        # Query
+        str_query = """EXEC sp_log_add '{0}', 'Python', '{1}', {2}, '{3}', '{4}', '{5}', '{6}','{7}'
+                    """.format(d_param['str_uid'], d_param['str_action'], d_param['bl_error'], d_param['str_Program'], 
+                    d_param['str_path'], d_param['str_uid2'], d_param['dte_Date'], d_param['str_comment'])
+        db_EXEC(str_query, '', 'SolaQC')
+    except Exception as err:        print('Log_Python did not work, please contact HK Team (LAURENT TUPIN)\n{}'.format(str(err)))
+        
 
 
 ##########################################################

@@ -17,10 +17,20 @@ import fct_DB as db
 
 
 
+
+
+
 ##########################################################
 ### Today ###
 def fDte_Today():
     return dt.date.today()
+
+
+#dte_d = fDte_Today()
+#print(dte_d)
+#str_month = dte_d.strftime('%d%b%Y')
+#print(str_month)
+
 
 
 ##########################################################

@@ -41,23 +41,6 @@ str_pathDesktop = os.path.join(os.environ['USERPROFILE'], 'IHS Markit')
 str_cloudPath = os.path.join(str_pathDesktop, r'HK PCF Services Team - General\Auto_py') + '\\'
 
 
-#-----------------------------------------------------------------
-# LOG
-#-----------------------------------------------------------------
-def Log_Python(str_action, str_comment = '', bl_error = 0):
-    try:
-        str_uid = os.getlogin()
-        str_path = os.path.dirname(os.path.abspath(__file__))
-        l_uid2 = str_uid.replace('.',' ').split(' ')
-        str_uid2 = ' '.join([mot[:1].upper() + mot[1:] for mot in l_uid2])
-        dte_Date = dt.datetime.now().date().strftime('%Y-%m-%d')
-        str_query = "EXEC sp_log_add '" + str_uid + "','Python','" + str_action + "'," + str(bl_error) + ",'" \
-                            + str_Program + "','" + str_path + "','" + str_uid2 + "','" + dte_Date  + "','" + str_comment + "'"
-        db.db_EXEC(str_query,'','SolaQC')
-    except: print('Log_Python did not work, please contact LAURENT TUPIN')
-#-----------------------------------------------------------------
-
-
 class class_App(QDialog):
     def __init__(self):
         super(class_App, self).__init__()
@@ -85,8 +68,9 @@ class class_App(QDialog):
         self.comboBox_DB.activated.connect(self.onChange__Database)
         self.push_sendFTP.clicked.connect(self.onPush__sendFTP)
         #self.comboBox_MailType.activated.connect(self.onChange__MailType)
+        # Load Log
+        db.Log_Python({'str_action':'OPEN', 'str_Program':'Seita', 'str_path':os.path.dirname(os.path.abspath(__file__))})
         
-    
     @pyqtSlot()
     def onPush_OpenParamCSV(self):
         try:
@@ -113,8 +97,7 @@ class class_App(QDialog):
             inst_xlApp = fl.c_win32_xlApp()
             inst_xlApp.QuitXlApp(bl_force = True, bl_killExcelProcess = True)
             #fl.Act_KillExcel()
-            Log_Python('Kill Excel', '', 0)
-        except: Log_Python('Kill Excel', '', 1)
+        except: db.Log_Python({'str_action':'Kill Excel', 'bl_error':1, 'str_Program':'Seita'})
         
     @pyqtSlot()
     def onPush_downloadFiles(self):
@@ -126,7 +109,7 @@ class class_App(QDialog):
         except: 
             str_ErrorComment = "You didnt choose a PCF to Produce"
             self.textEdit_Error.append(str_ErrorComment)
-            Log_Python('DownloadFiles', str_ErrorComment, 1)
+            db.Log_Python({'str_action':'DownloadFiles', 'bl_error':1, 'str_comment':str_ErrorComment, 'str_Program':'Seita'})
             return 0
         # Clear 
         self.listWidget_pathPcf.clear()
@@ -135,11 +118,11 @@ class class_App(QDialog):
             str_resultFigures, l_pathPcf = dwl.DownloadFiles(str_pcf, str_folderRoot, dte_date, bl_ArchiveMails)
             if 'ERROR' in str_resultFigures or l_pathPcf == []:
                 self.textEdit_Error.append(str_resultFigures)
-                Log_Python('DownloadFiles', str_pcf, 1)
+                db.Log_Python({'str_action':'DownloadFiles', 'bl_error':1, 'str_comment':str_pcf, 'str_Program':'Seita'})
                 return 0
         except:
             self.textEdit_Error.append(" ERROR Download: You didnt choose the right PCF: " + str_pcf)
-            Log_Python('DownloadFiles', str_pcf, 1)
+            db.Log_Python({'str_action':'DownloadFiles', 'bl_error':1, 'str_comment':str_pcf, 'str_Program':'Seita'})
             return 0
         # Display the main figures        
         self.textEdit_Result.append(str_resultFigures)
@@ -153,7 +136,7 @@ class class_App(QDialog):
             #        fl.act_createFile(False, str_localFilePath, str_fileName, str_text)
             #        fl.act_createFile(False, str_networkFilePath, str_fileName, str_text)
         #LOG
-        Log_Python('DownloadFiles', str_pcf)
+        db.Log_Python({'str_action':'DownloadFiles', 'str_comment':str_pcf, 'str_Program':'Seita'})
         
     @pyqtSlot()
     def onPush_producePcf(self):
@@ -167,7 +150,7 @@ class class_App(QDialog):
         except: 
             str_ErrorComment = "You didnt choose a PCF to Produce"
             self.textEdit_Error.append(str_ErrorComment)
-            Log_Python('ProducePCF', str_ErrorComment, 1)
+            db.Log_Python({'str_action':'ProducePCF', 'bl_error':1, 'str_comment':str_ErrorComment, 'str_Program':'Seita'})
             return 0
         
         # Choose PCF
@@ -175,11 +158,11 @@ class class_App(QDialog):
             str_resultFigures, l_pathPcf =          pcf.producePCF(str_pcf, str_folderRoot, dte_date, bl_ArchiveMails)
             if 'ERROR' in str_resultFigures or l_pathPcf==[]:                
                 self.textEdit_Error.append(str_resultFigures)
-                Log_Python('ProducePCF', str_pcf, 1)
+                db.Log_Python({'str_action':'ProducePCF', 'bl_error':1, 'str_comment':str_pcf, 'str_Program':'Seita'})
                 return 0
         except:
             self.textEdit_Error.append(" ERROR Produce: You didnt choose the right PCF: " + str_pcf)
-            Log_Python('ProducePCF', str_pcf, 1)
+            db.Log_Python({'str_action':'ProducePCF', 'bl_error':1, 'str_comment':str_pcf, 'str_Program':'Seita'})
             return 0
         # Display the main figures
         self.textEdit_Result.append(str_resultFigures)
@@ -195,7 +178,7 @@ class class_App(QDialog):
         #        fl.act_createFile(False, str_localFilePath , str_fileName, str_text)
         #        fl.act_createFile(False, str_networkFilePath , str_fileName, str_text)
         #LOG
-        Log_Python('ProducePCF', str_pcf)
+        db.Log_Python({'str_action':'ProducePCF', 'str_comment':str_pcf, 'str_Program':'Seita'})
         
     @pyqtSlot()
     def onPush_loadPcf(self):
@@ -208,7 +191,7 @@ class class_App(QDialog):
         except: 
             str_ErrorComment = "You didnt choose a PCF to load"
             self.textEdit_Error.append(str_ErrorComment)
-            Log_Python('LoadPCF', str_ErrorComment, 1)
+            db.Log_Python({'str_action':'LoadPCF', 'bl_error':1, 'str_comment':str_ErrorComment, 'str_Program':'Seita'})
             return 0
         # Read File
         try:    str_pathPcf = fl.fStr_readFile(False, str_folderRoot + 'file' , str(dte_date) + '_' + str_pcf + ".txt")
@@ -216,7 +199,7 @@ class class_App(QDialog):
         if not str_pathPcf:
             str_ErrorComment = "You didnt run # " + str_pcf + " # today. Please click on PRODUCE PCF first !"
             self.textEdit_Error.append(str_ErrorComment)
-            Log_Python('LoadPCF', str_ErrorComment, 1)
+            db.Log_Python({'str_action':'LoadPCF', 'bl_error':1, 'str_comment':str_ErrorComment, 'str_Program':'Seita'})
             return 0
         # Fill the Path list
         l_pathPcf = str_pathPcf.split('\n')
@@ -224,7 +207,7 @@ class class_App(QDialog):
         for path in l_pathPcf:
             self.listWidget_pathPcf.addItem(path)
         #LOG
-        Log_Python('LoadPCF', str_pcf)
+        db.Log_Python({'str_action':'LoadPCF', 'str_comment':str_pcf, 'str_Program':'Seita'})
         
     
     def onPush_Clear(self):
@@ -341,17 +324,17 @@ class class_App(QDialog):
             str_MailType = self.comboBox_MailType.currentText()
         except:
             self.textEdit_Error.append("Please select a PCF path !")
-            Log_Python('SendMail', str_perimeter, 1)
+            db.Log_Python({'str_action':'SendMail', 'bl_error':1, 'str_comment':str_perimeter, 'str_Program':'Seita'})
             return 0 
         # Send
         try:
             #str_message = pcf.sendPCF(dte_date, l_filesPath, str_perimeter, bl_displayMail, False)
             str_message = pcf.sendPCF(dte_date, l_filesPath, str_perimeter, str_MailType, bl_displayMail)
             if not str_message == True: self.textEdit_Error.append(str_message)
-            Log_Python('SendMail', str_perimeter)
         except:             
             self.textEdit_Error.append(' ** PCF Could not be sent')
-            Log_Python('SendMail', str_perimeter, 1)
+            db.Log_Python({'str_action':'SendMail', 'bl_error':1, 'str_comment':str_perimeter, 'str_Program':'Seita'})
+        db.Log_Python({'str_action':'SendMail', 'str_comment':str_perimeter, 'str_Program':'Seita'})
             
     @pyqtSlot()
     def onPush__sendFTP(self):
@@ -366,7 +349,7 @@ class class_App(QDialog):
             self.listWidget_filePresentFTP.clear()
         except:
             self.textEdit_Error.append("Please select a PCF path !")
-            Log_Python('SendFTP', str_perimeter, 1)
+            db.Log_Python({'str_action':'SendFTP', 'bl_error':1, 'str_comment':str_perimeter, 'str_Program':'Seita'})
             return 0 
         # Send = UPLOAD
         try:
@@ -374,24 +357,26 @@ class class_App(QDialog):
             #            str_return = pp.fStr_Upload_LaPerouse(str_perimeter, str_folderRoot, dte_date)
             if not str_message == True:
                 self.textEdit_Error.append(str_message)
-                Log_Python('SendFTP', '{} ||| {}'.format(str_perimeter, str_message), 1)
+                db.Log_Python({'str_action':'SendFTP', 'str_comment': '{} ||| {}'.format(str_perimeter, str_message), 'str_Program':'Seita'})
             if not l_ListFilesFTP:
                 str_message = 'l_ListFilesFTP is empty'
                 self.textEdit_Error.append(str_message)
-                Log_Python('SendFTP', '{} ||| {}'.format(str_perimeter, str_message), 1)
+                db.Log_Python({'str_action':'SendFTP', 'bl_error':1, 'str_Program':'Seita', 
+                                 'str_comment': '{} ||| {}'.format(str_perimeter, str_message)})
         except:
             self.textEdit_Error.append("\n ERROR: You didnt choose the right Perimeter: {}".format(str_perimeter))
-            Log_Python('SendFTP', '{} ||| You didnt choose the right Perimeter'.format(str_perimeter), 1)
+            db.Log_Python({'str_action':'SendFTP', 'bl_error':1, 'str_Program':'Seita', 
+                             'str_comment':'{} ||| You didnt choose the right Perimeter'.format(str_perimeter)})
         # Check if it is present on the FTP
         try:
             for str_File in l_ListFilesFTP:
                 self.listWidget_filePresentFTP.addItem(str_File)
         except:
             self.textEdit_Error.append("\n ERROR: You could not fill the listWidget_filePresentFTP on Perimeter: {}".format(str_perimeter))
-            Log_Python('SendFTP', '{} ||| You could not fill the listWidget_filePresentFTP on Perimeter'.format(str_perimeter), 1)
+            db.Log_Python({'str_action':'SendFTP', 'bl_error':1, 'str_Program':'Seita', 
+                             'str_comment':'{} ||| You could not fill the listWidget_filePresentFTP on Perimeter'.format(str_perimeter)})
         # LOG
-        try:    Log_Python('SendFTP', str_perimeter)
-        except: pass
+        db.Log_Python({'str_action':'SendFTP', 'str_comment':str_perimeter, 'str_Program':'Seita'})
     
     @pyqtSlot()
     def onChange__Database(self):
@@ -419,7 +404,6 @@ if __name__ == '__main__':
     if not QApplication.instance():     app = QApplication(sys.argv)
     else:                               app = QApplication.instance() 
     
-    Log_Python('OPEN')
     widget = class_App()
     widget.show()
     

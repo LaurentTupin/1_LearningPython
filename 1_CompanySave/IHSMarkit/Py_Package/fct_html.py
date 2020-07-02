@@ -5,8 +5,8 @@ import requests
 #from urllib.request import urlopen
 from bs4 import BeautifulSoup
 import unicodedata
-import selenium
-
+try:    import selenium
+except: print('selenium library is missing. Please Open Anaconda prompt and type the following: pip install selenium')
 
 
 

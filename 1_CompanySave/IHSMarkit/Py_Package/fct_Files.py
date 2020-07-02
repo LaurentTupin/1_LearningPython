@@ -7,7 +7,8 @@ import glob
 import openpyxl
 import win32com.client as win32
 import xlsxwriter
-from openpyxl.styles import NamedStyle, Font, PatternFill, colors, Border, Side # , Alignment, Color
+#from openpyxl.styles import NamedStyle, Font, PatternFill, colors, Border, Side # , Alignment, Color
+import openpyxl.styles as styl
 import psutil
 import time
 
@@ -303,10 +304,6 @@ class c_win32_xlApp():
 
 
 
-
-
-
-
 #------------------------------------------------------------------------------
 # List Files in folder
 #------------------------------------------------------------------------------
@@ -315,6 +312,13 @@ def fStr_BuildPath(str_folder, str_FileName):
     elif str_folder == '':      str_path = str_FileName
     else:                       str_path = os.path.join(str_folder, str_FileName)
     return str_path
+
+def fStr_BuildFolder_wRoot(str_folderPart, str_folderRoot):
+    if str_folderPart[:2] == '\\\\':    return str_folderPart
+    elif str_folderPart[:2] == 'C:':    return str_folderPart
+    elif str_folderPart[:2] == 'E:':    return str_folderPart
+    else:                               
+        return str_folderRoot + str_folderPart
     
 def fBl_FileExist(str_path):
     if os.path.isfile(str_path):    return True
@@ -1042,23 +1046,23 @@ def fStr_StyleIntoExcel(str_path, str_SheetName = '', l_row = [1], str_styleName
     else:                       xlWs = xlWb.Sheets(str_SheetName)
     
     # Define the Style
-    style_header = NamedStyle(name = str_styleName)
+    style_header = styl.NamedStyle(name = str_styleName)
     # FONT
-    if str_fontColor == 'RED':      style_header.font = Font(bold = bl_bold, color = colors.RED)
-    elif str_fontColor == 'BLUE':   style_header.font = Font(bold = bl_bold, color = colors.BLUE)
-    elif str_fontColor == 'WHITE':  style_header.font = Font(bold = bl_bold, color = colors.WHITE)
-    elif str_fontColor != '':       style_header.font = Font(bold = bl_bold, color = str_fontColor)
-    else:                           style_header.font = Font(bold = bl_bold)
+    if str_fontColor == 'RED':      style_header.font = styl.Font(bold = bl_bold, color = styl.colors.RED)
+    elif str_fontColor == 'BLUE':   style_header.font = styl.Font(bold = bl_bold, color = styl.colors.BLUE)
+    elif str_fontColor == 'WHITE':  style_header.font = styl.Font(bold = bl_bold, color = styl.colors.WHITE)
+    elif str_fontColor != '':       style_header.font = styl.Font(bold = bl_bold, color = str_fontColor)
+    else:                           style_header.font = styl.Font(bold = bl_bold)
     # FILL
-    if l_Fill:                      style_header.fill = PatternFill(patternType = l_Fill[0],
-                                                                    fill_type = l_Fill[1], 
-                                                                    fgColor = l_Fill[2])
+    if l_Fill:                      style_header.fill = styl.PatternFill(patternType = l_Fill[0],
+                                                                         fill_type = l_Fill[1], 
+                                                                         fgColor = l_Fill[2])
     # TO convert the color, please use: https://convertingcolors.com/rgb-color-91_155_213.html
     
     # BORDER
     if l_border: 
-        o_border = Side(border_style = l_border[0], color = l_border[1])
-        style_header.border = Border(top = o_border, right = o_border, bottom = o_border, left = o_border)
+        o_border = styl.Side(border_style = l_border[0], color = l_border[1])
+        style_header.border = styl.Border(top = o_border, right = o_border, bottom = o_border, left = o_border)
     
     # Save the Style in WK
     try:        xlWb.add_named_style(style_header)
@@ -1104,20 +1108,26 @@ def ZipExtractFile(str_ZipPath, str_pathDest = '', str_FileName = '', bl_extract
                 # Extract all the file
                 if str_pathDest == '':      zipObj.extractall()
                 else:                       zipObj.extractall(str_pathDest)
+                time.sleep(5)
             else:
                 # Get a list of all archived file names from the zip
                 l_fileInZip = zipObj.namelist()
                 # Get The name of the list  matching
-                l_fileInZip = fL_GetFileList_withinModel(l_fileInZip, str_FileName)
+                l_fileInZip_file = fL_GetFileList_withinModel(l_fileInZip, str_FileName)
                 # Extract the file
-                for file in l_fileInZip:    zipObj.extract(file, str_pathDest)
-    except:
-        print(' ERROR: ZipExtractFile')
-        print(' - str_ZipPath : ', str_ZipPath)
-        print(' - str_pathDest : ', str_pathDest)
-        print(' - str_FileName : ', str_FileName)
-        print(' - bl_extractAll : ', bl_extractAll)
-        raise
+                for file in l_fileInZip_file:
+                    zipObj.extract(file, str_pathDest)
+    except Exception as err:
+        print(' ERROR: ZipExtractFile || {}'.format(str(err)))
+        if bl_extractAll:
+            print(' - str_ZipPath : ', str_ZipPath)
+            print(' - str_pathDest : ', str_pathDest)
+            raise
+        else:
+            print(' - Failed to doanload the file : ', str_FileName)
+            print(' - File List in the Zip : ', l_fileInZip)
+            print(' (**) Trying to extract all files...')
+            ZipExtractFile(str_ZipPath, str_pathDest, '', True)
     return True
 
 #ZipExtractFile(r'C:\Users\laurent.tupin\Documents\5_Python\Py_Package\Brouillon\cccc.zip',
@@ -1245,121 +1255,3 @@ def Act_CopyUpdateFiles_specialBackUp(l_FolderFic_from, str_DestFolder, int_only
 # DEPRECATED
 #------------------------------------------------------------------------------
     
-
-#def act_createDir(str_folder, str_folderShortName = ''):
-#    print('  DEPRECATED: replace act_createDir by fBl_createDir')
-#    return fBl_createDir(str_folder)
-#    #    try:
-#    #        if str_folderShortName == '': str_folderShortName = str_folder
-#    #        if not os.path.exists(str_folder):
-#    #            try: 
-#    #                os.makedirs(str_folder)
-#    #            except:
-#    #                print(' ERROR: act_createDir - Program could NOT create the Dir')
-#    #                print(' - ', str_folder, str_folderShortName)
-#    #                raise
-#    #    except:
-#    #        print(' ERROR: act_createDir')
-#    #        print(' - ', str_folder, str_folderShortName)
-#    #        raise 
-#    #    return True
-#    
-#    
-## Kill EXCEL 
-#def Act_KillExcel():
-#    # With psutil
-#    for proc in psutil.process_iter():
-#        if any(procstr in proc.name() for procstr in ['Excel', 'EXCEL', 'excel']):
-#            proc.kill()
-#
-#
-#
-#
-## 1 file out - n Dataframe - n Sheet
-#def fStr_fillXls_celByCel_plsSheets_OLD(str_folder,str_FileName,l_dfData,l_SheetName=[],l_nbRows=[],l_rowsWhere=[]):
-#    try:
-#        if str_FileName == '':      str_path = str_folder
-#        else:                       str_path = os.path.join(str_folder, str_FileName)        
-#        
-#        # Open the file (win32)
-#        xlApp = win32.Dispatch('Excel.Application')
-#        xlApp.Visible = False 
-#        xlWb = xlApp.Workbooks.Open(str_path)
-#		
-#        # Dataframe
-#        for i in range(len(l_dfData)):
-#            df_data = l_dfData[i]
-#            try:        str_SheetName = l_SheetName[i]
-#            except:     str_SheetName = ''
-#            #Sheet
-#            for i in range(20):
-#                try:
-#                    try:                            xlWs = xlWb.Sheets(str_SheetName)
-#                    except:
-#                        bl_SheetNameIsNew = xlWb.Sheets(i + 1).name not in l_SheetName
-#                        if bl_SheetNameIsNew:       xlWs = xlWb.Sheets(i + 1)
-#                        elif str_SheetName != '':   xlWs = xlWb.add_worksheet(str_SheetName)
-#                        else:                       xlWs = xlWb.add_worksheet()
-#                    xlWs.Select
-#                except:     Act_WaitFile(0.5)
-#            xlWs.Select
-#            # ------ Insert or delete ROWS ------
-#            int_nbRows = 0
-#            int_rowsWhere = 1
-#            if l_nbRows:
-#                try:        int_nbRows = l_nbRows[i]
-#                except:     int_nbRows = 0
-#                try:        int_rowsWhere = l_rowsWhere[i]
-#                except:     int_rowsWhere = 1
-#            # FILL THE SHEET
-#            fStr_fillXls_celByCel(str_path, df_data, str_SheetName, xlWs, int_nbRows, int_rowsWhere)
-#        
-#        xlApp.Visible = True
-#        xlWb.Close(True)
-#        #xlApp.Application.Quit()
-#    except:
-#        try: 		xlApp.Visible=True
-#        except: 	print('  ERROR in fStr_fillXls_celByCel_plsSheets: xlApp visible did not work')
-#        try: 		xlWb.Close(False)
-#        except: 	print('  ERROR in fStr_fillXls_celByCel_plsSheets: Excel workbook could not be closed')
-#        #try: 		xlApp.Application.Quit()
-#        #except: 	print('  ERROR: Excel could not be closed')
-#        print('  ERROR in fStr_fillXls_celByCel_plsSheets: Could not create the PCF: ' + str_path)
-#        return False
-#    return str_path
-#
-#
-#def fWs_FindFirstWorksheet(xlWb, str_SheetName = ''):
-#    if str_SheetName == '':     Sheet = 1
-#    else:                       Sheet = str_SheetName
-#    for i in range(20):
-#        try:    
-#            xlWs = xlWb.Worksheets(Sheet)
-#            return xlWs
-#        except:
-#            Act_WaitFile(0.5)
-#            try:    
-#                xlWs = xlWb.Sheets(Sheet)
-#                print('Sheets')
-#                return xlWs
-#            except:
-#                Act_WaitFile(0.5)
-#                try:    
-#                    xlWs = xlWb.ActiveSheet
-#                    print('ActiveSheet')
-#                    return xlWs
-#                except:
-#                    Act_WaitFile(0.5)
-#                    try:    
-#                        xlWs = xlWb.Worksheets('Sheet1')
-#                        print('Sheet1')
-#                        return xlWs
-#                    except:    Act_WaitFile(0.5)
-#    return False
-#
-#
-#def Act_WaitFile(int_sec = 1):
-#    print(' * Wait for file to open ...')
-#    time.sleep(int_sec)
-
-
