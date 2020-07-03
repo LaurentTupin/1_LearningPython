@@ -1,11 +1,15 @@
-import sys
-#import numpy as np
-import pandas as pd
-import datetime as dt
-from pandas.tseries.offsets import BDay
-from dateutil.relativedelta import relativedelta
-sys.path.append('../')
-import fct_DB as db
+try:
+    import sys
+    #import numpy as np
+    import pandas as pd
+    import datetime as dt
+    from pandas.tseries.offsets import BDay
+    from dateutil.relativedelta import relativedelta
+    sys.path.append('../')
+    import fct_DB as db
+except Exception as err:
+    str_lib = str(err).replace("No module named ", "").replace("'", "")
+    print(" ATTENTION,  Missing library: '{0}' \n * Please Open Anaconda prompt and type: 'pip install {0}'".format(str_lib))
 
 ##Example of Date // how to convert
 #str_today_default = dt.datetime.now().date().strftime('%Y-%m-%d')

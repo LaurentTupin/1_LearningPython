@@ -1,12 +1,16 @@
-import pandas as pd
-import fct_DB as db
-import math
-    
+try:
+    import pandas as pd
+    import fct_DB as db
+    import math
+except Exception as err:
+    str_lib = str(err).replace("No module named ", "").replace("'", "")
+    print(" ATTENTION,  Missing library: '{0}' \n * Please Open Anaconda prompt and type: 'pip install {0}'".format(str_lib))
+
 
 #==============================================================================
 # Read file for Dataframe
 #==============================================================================
-def fDf_readCsv_enhanced(str_path, bl_header, str_sep = ',', l_names = None, str_encoding = None):       
+def fDf_readCsv_enhanced(str_path, bl_header = None, str_sep = ',', l_names = None, str_encoding = None):       
     try:
         df_data = pd.read_csv(str_path, header = bl_header, sep = str_sep, names = l_names, encoding = str_encoding)
     # -------------------------------------------------------------
@@ -18,14 +22,15 @@ def fDf_readCsv_enhanced(str_path, bl_header, str_sep = ',', l_names = None, str
         str_nbCol = str(err)[int_position:]
         print(' - Nb of columns we should have: {}'.format(str(int(str_nbCol))))
         df_data = fDf_readCsv_enhanced(str_path, bl_header, str_sep, range(int(str_nbCol)))
-        print(' - Error Solved')
+        print(' - Error Solved \n')
     except UnicodeDecodeError as err:
         print(' ERROR UnicodeDecodeError: {}'.format(err))
         with open(str_path, 'r') as f:
             str_encoding = f.encoding 
             print(' - Encoding of the file is actually: {}'.format(str_encoding))
         df_data = fDf_readCsv_enhanced(str_path, bl_header, str_sep, l_names, str_encoding)
-        print(' - Error Solved')
+        print(' - Error Solved \n')
+        #print(df_data.head(3))
     except Exception as err:
         print('   ERROR in fDf_readCsv_enhanced: other undetcted')
         print('   - Error: ', str(err))

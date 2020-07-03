@@ -1,11 +1,18 @@
-import os
-import numpy as np
-import win32com.client as win32
-try:    import exchangelib as xLib
-except: print('exchangelib library is missing. Please Open Anaconda prompt and type the following: pip install exchangelib')
-#from exchangelib import Credentials, Configuration, Account, DELEGATE, FileAttachment
+try:
+    import os
+    import numpy as np
+    import win32com.client as win32
+    import exchangelib as xLib
+    #from exchangelib import Credentials, Configuration, Account, DELEGATE, FileAttachment
+except Exception as err:
+    str_lib = str(err).replace("No module named ", "").replace("'", "")
+    print(" ATTENTION,  Missing library: '{0}' \n * Please Open Anaconda prompt and type: 'pip install {0}'".format(str_lib))
 
 
+
+#https://pypi.org/project/exchangelib/
+    
+    
 
 #server = 'eumail.ihsmarkit.com'   #'https://10.199.15.14/owa/'
 #mailAddress = 'sola@ihsmarkit.com'
@@ -401,24 +408,24 @@ class c_outlookMail():
             # Filter on subject
             if not str_mailSubject == '':
                 o_subMail = [o_mail for o_mail in o_subMail if str_mailSubject in o_mail.Subject]
-                if o_subMail == []:     print(' ... Empty on outlk_Filter with Subject')
+                if o_subMail == []:     print(' ... Empty on outlk_Filter with Subject: {}'.format(str_mailSubject))
             # Filter by To / Cc
             if not str_to == '':
                 o_subMail = [o_mail for o_mail in o_subMail if str_to in o_mail.To]
-                if o_subMail == []:     print(' ... Empty on outlk_Filter with To')
+                if o_subMail == []:     print(' ... Empty on outlk_Filter with To: {}'.format(str_to))
             if not str_cc == '':
                 o_subMail = [o_mail for o_mail in o_subMail if str_cc in o_mail.Cc] 
-                if o_subMail == []:     print(' ... Empty on outlk_Filter with CC')
+                if o_subMail == []:     print(' ... Empty on outlk_Filter with CC: {}'.format(str_cc))
             # Filter by name of attach 
             if not str_File_startW == '':
                 o_subMail = [o_mail for o_mail in o_subMail if str_File_startW.lower() in 
                              [str(o_attach).lower()[:len(str_File_startW)] for o_attach in o_mail.Attachments]]
-                if o_subMail == []:     print(' ... Empty on outlk_Filter with str_File_startW')
+                if o_subMail == []:     print(' ... Empty on outlk_Filter with str_File_startW: {}'.format(str_File_startW))
             # Filter by name of attach if It is NOT Exact
             if not str_File_endW == '':
                 o_subMail = [o_mail for o_mail in o_subMail if str_File_endW.lower() in 
                              [str(o_attach).lower()[-len(str_File_endW):] for o_attach in o_mail.Attachments]]
-                if o_subMail == []:     print(' ... Empty on outlk_Filter with str_File_endW')
+                if o_subMail == []:     print(' ... Empty on outlk_Filter with str_File_endW: {}'.format(str_File_endW))
             # TEST END
             if o_subMail == []:             raise   
         except Exception as err:

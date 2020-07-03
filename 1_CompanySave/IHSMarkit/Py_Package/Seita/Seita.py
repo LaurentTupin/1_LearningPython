@@ -14,16 +14,12 @@
 #   https://realpython.com/pyinstaller-python/
 '''
 
-
-import sys, os
-#import time
-import datetime as dt
-import win32com.client as win32
-import xlrd
+import sys, os, datetime as dt
 from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QApplication, QDialog, QTableWidgetItem
-#from PyQt5.QtGui import QIcon
 from PyQt5.uic import loadUi
+#from PyQt5.QtGui import QIcon
+#import win32com.client as win32
 import PCF_creater as pcf
 import PCF_download as dwl
 import PCF_genericProcess as pp
@@ -74,16 +70,24 @@ class class_App(QDialog):
     @pyqtSlot()
     def onPush_OpenParamCSV(self):
         try:
-            xlApp = win32.Dispatch('Excel.Application')
-            xlApp.Visible = True
-            xlApp.Workbooks.Open(os.getcwd() + r'\Seita_Param.csv')
+            str_path = os.getcwd() + r'\Seita_Param.csv'
+            inst_xlApp = fl.c_win32_xlApp()
+            inst_xlApp.FindXlApp(bl_visible = True)
+            inst_xlApp.OpenWorkbook(str_path)
+            #            xlApp = win32.Dispatch('Excel.Application')
+            #            xlApp.Visible = True
+            #            xlApp.Workbooks.Open(str_path)
         except: self.textEdit_Error.append(' ERROR: Could not Open the file')
         
     def onpush_OpenParamMailCSV(self):
         try:
-            xlApp = win32.Dispatch('Excel.Application')
-            xlApp.Visible = True
-            xlApp.Workbooks.Open(os.getcwd() + r'\Seita_Param_Mail.csv')
+            str_path = os.getcwd() + r'\Seita_Param_Mail.csv'
+            inst_xlApp = fl.c_win32_xlApp()
+            inst_xlApp.FindXlApp(bl_visible = True)
+            inst_xlApp.OpenWorkbook(str_path)
+            #            xlApp = win32.Dispatch('Excel.Application')
+            #            xlApp.Visible = True
+            #            xlApp.Workbooks.Open(str_path)
         except: self.textEdit_Error.append(' ERROR: Could not Open the file')
         
     def onChange_DevEnv(self):
@@ -241,7 +245,7 @@ class class_App(QDialog):
             # Plusieurs ONGLET
             int_diffCount_Max = -1
             if '.XLSX' in str_link1.upper() or '.XLS' in str_link1.upper():
-                o_Book = xlrd.open_workbook(str_link1)
+                o_Book = fl.fBk_OpenWk_xlrd(str_link1)
                 l_sheetName = o_Book.sheet_names()
                 for str_sheetName in l_sheetName:
                     df_onglet, int_diffCount =      pp.fdf_compare2files(str_link1, str_link2, i_colToKeep, str_sheetName)

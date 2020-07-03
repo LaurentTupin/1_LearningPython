@@ -1,9 +1,13 @@
-import os, datetime as dt, numpy as np
-import ftplib
-from ssl import SSLSocket
-try:    import paramiko as pmiko
-except: print('paramiko library is missing. Please Open Anaconda prompt and type the following: pip install paramiko')
-import fct_Files as fl
+try:
+    import os, datetime as dt, numpy as np
+    import ftplib
+    from ssl import SSLSocket
+    import paramiko as pmiko
+    import fct_Files as fl
+except Exception as err:
+    str_lib = str(err).replace("No module named ", "").replace("'", "")
+    print(" ATTENTION,  Missing library: '{0}' \n * Please Open Anaconda prompt and type: 'pip install {0}'".format(str_lib))
+
 
 
 

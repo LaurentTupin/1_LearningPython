@@ -201,20 +201,20 @@ def pcf_sendFTP(dte_date, l_pathAttach, str_pcf):
         # FTP Launch - LOOP
         try:
             for Path in l_pathAttach_Part:
-                str_FileName = Path.split('\\')[-1]
+                str_fileName = Path.split('\\')[-1]
                 str_folder = '\\'.join(Path.split('\\')[:-1])
                 if str_FileUploadMode == 'FTP':               
-                    bl_success = ftp.fBl_ftpUpFile_Bi(str_FTP_server, str_FTP_uid, str_FTP_pwd, l_ftpFolder, str_FileName, str_folder)
+                    bl_success = ftp.fBl_ftpUpFile_Bi(str_FTP_server, str_FTP_uid, str_FTP_pwd, l_ftpFolder, str_fileName, str_folder)
                 elif str_FileUploadMode == 'FTP_SSL':         
-                    bl_success = ftp.fBl_ftpUpFile_Bi(str_FTP_server, str_FTP_uid, str_FTP_pwd, l_ftpFolder, str_FileName, str_folder, -1, True)
+                    bl_success = ftp.fBl_ftpUpFile_Bi(str_FTP_server, str_FTP_uid, str_FTP_pwd, l_ftpFolder, str_fileName, str_folder, -1, True)
                 elif str_FileUploadMode == 'SFTP_Paramiko':   
-                    bl_success = ftp.ssh_upFile(str_FTP_server, str_FTP_uid, str_FTP_pwd, l_ftpFolder, str_FileName, str_folder)
+                    bl_success = ftp.ssh_upFile(str_FTP_server, str_FTP_uid, str_FTP_pwd, l_ftpFolder, str_fileName, str_folder)
                 #Store Result
                 if not bl_success:          bl_success_final = False
         except:
             print(' ERROR: on UPLOAD file')
             print(' - str_pcf: ', str_pcf, ' | str_FileUploadMode', str_FileUploadMode)
-            print(' - str_FileName: ', str_FileName)
+            print(' - str_fileName: ', str_fileName)
         # Search in FTP to return if FIles has been well integrated
         try:
             l_ListFilesFTP = []
@@ -226,11 +226,11 @@ def pcf_sendFTP(dte_date, l_pathAttach, str_pcf):
                 l_fileInFtp = ftp.ssh_listFilesInFolder(str_FTP_server, str_FTP_uid, str_FTP_pwd, l_ftpFolder)            
             # LOOP
             for Path in l_pathAttach_Part:
-                str_FileName = Path.split('\\')[-1]
-                if str_FileName in l_fileInFtp:
-                    l_ListFilesFTP.append('OK : {}'.format(str_FileName))
+                str_fileName = Path.split('\\')[-1]
+                if str_fileName in l_fileInFtp:
+                    l_ListFilesFTP.append('OK : {}'.format(str_fileName))
                 else:
-                    l_ListFilesFTP.append('KO : {}'.format(str_FileName))
+                    l_ListFilesFTP.append('KO : {}'.format(str_fileName))
         except:
             l_ListFilesFTP.append('NA : Cannot connect to FTP / SFTP')
             print(' ERROR: pcf_sendFTP: List the files')
@@ -603,35 +603,51 @@ def f2Flt_rollover(dte_date):
         return -1, -1
 
 
-def fStr_ZipFilePath(df_Param, row, dte_date, str_folderRoot):
-    # Replace Date
-    str_folderDateFormat = str(df_Param.loc[row, 'folderDate'])
-    str_dteFormat_DirSource = str(df_Param.loc[row, 'dteFormat_DirSource'])
-    folderDateOffset = df_Param.loc[row, 'folderDateOffset']
+
+
+def fStr_GetSourceDirectory(df_Param, row, dte_date, str_folderRoot):
+    # Get the Dir Source
+    str_DirSource = df_Param.loc[row, 'Dir_Source']
     CalendarID = df_Param.loc[row, 'DateCalendarID']
-    str_Zip_Date = dat.fDat_GetCorrectOffsetDate_Calendar(dte_date, str_dteFormat_DirSource, int(folderDateOffset), str(CalendarID))
-    str_folderDate = dat.fDat_GetCorrectOffsetDate_Calendar(dte_date, str_folderDateFormat, int(folderDateOffset), str(CalendarID))
-    str_ZipPath = df_Param.loc[row, 'Dir_Source']
-    str_ZipPath = str_ZipPath.replace('{dteFormat_DirSource}', str_Zip_Date)
-    str_ZipPath = str_ZipPath.replace('{folderDate}', str_folderDate)
+    
+    # Replace Date with Date of Folder
+    dteFormat_folder = str(df_Param.loc[row, 'folderDate'])
+    folderDateOffset = str(df_Param.loc[row, 'folderDateOffset'])
+    str_folderDate = dat.fDat_GetCorrectOffsetDate_Calendar(dte_date, dteFormat_folder, int(folderDateOffset), str(CalendarID))
+    str_DirSource = str_DirSource.replace('{folderDate}', str_folderDate)
+    
+    # Replace Date with specific Date of Directory Source
+    dteFormat_DirSource = str(df_Param.loc[row, 'dteFormat_DirSource'])
+    DateOffset_DirSouce = df_Param.loc[row, 'DateOffset_DirSouce']
+    str_DirSourceDate = dat.fDat_GetCorrectOffsetDate_Calendar(dte_date, dteFormat_DirSource, int(DateOffset_DirSouce), str(CalendarID))
+    str_DirSource = str_DirSource.replace('{dteFormat_DirSource}', str_DirSourceDate)
+    
     # Put root folder or not
-    str_ZipPath = fl.fStr_BuildFolder_wRoot(str_ZipPath, str_folderRoot)
-    #if not str_ZipPath[:2] == '\\\\': str_ZipPath = str_folderRoot + str_ZipPath
+    str_DirSource = fl.fStr_BuildFolder_wRoot(str_DirSource, str_folderRoot)
+    #if not str_DirSource[:2] == '\\\\': str_DirSource = str_folderRoot + str_DirSource
+    return str_DirSource
+
+
+def fStr_ZipFilePath(df_Param, row, dte_date, str_folderRoot):
+    str_ZipPath = fStr_GetSourceDirectory(df_Param, row, dte_date, str_folderRoot)
+    
     # Replace the XXXX in the string
-    str_folder = '\\'.join(str_ZipPath.split('\\')[:-1]) + '\\'
-    str_fileName = str_ZipPath.split('\\')[-1]
-    #str_fileName = fl.fStr_FindPath_byReplacingX(str_folder, str_fileName)
-    str_fileName = fl.fStr_GetMostRecentFile_InFolder(str_folder, str_fileName)
-    if str_fileName == '': raise
-    str_ZipPath =  str_folder + str_fileName
-    #print('str_ZipPath ', str_ZipPath)
+    if str_ZipPath.count('{') and str_ZipPath.count('}') > 0:
+        str_folder = '\\'.join(str_ZipPath.split('\\')[:-1]) + '\\'
+        str_fileName = str_ZipPath.split('\\')[-1]
+        if str_fileName.count('{X}') > 0:   bl_exactNumberX = False
+        elif str_fileName.count('{*}') > 0: bl_exactNumberX = False
+        else:                               bl_exactNumberX = True
+        str_fileName = fl.fStr_GetMostRecentFile_InFolder(str_folder, str_fileName, bl_exactNumberX = bl_exactNumberX)
+        if str_fileName == '': raise
+        str_ZipPath =  str_folder + str_fileName
     return str_ZipPath
 
 
 #-----------------------------------------------------------------------------------------------------
 # Main Function to download
 #-----------------------------------------------------------------------------------------------------
-def Act_DownFiles_outlook(df_Param, row, str_folderRaw, str_FileName, bl_ArchiveMails):
+def Act_DownFiles_outlook(df_Param, row, str_folderRaw, str_fileName, bl_ArchiveMails):
     # Param
     str_outlkAcctName = str(df_Param.loc[row, 'outlook_Acct'])
     str_outlkMailbox = str(df_Param.loc[row, 'outlook_mailBox'])
@@ -640,16 +656,18 @@ def Act_DownFiles_outlook(df_Param, row, str_folderRaw, str_FileName, bl_Archive
     str_mailSubject = str(df_Param.loc[row, 'outlook_subject'])
     str_to = str(df_Param.loc[row, 'outlook_To'])
     str_cc = str(df_Param.loc[row, 'outlook_Cc'])
-    str_ExactName = str(df_Param.loc[row, 'File_ExactName'])
-    int_File_startW = df_Param.loc[row, 'File_startW']
-    int_File_endW = df_Param.loc[row, 'File_endW']
-    if str_ExactName.lower() == 'true':
-        str_File_startW = str_FileName
-        str_File_endW = ''
-    else:
-        str_File_startW = str_FileName[:int(int_File_startW)]
-        if int_File_endW == 0:          str_File_endW = ''
-        else:                           str_File_endW = str_FileName[-int(int_File_endW):]
+    str_File_startW, str_File_endW = fStr_SplitFileName_startEnd(str_fileName, str(df_Param.loc[row, 'File_ExactName']),
+                                                                 df_Param.loc[row, 'File_startW'],df_Param.loc[row, 'File_endW'])
+    #    str_ExactName = str(df_Param.loc[row, 'File_ExactName'])
+    #    int_File_startW = df_Param.loc[row, 'File_startW']
+    #    int_File_endW = df_Param.loc[row, 'File_endW']
+    #    if str_ExactName.lower() == 'true':
+    #        str_File_startW = str_fileName
+    #        str_File_endW = ''
+    #    else:
+    #        str_File_startW = str_fileName[:int(int_File_startW)]
+    #        if int_File_endW == 0:          str_File_endW = ''
+    #        else:                           str_File_endW = str_fileName[-int(int_File_endW):]
     
     # With Class, version Jun 2020
     inst_outlookMail = out.c_outlookMail()
@@ -683,7 +701,7 @@ def Act_DownFiles_outlook(df_Param, row, str_folderRaw, str_FileName, bl_Archive
 
 
 #------------------------------------------------------------------------------------------------------------------------------------
-def Act_DownFiles_FTP(df_Param, row, str_folderRaw, str_FileName, str_FileDownloadMode, dte_date):
+def Act_DownFiles_FTP(df_Param, row, str_folderRaw, str_fileName, str_FileDownloadMode, dte_date):
     # Param
     str_id = str(df_Param.loc[row, 'ID'])
     str_PCF = str(df_Param.loc[row, 'PCF'])
@@ -699,9 +717,9 @@ def Act_DownFiles_FTP(df_Param, row, str_folderRaw, str_FileName, str_FileDownlo
     str_ExactName = str(df_Param.loc[row, 'File_ExactName'])
     int_File_startW = df_Param.loc[row, 'File_startW']
     int_File_endW = df_Param.loc[row, 'File_endW']
-    #    str_File_startW = str_FileName[:int(int_File_startW)]
+    #    str_File_startW = str_fileName[:int(int_File_startW)]
     #    if int_File_endW == 0:      str_File_endW = ''
-    #    else:                       str_File_endW = str_FileName[-int(int_File_endW):]
+    #    else:                       str_File_endW = str_fileName[-int(int_File_endW):]
     
     global str_NewFileName
     str_NewFileName = ''
@@ -725,21 +743,21 @@ def Act_DownFiles_FTP(df_Param, row, str_folderRaw, str_FileName, str_FileDownlo
                 print('     ERROR: We could list the files from ' + str_FileDownloadMode)
                 return False
             # 1.b. FIlter only the one with the XXX
-            l_files = fl.fL_GetFileList_withinModel(l_files, str_FileName)
+            l_files = fl.fL_GetFileList_withinModel(l_files, str_fileName)
             # 1.c. Sort by Alphabet because Time will be the only difference if several files
             l_files.sort(reverse = True)
             # 1.d. Final Name of the file
-            str_FileName = l_files[0]
-            print('  * We found in FTP the complete name: ', str_FileName)
-            str_NewFileName = str_FileName
+            str_fileName = l_files[0]
+            print('  * We found in FTP the complete name: ', str_fileName)
+            str_NewFileName = str_fileName
         
     #--------------------------------------------------------------------------
     # DOWNLOAD
     #--------------------------------------------------------------------------
     try:
-        if str_FileDownloadMode == 'FTP':               ftp.fBl_ftpDownFileBinary(str_FTP_server, str_FTP_uid, str_FTP_pwd, l_ftpFolder, str_FileName, str_folderRaw)
-        elif str_FileDownloadMode == 'FTP_SSL':         ftp.fBl_ftpDownFileBinary(str_FTP_server, str_FTP_uid, str_FTP_pwd, l_ftpFolder, str_FileName, str_folderRaw, -1, True)
-        elif str_FileDownloadMode == 'SFTP_Paramiko':   ftp.ssh_downFile(str_FTP_server, str_FTP_uid, str_FTP_pwd, l_ftpFolder, str_FileName, str_folderRaw)
+        if str_FileDownloadMode == 'FTP':               ftp.fBl_ftpDownFileBinary(str_FTP_server, str_FTP_uid, str_FTP_pwd, l_ftpFolder, str_fileName, str_folderRaw)
+        elif str_FileDownloadMode == 'FTP_SSL':         ftp.fBl_ftpDownFileBinary(str_FTP_server, str_FTP_uid, str_FTP_pwd, l_ftpFolder, str_fileName, str_folderRaw, -1, True)
+        elif str_FileDownloadMode == 'SFTP_Paramiko':   ftp.ssh_downFile(str_FTP_server, str_FTP_uid, str_FTP_pwd, l_ftpFolder, str_fileName, str_folderRaw)
     except:
         if str_ExactName.lower() == 'true':
             print('     ERROR: We could not download from ' + str_FileDownloadMode + '\n')
@@ -751,12 +769,12 @@ def Act_DownFiles_FTP(df_Param, row, str_folderRaw, str_FileName, str_FileDownlo
         #----------------------------------------------------------
         # Try with another date
         #----------------------------------------------------------
-        print('   ' + str_FileDownloadMode + ' did not find the file: ', str_FileName, '   || PCF: ' + str_PCF, '   || Download mode: ' + str_FileDownloadMode)
+        print('   ' + str_FileDownloadMode + ' did not find the file: ', str_fileName, '   || PCF: ' + str_PCF, '   || Download mode: ' + str_FileDownloadMode)
         print('   **Try Again : Offset was: ' + str(DateOffset) + ' | And is now: ' + str(int(DateOffset) - 1))
         
         str_NewDate = dat.fDat_GetCorrectOffsetDate_Calendar(dte_date, str_fileDate, int(DateOffset) - 1, str(CalendarID))
-        str_FileName = df_Param.loc[row, 'fileName'].replace('{fileDate}', str_NewDate)
-        str_NewFileName = str_FileName
+        str_fileName = df_Param.loc[row, 'fileName'].replace('{fileDate}', str_NewDate)
+        str_NewFileName = str_fileName
         
         # Change df_Param for the next Offset (if d-1 become d-2, d-2 needs to become d-3)
         df_Param.loc[(df_Param.PCF == str_PCF) & (df_Param.ID == str_id), 'DateOffset'] = df_Param['DateOffset'] - 1
@@ -765,14 +783,14 @@ def Act_DownFiles_FTP(df_Param, row, str_folderRaw, str_FileName, str_FileDownlo
         
         try:
             if str_FileDownloadMode == 'FTP':
-                ftp.fBl_ftpDownFileBinary(str_FTP_server, str_FTP_uid, str_FTP_pwd, l_ftpFolder, str_FileName, str_folderRaw)
-                print('   File Successfully downloaded... ' + str_FileName + '\n\n')
+                ftp.fBl_ftpDownFileBinary(str_FTP_server, str_FTP_uid, str_FTP_pwd, l_ftpFolder, str_fileName, str_folderRaw)
+                print('   File Successfully downloaded... ' + str_fileName + '\n\n')
             elif str_FileDownloadMode == 'FTP_SSL':
-                ftp.fBl_ftpDownFileBinary(str_FTP_server, str_FTP_uid, str_FTP_pwd, l_ftpFolder, str_FileName, str_folderRaw, -1, True)
-                print('   File Successfully downloaded (ftp + SSL)... ' + str_FileName + '\n\n')
+                ftp.fBl_ftpDownFileBinary(str_FTP_server, str_FTP_uid, str_FTP_pwd, l_ftpFolder, str_fileName, str_folderRaw, -1, True)
+                print('   File Successfully downloaded (ftp + SSL)... {}\n\n').format(str_fileName)
             elif str_FileDownloadMode == 'SFTP_Paramiko':
-                ftp.ssh_downFile(str_FTP_server, str_FTP_uid, str_FTP_pwd, l_ftpFolder, str_FileName, str_folderRaw)
-                print('   File Successfully downloaded (sftp)... ' + str_FileName + '\n\n')
+                ftp.ssh_downFile(str_FTP_server, str_FTP_uid, str_FTP_pwd, l_ftpFolder, str_fileName, str_folderRaw)
+                print('   File Successfully downloaded (sftp)... {}\n\n').format(str_fileName)
         except: 
             print('     ERROR * 2: We could not download from ' + str_FileDownloadMode + '\n\n')
             return False
@@ -780,7 +798,7 @@ def Act_DownFiles_FTP(df_Param, row, str_folderRaw, str_FileName, str_FileDownlo
 
 
 #------------------------------------------------------------------------------------------------------------------------------------
-def Act_DownFiles_SQL(df_Param, row, str_folderRaw, str_FileName, dte_date, bl_EmptyMessage = True):
+def Act_DownFiles_SQL(df_Param, row, str_folderRaw, str_fileName, dte_date, bl_EmptyMessage = True):
     # Param
     str_PCF = str(df_Param.loc[row, 'PCF'])
     str_req = fStr_generateSQLReq(df_Param, row, dte_date)
@@ -793,7 +811,7 @@ def Act_DownFiles_SQL(df_Param, row, str_folderRaw, str_FileName, dte_date, bl_E
         return False
     # Save in  the folder
     try:
-        str_Path = os.path.join(str_folderRaw, str_FileName)
+        str_Path = os.path.join(str_folderRaw, str_fileName)
         df_sql.to_csv(str_Path, index = False, header = True)
     except:
         print('     ERROR in Act_DownFiles_SQL: We could not save the DF in PCF: ', str_PCF)
@@ -802,28 +820,27 @@ def Act_DownFiles_SQL(df_Param, row, str_folderRaw, str_FileName, dte_date, bl_E
     return True
 	
 #------------------------------------------------------------------------------------------------------------------------------------
-def Act_DownFiles_ZIP(df_Param, row, str_folderRaw, str_FileName, dte_date, str_folderRoot):
-    # Param
-    str_PCF = str(df_Param.loc[row, 'PCF'])
-    try:            str_ZipPath = fStr_ZipFilePath(df_Param, row, dte_date, str_folderRoot)
+def Act_DownFiles_ZIP(df_Param, row, str_folderRaw, str_fileName, dte_date, str_folderRoot):
+    str_zipPwd = str(df_Param.loc[row, 'zipPassword'])
+    try:        str_ZipPath = fStr_ZipFilePath(df_Param, row, dte_date, str_folderRoot)
     except:
-        print('  ERROR in Act_DownFiles_ZIP.   PCF: ', str_PCF)
+        print('  ERROR in Act_DownFiles_ZIP')
         print('  Could not find the path of the ZIP (str_ZipPath)')
         return False
     # Extarct the right file
-    try:            fl.ZipExtractFile(str_ZipPath, str_folderRaw, str_FileName)
+    try:        fl.ZipExtractFile(str_ZipPath, str_folderRaw, str_fileName, str_zipPassword = str_zipPwd)
     except:
-        print('    ERROR in Act_DownFiles_ZIP.   PCF: ', str_PCF)
+        print('    ERROR in Act_DownFiles_ZIP')
         print('    str_ZipPath: ' , str_ZipPath)
         return False
     return True
 
  
 #------------------------------------------------------------------------------------------------------------------------------------		
-def Act_DownFiles(df_Param, row, str_folderRaw, str_FileName, dte_date, str_folderRoot, bl_ArchiveMails):
+def Act_DownFiles(df_Param, row, str_folderRaw, str_fileName, dte_date, str_folderRoot, bl_ArchiveMails):
     try:
         # Param
-        str_path = fl.fStr_BuildPath(str_folderRaw, str_FileName)
+        str_path = fl.fStr_BuildPath(str_folderRaw, str_fileName)
         str_File_PrefixName = str(df_Param.loc[row, 'File_PrefixName'])
         str_FileDownloadMode = str(df_Param.loc[row, 'FileDownloadMode'])
         str_SheetName = str(df_Param.loc[row, 'SheetName'])
@@ -841,57 +858,58 @@ def Act_DownFiles(df_Param, row, str_folderRaw, str_FileName, dte_date, str_fold
         
         # Outlook
         if str_FileDownloadMode == 'OUTLOOK':
-            bl_success = Act_DownFiles_outlook(df_Param, row, str_folderRaw, str_FileName, bl_ArchiveMails)
+            bl_success = Act_DownFiles_outlook(df_Param, row, str_folderRaw, str_fileName, bl_ArchiveMails)
             if not bl_success: 
                 return False
         # Folder
         elif str_FileDownloadMode == 'FOLDER':
             try:
-                str_pathSource = df_Param.loc[row, 'Dir_Source'].replace('{dteFormat_DirSource}', 
-                                             (dte_date + BDay(int(df_Param.loc[row, 'DateOffset']))).strftime(df_Param.loc[row, 'dteFormat_DirSource']))
-                str_pathSource = fl.fStr_BuildFolder_wRoot(str_pathSource, str_folderRoot)
-                #if not str_pathSource[:2] == '\\\\': str_pathSource = str_folderRoot + str_pathSource
-                # Name of the file with XX
-                try:
-                    if str_FileName.count('{') and str_FileName.count('}') > 0 :
-                        #str_FileName = fl.fStr_FindPath_byReplacingX(str_pathSource, str_FileName)
-                        str_FileName = fl.fStr_GetMostRecentFile_InFolder(str_pathSource, str_FileName)
-                except: print('  fStr_generateFileName: Could not find the File with XXXX ')
-                # Copy
-                shutil.copyfile(os.path.join(str_pathSource, str_FileName), str_path)
+                str_pathSource = fStr_GetSourceDirectory(df_Param, row, dte_date, str_folderRoot)
+                # in case of undefined Name like {X}: We want to deal with the list of files
+                if str_fileName.count('{') and str_fileName.count('}') > 0:
+                    if str_fileName.count('{X}') > 0:   bl_exactNumberX = False
+                    elif str_fileName.count('{*}') > 0: bl_exactNumberX = False
+                    else:                               bl_exactNumberX = True
+                    l_FileInFolder = fl.fL_GetFileListInFolder(str_pathSource, str_fileName.replace('{*}','{X}'), bl_exactNumberX = bl_exactNumberX)
+                    # Copy all the files
+                    for pathSource in l_FileInFolder:
+                        fileName = pathSource.split('\\')[-1]
+                        shutil.copyfile(pathSource, fl.fStr_BuildPath(str_folderRaw, fileName))
+                else:
+                    shutil.copyfile(os.path.join(str_pathSource, str_fileName), str_path)
             except:
                 print('   ERROR in Act_DownFiles: shutil.copy did not work')
                 print('   - str_pathSource: ', str_pathSource)
-                print('   - str_FileName: ', str_FileName)
+                print('   - str_fileName: ', str_fileName)
                 return False
         # FTP
         elif str_FileDownloadMode == 'FTP':
-            bl_success = Act_DownFiles_FTP(df_Param, row, str_folderRaw, str_FileName, str_FileDownloadMode, dte_date)
-            if str_NewFileName != '': str_FileName = str_NewFileName
+            bl_success = Act_DownFiles_FTP(df_Param, row, str_folderRaw, str_fileName, str_FileDownloadMode, dte_date)
+            if str_NewFileName != '': str_fileName = str_NewFileName
             if not bl_success: return False
         # FTP
         elif str_FileDownloadMode == 'FTP_SSL':
-            bl_success = Act_DownFiles_FTP(df_Param, row, str_folderRaw, str_FileName, str_FileDownloadMode, dte_date)
-            if str_NewFileName != '': str_FileName = str_NewFileName
+            bl_success = Act_DownFiles_FTP(df_Param, row, str_folderRaw, str_fileName, str_FileDownloadMode, dte_date)
+            if str_NewFileName != '': str_fileName = str_NewFileName
             if not bl_success: return False
         # FTP paramiko
         elif str_FileDownloadMode == 'SFTP_Paramiko':
-            bl_success = Act_DownFiles_FTP(df_Param, row, str_folderRaw, str_FileName, str_FileDownloadMode, dte_date)
-            if str_NewFileName != '': str_FileName = str_NewFileName
+            bl_success = Act_DownFiles_FTP(df_Param, row, str_folderRaw, str_fileName, str_FileDownloadMode, dte_date)
+            if str_NewFileName != '': str_fileName = str_NewFileName
             if not bl_success: return False
         # SQL
         elif str_FileDownloadMode == 'SQL':
-            bl_success = Act_DownFiles_SQL(df_Param, row, str_folderRaw, str_FileName, dte_date)
+            bl_success = Act_DownFiles_SQL(df_Param, row, str_folderRaw, str_fileName, dte_date)
             if not bl_success: return False
         # SQL
         elif str_FileDownloadMode == 'SQL_noMsg':
-            bl_success = Act_DownFiles_SQL(df_Param, row, str_folderRaw, str_FileName, dte_date, bl_EmptyMessage = False)
+            bl_success = Act_DownFiles_SQL(df_Param, row, str_folderRaw, str_fileName, dte_date, bl_EmptyMessage = False)
             if not bl_success: return False
         # ZIP
         elif str_FileDownloadMode == 'ZIP':
-            bl_success = Act_DownFiles_ZIP(df_Param, row, str_folderRaw, str_FileName, dte_date, str_folderRoot)
+            bl_success = Act_DownFiles_ZIP(df_Param, row, str_folderRaw, str_fileName, dte_date, str_folderRoot)
             # If its this file, do not return an error (as he is here only sometimes)
-            if not 'HKGRFMHKSSET_ST-FM-TX' in str_FileName:
+            if not 'HKGRFMHKSSET_ST-FM-TX' in str_fileName:
                 if not bl_success: return False
         # HTML
         elif str_FileDownloadMode == 'HTML_JSON':
@@ -908,7 +926,7 @@ def Act_DownFiles(df_Param, row, str_folderRaw, str_FileName, dte_date, str_fold
                 if i_offset > 10: break
             #----------------------------------------------------------------------
             if len(df_fut) > 0:
-                fl.fStr_CreateTxtFile(str_folderRaw, str_FileName, df_fut, '', True)
+                fl.fStr_CreateTxtFile(str_folderRaw, str_fileName, df_fut, '', True)
             #str_url = "https://www.cmegroup.com/trading/energy/crude-oil/light-sweet-crude_quotes_settlements_futures.html"
             #str_url = f'https://www.cmegroup.com/CmeWS/mvc/Settlements/Futures/Settlements/425/FUT?tradeDate={str_date}'
         elif str_FileDownloadMode == 'HTML_JSON_YUANTA':
@@ -944,7 +962,7 @@ def Act_DownFiles(df_Param, row, str_folderRaw, str_FileName, dte_date, str_fold
             df_result = html.fDf_htmlGetArray_Soup(str_url_2, False, bl_waitTranslate)
             df_result.fillna(value = '', inplace = True)
             df_result.loc[0, 2] = ''
-            fl.fStr_createExcel_1Sh(str_folderRaw, str_FileName, df_result, str_SheetName, False)
+            fl.fStr_createExcel_1Sh(str_folderRaw, str_fileName, df_result, str_SheetName, False)
         elif str_FileDownloadMode == 'HTML_csv_SOUP':
             df_result = html.fDf_htmlGetArray_Soup(str_url_2, True, bl_waitTranslate)
             df_result.to_csv(str_path, header = False, index = False)
@@ -953,7 +971,7 @@ def Act_DownFiles(df_Param, row, str_folderRaw, str_FileName, dte_date, str_fold
             
         # Renaming the INPUT Files
         if not str_File_PrefixName == '':
-            try: fl.Act_Rename(str_folderRaw, str_FileName, str_File_PrefixName + str_FileName)
+            try: fl.Act_Rename(str_folderRaw, str_fileName, str_File_PrefixName + str_fileName)
             except: print(' ERROR: Act_Rename')
     except: 
         print(' ERROR: in Act_DownFiles')
@@ -962,8 +980,8 @@ def Act_DownFiles(df_Param, row, str_folderRaw, str_FileName, dte_date, str_fold
     
     
 #------------------------------------------------------------------------------------------------------------------------------------
-def fDf_getDfFromPCF(df_Param, row, str_folder, str_FileName, bl_header = 0, v_sheetName = '', str_sep = ',', l_names = None, str_encoding = None):
-    str_path = os.path.join(str_folder, str_FileName)
+def fDf_getDfFromPCF(df_Param, row, str_folder, str_fileName, bl_header = 0, v_sheetName = '', str_sep = ',', l_names = None, str_encoding = None):
+    str_path = os.path.join(str_folder, str_fileName)
     # Test if the file exist
     if not fl.fBl_FileExist(str_path):
         print('   File does not exist (fDf_getDfFromPCF)')
@@ -972,31 +990,34 @@ def fDf_getDfFromPCF(df_Param, row, str_folder, str_FileName, bl_header = 0, v_s
     # Try to read
     try:        
         # ------- XLSX -------
-        if '.XLSX' in str_FileName.upper() or '.XLS' in str_FileName.upper():
+        if '.XLSX' in str_fileName.upper() or '.XLS' in str_fileName.upper():
             if v_sheetName == '':   df_data = pd.read_excel(str_path, header = bl_header)
             else:                   df_data = pd.read_excel(str_path, header = bl_header, sheet_name = v_sheetName)
+            
         # ------- FLat File -------
-        elif '.ETF' in str_FileName.upper() or '.XML' in str_FileName.upper() or '.XSD' in str_FileName.upper() or '718708NETRCNH' in str_FileName.upper():
-            df_data = pd.read_csv(str_path, header = bl_header)
-        elif '.CSV' in str_FileName.upper() or '.TXT' in str_FileName.upper() or '.HDX' in str_FileName.upper():
-            if '.HDX' in str_FileName.upper():
-                df_data = pd.read_csv(str_path, header = 1, sep='\t')
-            else:
-                df_data = dframe.fDf_readCsv_enhanced(str_path, bl_header, str_sep)
+        elif [x for x in ['.CSV', '.TXT', '.HDX', '.ETF', '.XML', '.XSD', '718708NETRCNH'] if x in str_fileName.upper()]:
+            if '.HDX' in str_fileName.upper():          
+                bl_header = 1
+                str_sep = '\t'
+            elif [x for x in ['SG_EASY', 'Easy Commodity - open'] if x in str_fileName.upper()]:
+                str_sep = '\t'
+            #df_data = pd.read_csv(str_path, header = bl_header, sep = str_sep)
+            df_data = dframe.fDf_readCsv_enhanced(str_path, bl_header = bl_header, str_sep = str_sep)
+            
         # ------- ZIP -------
-        elif '.ZIP' in str_FileName.upper():
+        elif '.ZIP' in str_fileName.upper():
             df_data = 1
         else:
             print('---------------------------')
             print('  (**) We do not know how to take DF from this kind of files | We need to define a type in fDf_getDfFromPCF...')
-            print('  - str_FileName: ', str_FileName)
+            print('  - str_fileName: ', str_fileName)
             print('---------------------------')
             return None
     except Exception as err:
         print('   ERROR in fDf_getDfFromPCF : df_data could not be read')
         print('   - Error: ', str(err))
         print('   - str_folder', str_folder)
-        print('   - str_FileName', str_FileName)
+        print('   - str_fileName', str_fileName)
         print('   - bl_header', bl_header)
         print('   - v_sheetName', v_sheetName)
         print('   - str_sep', str_sep)
@@ -1005,32 +1026,19 @@ def fDf_getDfFromPCF(df_Param, row, str_folder, str_FileName, bl_header = 0, v_s
 
 
 
-##str_path = r'C:\Users\laurent.tupin\IHS Markit\HK PCF Services Team - General\Manual_py\HK_Easy\Easy 20200528\Easy FI - open\PCFSRIC520200528.txt'
-##df_data = pd.read_csv(str_path, header = None, sep = ",", names = None, encoding = None)
-##print(df_data )
-
-#str_path = r'C:\Users\laurent.tupin\IHS Markit\HK PCF Services Team - General\Auto_py\HK_Global X\Global X 20200601\raw\ESTIMATE_PCFOIL_20200601.xls'
-##str_path = r'C:\Users\laurent.tupin\IHS Markit\HK PCF Services Team - General\Auto_py\HK_Global X\Global X 20200601\raw\GLOBAL_X_ETF_NAV_200601.XLS'
-##df_data = pd.read_excel(str_path, header = None)
-#df_data = fl.fDf_convertToXlsx(str_path, '', None)
-#print(df_data)
-#df_data.to_csv(str_path.replace('.xls', '.csv'), index = False, header = None) 
-
-
-
 
 #------------------------------------------------------------------------------------------------------------------------------------
-def fDf_getDfFromDownloaded(df_Param, row, str_folderRaw, str_FileName, bl_header = 0):
+def fDf_getDfFromDownloaded(df_Param, row, str_folderRaw, str_fileName, bl_header = 0):
     # Renaming the INPUT Files
     try:
         str_SheetName = str(df_Param.loc[row, 'SheetName'])
         str_File_PrefixName = str(df_Param.loc[row, 'File_PrefixName'])
         if not str_File_PrefixName == '': 
-            str_FileName = str_File_PrefixName + str_FileName
+            str_fileName = str_File_PrefixName + str_fileName
     except: print('  Renaming did not work in fDf_getDfFromDownloaded !!!')
     
-    print('Searching for... ' + str_FileName)
-    str_path = os.path.join(str_folderRaw, str_FileName)
+    print('Searching for... ' + str_fileName)
+    str_path = os.path.join(str_folderRaw, str_fileName)
     
     # Test if the file exist
     if not fl.fBl_FileExist(str_path):
@@ -1041,35 +1049,35 @@ def fDf_getDfFromDownloaded(df_Param, row, str_folderRaw, str_FileName, bl_heade
     # Get the DataFrame from the file
     try:        
         # ------- XLSX -------
-        if '.XLSX' in str_FileName.upper() or '.XLS' in str_FileName.upper():
-            if 'NQ100' in str_FileName.upper() and 'DEALING ' in str_FileName.upper():
+        if '.XLSX' in str_fileName.upper() or '.XLS' in str_fileName.upper():
+            if 'NQ100' in str_fileName.upper() and 'DEALING ' in str_fileName.upper():
                 df_data = pd.read_excel(str_path, header = 1)            
-            elif 'LAST-VALUATION-MARKIT' in str_FileName.upper():
+            elif 'LAST-VALUATION-MARKIT' in str_fileName.upper():
                 df_data = pd.read_excel(str_path, header = 3)
-            elif '_SOLCBTT_' in str_FileName.upper() or '_SOLCCCT_' in str_FileName.upper():
+            elif '_SOLCBTT_' in str_fileName.upper() or '_SOLCCCT_' in str_fileName.upper():
                 df_data = pd.read_excel(str_path, header = 4)
-            elif 'ETF_PCFREPORT_MIRAE' in str_FileName.upper() :
+            elif 'ETF_PCFREPORT_MIRAE' in str_fileName.upper() :
                 df_data = pd.read_excel(str_path, header = None)
-            elif 'ESTIMATE_PCFOIL_' in str_FileName.upper() or 'ESTIMATE_PCFSPX_' in str_FileName.upper() or 'PCFHSIHSCEI_' in str_FileName.upper():
+            elif 'ESTIMATE_PCFOIL_' in str_fileName.upper() or 'ESTIMATE_PCFSPX_' in str_fileName.upper() or 'PCFHSIHSCEI_' in str_fileName.upper():
                 df_data = fl.fDf_convertToXlsx(str_path, str_SheetName, None)
-            elif 'PCF_CAM CTPB BOND ETF_' in str_FileName.upper():
+            elif 'PCF_CAM CTPB BOND ETF_' in str_fileName.upper():
                 df_data = 1
             else:
                 if str_SheetName == '':     df_data = pd.read_excel(str_path, header = bl_header)
                 else:                       df_data = pd.read_excel(str_path, header = bl_header, sheet_name = str_SheetName)
                 #, skiprows = range(2), nrows = 6, l_names = range(7), encoding = 'cp1252'
         # ------- HDX -------
-        elif '.HDX' in str_FileName.upper():
-            if '_SPGSCI_FIN_STD' in str_FileName.upper() :
+        elif '.HDX' in str_fileName.upper():
+            if '_SPGSCI_FIN_STD' in str_fileName.upper() :
                 df_data = pd.read_csv(str_path, header = 1, sep='\t')
             else:
                 print(' HDX in fDf_getDfFromDownloaded: Case not taken into account')
                 return None, True
             
         # ------- CSV -------
-        elif '.CSV' in str_FileName.upper():
-            if 'GMO' in str_FileName.upper() or 'fcnacl2v' in str_FileName.lower() or 'fdccc' in str_FileName.lower() \
-            or 'fdcco' in str_FileName.lower() or 'navau' in str_FileName.lower():
+        elif '.CSV' in str_fileName.upper():
+            if 'GMO' in str_fileName.upper() or 'fcnacl2v' in str_fileName.lower() or 'fdccc' in str_fileName.lower() \
+            or 'fdcco' in str_fileName.lower() or 'navau' in str_fileName.lower():
                 df_data = pd.read_csv(str_path, header = 2)
                 # If it has been opened manually, it should take the 4th row
                 l_colUnamed = ['Unnamed' for colName in df_data.columns if 'Unnamed' in colName]
@@ -1079,49 +1087,49 @@ def fDf_getDfFromDownloaded(df_Param, row, str_folderRaw, str_FileName, bl_heade
                     print('-------- After, header on 4th row ---------')
                     print(df_data.iloc[0:4, 0:3])
                 # GMO treat
-                if 'GMO' in str_FileName.upper():
+                if 'GMO' in str_fileName.upper():
                     df_data.dropna(axis = 'index', subset = ['ISIN'], inplace = True)
-            elif 'DF_LIGHT_INV_S02' in str_FileName.upper() or 'DF_NAV_S02' in str_FileName.upper():
+            elif 'DF_LIGHT_INV_S02' in str_fileName.upper() or 'DF_NAV_S02' in str_fileName.upper():
                 df_data = pd.read_csv(str_path, header = bl_header, sep=';', index_col=False) 
-            elif 'PINGAN_PCF_' in str_FileName.upper():
+            elif 'PINGAN_PCF_' in str_fileName.upper():
                 ## Do note that this will cause the offending lines to be skipped.
                 #df_data = pd.read_csvstr_path, header = bl_header, error_bad_lines = False)
                 df_data = 1
-            elif 'FX 5.30PM' in str_FileName.upper():
+            elif 'FX 5.30PM' in str_fileName.upper():
                 df_data = pd.read_csv(str_path, header = bl_header, skiprows = 1)
-            elif 'WISDOMTREEUCITS_BSKT' in str_FileName.upper():
+            elif 'WISDOMTREEUCITS_BSKT' in str_fileName.upper():
                 df_data = pd.read_csv(str_path, header = bl_header, skiprows = 8)
             else:
                 df_data = pd.read_csv(str_path, header = bl_header)
                 
         # ------- TXT -------
-        elif '.TXT' in str_FileName.upper():
-            if 'ELQC' in str_FileName.upper() or 'GOMA' in str_FileName.upper() \
-            or 'PCFGSCE' in str_FileName.upper() or 'PCFGSCU' in str_FileName.upper() \
-            or 'COGSDE_GSCE_' in str_FileName.upper() or 'COGSCU' in str_FileName.upper(): # \
-            #or 'DIREXION_HSBC.T' in str_FileName.upper() :
+        elif '.TXT' in str_fileName.upper():
+            if 'ELQC' in str_fileName.upper() or 'GOMA' in str_fileName.upper() \
+            or 'PCFGSCE' in str_fileName.upper() or 'PCFGSCU' in str_fileName.upper() \
+            or 'COGSDE_GSCE_' in str_fileName.upper() or 'COGSCU' in str_fileName.upper(): # \
+            #or 'DIREXION_HSBC.T' in str_fileName.upper() :
                 df_data = pd.read_csv(str_path, header = bl_header, sep='\t')
-            elif 'COEEEH_' in str_FileName.upper() or 'COEMEH_' in str_FileName.upper() or 'COJBEM_' in str_FileName.upper():
+            elif 'COEEEH_' in str_fileName.upper() or 'COEMEH_' in str_fileName.upper() or 'COJBEM_' in str_fileName.upper():
                 # we just forward so we do not need the data: Check out PINGAN_PCF_
                 df_data = 1
             else:
                 df_data = pd.read_csv(str_path, header = bl_header)
                 
         # ------- Other Flat files -------
-        elif '.ETF' in str_FileName.upper():
+        elif '.ETF' in str_fileName.upper():
             df_data = pd.read_csv(str_path, header = bl_header)
         
-        elif '718708NETRCNH' in str_FileName.upper():
+        elif '718708NETRCNH' in str_fileName.upper():
             df_data = dframe.fDf_readCsv_enhanced(str_path, None, str_sep = '|', l_names = range(33))
             
         # ------- ZIP -------
-        elif '.ZIP' in str_FileName.upper():
+        elif '.ZIP' in str_fileName.upper():
             df_data = 1
         
         else:
             print('---------------------------')
             print('  (**) We do not know how to take DF from this kind of files | We need to define a type in fDf_getDfFromDownloaded...')
-            print('  - str_FileName: ', str_FileName)
+            print('  - str_fileName: ', str_fileName)
             print('---------------------------')
             return None, True
     except Exception as err:
@@ -1135,6 +1143,16 @@ def fDf_getDfFromDownloaded(df_Param, row, str_folderRaw, str_FileName, bl_heade
 
 
 #------------------------------------------------------------------------------------------------------------------------------------
+def fStr_SplitFileName_startEnd(str_fileName, str_ExactName, int_File_startW, int_File_endW):
+    if str_ExactName.lower() == 'true':
+        str_File_startW = str_fileName
+        str_File_endW = ''
+    else:
+        str_File_startW = str_fileName[:int(int_File_startW)]
+        if int_File_endW == 0:          str_File_endW = ''
+        else:                           str_File_endW = str_fileName[-int(int_File_endW):]
+    return str_File_startW, str_File_endW
+
 def fStr_generateFileName(df_Param, row, str_folderRaw, dte_date):
     str_fileName = str(df_Param.loc[row, 'fileName'])
     str_fileDate = str(df_Param.loc[row, 'fileDate'])
@@ -1145,10 +1163,11 @@ def fStr_generateFileName(df_Param, row, str_folderRaw, dte_date):
     # Name of the file with XX
     try:
         if str_fileName.count('{') and str_fileName.count('}') > 0 :
-            if str_fileName.count('{X}') > 0 :
-                str_fileName = fl.fStr_GetMostRecentFile_InFolder(str_folderRaw, str_fileName, True, bl_exactNumberX = False)
-            else:
-                str_fileName = fl.fStr_GetMostRecentFile_InFolder(str_folderRaw, str_fileName, True, bl_exactNumberX = True)
+            if str_fileName.count('{X}') > 0:   bl_exactNumberX = False
+            elif str_fileName.count('{*}') > 0: bl_exactNumberX = False
+            else:                               bl_exactNumberX = True
+            str_fileName = fl.fStr_GetMostRecentFile_InFolder(str_folderRaw, str_fileName.replace('{*}','{X}'), 
+                                                              bl_searchOnlyIfPossible = True, bl_exactNumberX = bl_exactNumberX)
     except: print('  fStr_generateFileName: Error, should not Happen !!!!! ')
     return str_fileName
 def fStr_generateFolderRaw(df_Param, row, str_folderRoot, dte_date):
@@ -1191,16 +1210,25 @@ def fDic_pcfAutomate_GetFiles2(df_Param, str_folderRoot, dte_date, bl_ArchiveMai
     # Take parameters from CSV
     d_result = {}
     l_PathOutput = []
+    l_ID_alreadyDone = []
     bl_dwlFailed = False
     
     for i, row in enumerate(df_Param.index):
         bl_forceDwld_local = bl_forceDwld
         # Variables in Param CSV
-        str_ID = str(df_Param.loc[row, 'ID'])
         str_folderRaw = fStr_generateFolderRaw(df_Param, row, str_folderRoot, dte_date)
-        str_FileName = fStr_generateFileName(df_Param, row, str_folderRaw, dte_date)
+        str_fileName = fStr_generateFileName(df_Param, row, str_folderRaw, dte_date)
+        # Is File Optional for Download ???
         bl_Optional = False
         if str(df_Param.loc[row, 'bl_Optional']).lower() == 'true':     bl_Optional = True
+        
+        #-------------------------------------------------------------
+        # Is ID already has been done (Dowloaded or Saved into DF) ??
+        #-------------------------------------------------------------
+        str_ID = str(df_Param.loc[row, 'ID'])
+        if str_ID in l_ID_alreadyDone:  continue        # Go back to the start of the loop (next file)
+        else:                           l_ID_alreadyDone.append(str_ID)
+        #-------------------------------------------------------------
         
         # Create the folder
         try:        fl.fBl_createDir(str_folderRaw)
@@ -1211,7 +1239,7 @@ def fDic_pcfAutomate_GetFiles2(df_Param, str_folderRoot, dte_date, bl_ArchiveMai
         # SEARCH: Try to get the data from files already dwld - (Add DATAFRAME in the dictionary)
         #======================================================================================
         if not bl_forceDwld_local:
-            df_data, bl_exist = fDf_getDfFromDownloaded(df_Param, row, str_folderRaw, str_FileName)
+            df_data, bl_exist = fDf_getDfFromDownloaded(df_Param, row, str_folderRaw, str_fileName)
             # bl_exist = False: File not downloaded ==> will go download it
             if not bl_exist:
                 bl_forceDwld_local = True
@@ -1227,21 +1255,25 @@ def fDic_pcfAutomate_GetFiles2(df_Param, str_folderRoot, dte_date, bl_ArchiveMai
         # Download
         #======================================================================================
         if bl_forceDwld_local:
-            print('Downloading... ' + str_FileName)
-            bl_success = Act_DownFiles(df_Param, row, str_folderRaw, str_FileName, dte_date, str_folderRoot, bl_ArchiveMails)
+            print('Downloading... {}'.format(str_fileName))
+            bl_success = Act_DownFiles(df_Param, row, str_folderRaw, str_fileName, dte_date, str_folderRoot, bl_ArchiveMails)
             # In case of download files before, we need to update fileName
-            if bl_success:              str_FileName = fStr_generateFileName(df_Param, row, str_folderRaw, dte_date)
+            if bl_success:              str_fileName = fStr_generateFileName(df_Param, row, str_folderRaw, dte_date)
             else:
                 if not bl_Optional:     bl_dwlFailed = True
                 else:                   print('   (*) File could not be downloaded but the file is optional => Process continue without raising issues')
+                # Download has failed, bl_dwlFailed can be TRUE or FALSE depending if it's Optional or not.
+                # But Either way, we need to remove str_ID form the list so it can try again to download (Multiple same str_ID, for multiple try)
+                try:    l_ID_alreadyDone.remove(str_ID)
+                except: print(' WARNING in fDic_pcfAutomate_GetFiles2 : Could not remove ID from List. ID= {0} || Liste= {1}'.format(str_ID, l_ID_alreadyDone))
                 print('')
                 continue
             #-------------------------------------------
             # Re-Search after Download
             # Get the DF in case of download after Search not successful (not if Download PJ only (bl_dfRequired = False)) ()
             if bl_dfRequired:
-                #print('Searching again for... ' + str_FileName)
-                df_data, bl_exist = fDf_getDfFromDownloaded(df_Param, row, str_folderRaw, str_FileName)
+                #print('Searching again for... ' + str_fileName)
+                df_data, bl_exist = fDf_getDfFromDownloaded(df_Param, row, str_folderRaw, str_fileName)
                 if not bl_exist:
                     print('   ERROR: File  has been downloaded even if it pass the download check. Please report the issue in detail with LT: {}'.format(str_ID))
                     if not bl_Optional: bl_dwlFailed = True
@@ -1262,7 +1294,7 @@ def fDic_pcfAutomate_GetFiles2(df_Param, str_folderRoot, dte_date, bl_ArchiveMai
         
         #Add the folder for information || Careful, takes only the last one
         d_result['Folder'] = str_folderRaw.replace('\\raw','')
-        l_PathOutput.append(str_folderRaw + str_FileName)
+        l_PathOutput.append(str_folderRaw + str_fileName)
     # End of loop - Add Path of files downloaded
     d_result['files'] = l_PathOutput 
     
@@ -1308,7 +1340,44 @@ def fStr_CreateEtfFile(str_folder, str_fileName, dte_date, str_Isin1, str_id, st
 #------------------------------------------------------------------------------
 # Function for SG Easy Msci
 #------------------------------------------------------------------------------
-def fDf_loopOnRic_SqlReq_SaveCsv(df_lConfig, str_req, dte_date, str_folder, str_filenameExtension = ''):
+def Act_OrderByIsin_Easy(df_lConfig, str_folder, dte_date):
+    str_folder = str_folder.replace('Auto_py', 'Manual_py')
+    # Loop on parameters
+    for i_row, t_row in df_lConfig.iterrows():
+        df_pcf = None
+        df_compo = None
+        df_header = None
+        try:
+            str_pcfFilename =  '{}{}.txt'.format(t_row['Pcf_FileName'], dte_date.strftime('%Y%m%d'))
+            df_pcf = dframe.fDf_readCsv_enhanced(fl.fStr_BuildPath(str_folder, str_pcfFilename), bl_header = None, str_sep='\t')
+            df_header = df_pcf.iloc[0:1].copy()
+            df_compo = df_pcf.iloc[1:].copy()
+            l_col = list(range(50)[:len(df_compo.columns)])
+            df_compo.columns = [str(x) for x in l_col]
+            df_compo.rename(columns = {'3':'Isin'}, inplace = True)
+            df_compo.sort_values(by = ['Isin'], ascending = True, inplace = True)
+            df_pcf = dframe.fDf_Concat_wColOfDf1(df_header, df_compo)
+            fl.fStr_CreateTxtFile(str_folder, str_pcfFilename, df_pcf, str_sep = '\t')
+        except Exception as err:
+            print(' ERROR on Act_OrderByIsin_Easy - PCF | {}'.format(str(err)))
+            print(' - str_pcfFilename', str_pcfFilename)
+        try:
+            str_COfilename =  '{}_{}.txt'.format(t_row['CO_FileName'], dte_date.strftime('%Y%m%d'))
+            df_CO = dframe.fDf_readCsv_enhanced(fl.fStr_BuildPath(str_folder, str_COfilename), bl_header = None, str_sep='\t')
+            df_header = df_CO.iloc[:2].copy()
+            df_compo = df_CO.iloc[2:].copy()
+            l_col = list(range(50)[:len(df_compo.columns)]) 
+            df_compo.columns = [str(x) for x in l_col]
+            df_compo.rename(columns = {'3':'Isin'}, inplace = True)
+            df_compo.sort_values(by = ['Isin'], ascending = True, inplace = True)
+            df_CO = dframe.fDf_Concat_wColOfDf1(df_header, df_compo)
+            fl.fStr_CreateTxtFile(str_folder, str_COfilename, df_CO, str_sep = '\t')
+        except Exception as err:
+            print(' ERROR on Act_OrderByIsin_Easy - CO | {}'.format(str(err)))
+            print(' - str_COfilename', str_COfilename)
+    return True
+    
+def fDdf_loopOnRic_SqlReq_SaveCsv(df_lConfig, str_req, dte_date, str_folder, str_filenameExtension = ''):
     inst_db = db.c_sqlDB()
     inst_db.server = 'D1PRDSOLADB.infocloud.local'
     str_cloudPathForCsv = inst_db.cloudPathForCsv
@@ -1319,7 +1388,7 @@ def fDf_loopOnRic_SqlReq_SaveCsv(df_lConfig, str_req, dte_date, str_folder, str_
         if not str_IndexRic in d_Df:        #Avoid Double
             str_fileName =  '{}{}.txt'.format(t_row['Pcf_FileName'].replace('PCF',''), str_filenameExtension)
             str_req_loop = str_req.replace('<RIC>', str_IndexRic).replace('<DATE>', dte_date.strftime('%Y%m%d'))
-            df_sqlResult = db.fDf_GetRequest_or_fromCsvFile(str_req_loop, str_fileName, 30, str_folder + r'raw', bl_EmptyMessage = False)
+            df_sqlResult = db.fDf_GetRequest_or_fromCsvFile(str_req_loop, str_fileName, 30, r'{}raw'.format(str_folder), bl_EmptyMessage = False)
             #            df_sqlResult = db.db_SelectReq(str_req_loop, 'D1PRDSOLADB.infocloud.local', bl_EmptyMessage = False)
             #            # Save a CSV to keep it
             #            fl.fStr_CreateTxtFile(fl.fStr_BuildPath(str_folder + r'\raw', str_fileName), '', df_sqlResult)
@@ -1329,109 +1398,173 @@ def fDf_loopOnRic_SqlReq_SaveCsv(df_lConfig, str_req, dte_date, str_folder, str_
     inst_db.cloudPathForCsv = str_cloudPathForCsv
     return d_Df
 
-def fDf_loopOnRic_CreateFile(d_param):
-    df_lConfig =    d_param['df_lConfig']
-    df_1NavIndic =  d_param['df_1NavIndic']
-    df_2Val_Dmc =   d_param['df_2Val_Dmc']
-    d_CompoDf =     d_param['d_CompoDf']
-    d_CorpActDf =   d_param['d_CorpActDf']
-    dte_date =      d_param['dte_date']
-    dte_navDate =   d_param['dte_navDate']
-    str_folder =    d_param['str_folder']
-    l_pathAttach = []
-    for i_row, t_row in df_lConfig.iterrows():
-        # GET INPUT
-        str_IndexRic =  t_row['IndexRic']
-        str_ric =       t_row['ETF_RIC']
-        str_isin =      t_row['Isin']
-        int_divisor =   t_row['Divisor']
-        # NAV Df
-        flt_nav = df_1NavIndic[df_1NavIndic['Fund Code'] == str_isin]['Calculated Target Nav'].values[0]
-        flt_TotalNav = flt_nav * int_divisor
-        flt_shareNb = df_2Val_Dmc[df_2Val_Dmc['ISIN Code'] == str_isin]['Share Nb'].values[0]
-        flt_indexReturn = df_1NavIndic[df_1NavIndic['Fund Code'] == str_isin]['Index Return Converted'].values[0]
-        # Dataframe from dico
-        df_compo =  d_CompoDf[str_IndexRic].copy()
-        df_CA =     d_CorpActDf[str_IndexRic][['Isin','NetAmount']].copy()
-        df_compo =  dframe.fDf_JoinDf(df_compo, df_CA, 'Isin', str_how = 'left')
-        # Calculate WEIGHT
-        df_compo['Weight'] = df_compo['IndexQuantity'] * df_compo['UnadjustedPrice'] * df_compo['FXRate']
-        flt_sumProduct = df_compo['Weight'].sum()
-        df_compo['Weight'] = df_compo['Weight'] / flt_sumProduct
+def fLpath_loopOnRic_CreateFile(d_param):
+    try:
+        int_DivMethod = d_param['DivMethod']
+        df_lConfig =    d_param['df_lConfig']
+        df_1NavIndic =  d_param['df_1NavIndic']
+        df_2Val_Dmc =   d_param['df_2Val_Dmc']
+        d_CompoDf =     d_param['d_CompoDf'] 
+        dte_date =      d_param['dte_date']
+        dte_navDate =   d_param['dte_navDate']
+        str_folder =    d_param['str_folder']
+        l_pathAttach = []
+    except Exception as err:    
+        print('  ERROR in fLpath_loop, 0. Grab the db | {}'.format(str(err)))
+        raise
         
+    # Loop on parameters
+    for i_row, t_row in df_lConfig.iterrows():
+        try:
+            # GET INPUT
+            str_IndexRic =  t_row['IndexRic']
+            str_ric =       t_row['ETF_RIC']
+            str_isin =      t_row['Isin']
+            int_divisor =   t_row['Divisor']
+            # NAV Df
+            if len(df_1NavIndic[df_1NavIndic['Fund Code'] == str_isin]) == 0:
+                print(" WARNING: the ETF (Isin = {} , Name = {} ) is not in the 1.NavIndic File: 'NavCalcOutputs_'".format(str_isin, t_row['Pcf_FileName']))
+                continue
+            elif len(df_2Val_Dmc[df_2Val_Dmc['ISIN Code'] == str_isin]) == 0:
+                print(" WARNING: the ETF (Isin = {} , Name = {} ) is not in the 2.Val_Dmc File: 'Last-Valuation-MARKIT-'".format(str_isin, t_row['Pcf_FileName']))
+                continue
+            flt_nav = df_1NavIndic[df_1NavIndic['Fund Code'] == str_isin]['Calculated Target Nav'].values[0]
+            flt_TotalNav = flt_nav * int_divisor
+            flt_shareNb = df_2Val_Dmc[df_2Val_Dmc['ISIN Code'] == str_isin]['Share Nb'].values[0]
+            flt_indexReturn = df_1NavIndic[df_1NavIndic['Fund Code'] == str_isin]['Index Return Converted'].values[0]
+            # COMPO Dataframe from dico
+            df_compo =  d_CompoDf[str_IndexRic].copy()
+        except Exception as err:    
+            print('  ERROR in fLpath_loop, 1. Compo | {}'.format(str(err)))
+            raise
+        
+        try:
+            # Calculate WEIGHT + UNIT (or SHARES)
+            df_compo['Weight'] = df_compo['IndexQuantity'] * df_compo['UnadjustedPrice'] * df_compo['FXRate']
+            flt_sumProduct = df_compo['Weight'].sum()
+            df_compo['Weight'] = df_compo['Weight'] / flt_sumProduct
+            df_compo['UNIT'] = flt_TotalNav * df_compo['Weight'] / (df_compo['UnadjustedPrice']*df_compo['FXRate'])
+        except Exception as err:    
+            print('  ERROR in fLpath_loop, 2. Weight | {}'.format(str(err)))
+            raise        
+        #----------------------------------------------------------------------
+        # Particularity according to Div Method
+        #----------------------------------------------------------------------
+        try:
+            if int_DivMethod == 2:
+                df_CA =     d_param['d_CorpActDf'][str_IndexRic][['Isin','NetAmount']].copy()
+                df_compo =  dframe.fDf_JoinDf(df_compo, df_CA, 'Isin', str_how = 'left')
+                df_compo.fillna({'NetAmount' : 0}, inplace = True)
+                #df_compo['AdjustedPrice'] = (df_compo['Price'] - df_compo['NetAmount']) * df_compo['FXRate']
+                df_compo['AdjustedPrice'] = (df_compo['UnadjustedPrice'] - df_compo['NetAmount']) * df_compo['FXRate']
+                # Get the cash
+                df_compo['CASH']  = df_compo['UNIT'] * df_compo['NetAmount'] * df_compo['FXRate']
+                flt_cash = df_compo['CASH'].sum() / int_divisor
+                t_row['flt_cash'] = flt_cash
+            elif int_DivMethod == 3 or int_DivMethod == 4:
+                df_compo['AdjustedPrice'] = df_compo['UnadjustedPrice'] * df_compo['FXRate']
+                flt_cash = 0
+            elif int_DivMethod == 1:
+                df_EPRAtax_perMic = d_param['d_CorpActDf'].copy()
+                df_compo =  dframe.fDf_JoinDf(df_compo, df_EPRAtax_perMic, 'MIC', str_how = 'left')
+                df_compo.fillna({'Tax_rate' : 0}, inplace = True)
+                df_compo['NetAmount'] = df_compo['DivAmount'] * (1-df_compo['Tax_rate'])
+                #df_compo['AdjustedPrice'] = (df_compo['Price'] - df_compo['NetAmount']) * df_compo['FXRate']
+                df_compo['AdjustedPrice'] = (df_compo['UnadjustedPrice'] - df_compo['NetAmount']) * df_compo['FXRate']
+                # Calculate WEIGHT + UNIT (or SHARES)
+                df_compo['Weight'] = df_compo['IndexQuantity'] * df_compo['AdjustedPrice'] * df_compo['FXRate']
+                flt_sumProduct = df_compo['Weight'].sum()
+                df_compo['Weight'] = df_compo['Weight'] / flt_sumProduct
+                df_compo['UNIT'] = flt_TotalNav * df_compo['Weight'] / (df_compo['AdjustedPrice']*df_compo['FXRate'])
+                # Get the cash
+                flt_cash = 0
+        except Exception as err:    
+            print('  ERROR in fLpath_loop, 3. Particularity of Div Calculus | {}'.format(str(err)))
+            raise        
         #-------------------
         # PCF - COMPO
         #-------------------
-        df_compo['1col'] = 'B'
-        df_compo['2col'] = t_row['Isin']
-        df_compo['3col'] = 'Equity'
-        df_compo['6col'] = '-'
-        df_compo = dframe.fDf_InsertColumnOfIndex(df_compo, l_colSort = ['Ric'])
-        df_compo['15col'] = 'T'
-        df_compo.fillna({'NetAmount' : 0}, inplace = True)
-        df_compo['PRICE'] = (df_compo['UnadjustedPrice'] - df_compo['NetAmount']) * df_compo['FXRate']
-        df_compo['PRICE_r'] = df_compo['PRICE'].apply(lambda x:round(x, 4))
-        df_compo['FXRate_r'] = df_compo['FXRate'].apply(lambda x:round(x, 4))
-        df_compo['UNIT'] = flt_TotalNav * df_compo['Weight'] / df_compo['UnadjustedPrice']
-        df_compo['UNIT_r'] = df_compo['UNIT'].apply(lambda x:round(x, 4))
-        # Get the cash
-        df_compo['CASH']  = df_compo['UNIT'] * df_compo['FXRate'] * df_compo['NetAmount']
-        flt_cash = df_compo['CASH'].sum() / int_divisor
-        t_row['flt_cash'] = flt_cash
-        # Get Number of rows in Composition
-        int_nbCompo = len(df_compo)
-        t_row['int_nbCompo'] = int_nbCompo
-        # FINAL COMPO
-        df_compo_pcf = df_compo[['1col','2col','3col','Isin','Ric','6col','MIC','SecurityName', 'UNIT_r','6col','6col',
-                                 'ind','PRICE_r','FXRate_r','15col','Isin']].copy()
+        try:
+            df_compo['1col'] = 'B'
+            df_compo['2col'] = t_row['Isin']
+            df_compo['3col'] = 'Equity'
+            df_compo['6col'] = '-'
+            df_compo = dframe.fDf_InsertColumnOfIndex(df_compo, l_colSort = ['Isin'])
+            df_compo['15col'] = 'T'
+            df_compo['PRICE_r'] = df_compo['AdjustedPrice'].apply(lambda x:round(x, 4))
+            df_compo['FXRate_r'] = df_compo['FXRate'].apply(lambda x:round(x, 4))
+            
+            df_compo['UNIT_r'] = df_compo['UNIT'].apply(lambda x:round(x, 4))
+                
+            # Get Number of rows in Composition
+            int_nbCompo = len(df_compo)
+            t_row['int_nbCompo'] = int_nbCompo
+            # FINAL COMPO
+            df_compo_pcf = df_compo[['1col','2col','3col','Isin','Ric','6col','MIC','SecurityName', 'UNIT_r','6col','6col',
+                                     'ind','PRICE_r','FXRate_r','15col','Isin']].copy()
+        except Exception as err:    
+            print('  ERROR in fLpath_loop, 4. PCF COMPO | {}'.format(str(err)))
+            raise        
         #-------------------
         # PCF - Header
         #-------------------
-        df_header = pd.DataFrame([['H', t_row['ISINiNAV'], t_row['EuronextCategory'], int(int_nbCompo), '1',
-                                  dte_date.strftime('%Y%m%d'), dte_navDate.strftime('%Y%m%d'), round(flt_nav, 4),
-                                  '-','-', round(flt_cash, 13),'-', int(flt_shareNb), round(flt_nav * int_divisor, 4),
-                                  str(int_divisor), t_row['ETF CCY'], t_row['Underlying index CCY'], t_row['ETF CCY'],
-                                  str_isin, str_ric, t_row['ETF BBG Code'],t_row['UnderlyingIndexRIC'],
-                                  t_row['Indicative NAV ID'],'-','-','-','-','-','-',flt_indexReturn]]
-                                , columns = range(30))
-        # CONCAT
-        df_pcf = dframe.fDf_Concat_wColOfDf1(df_header, df_compo_pcf)
-        # Create PCF Files
-        str_pcfFilename =  '{}{}.txt'.format(t_row['Pcf_FileName'], dte_date.strftime('%Y%m%d'))
-        str_path = fl.fStr_CreateTxtFile(str_folder, str_pcfFilename, df_pcf)
-        l_pathAttach.append(str_path)
+        try:
+            df_header = pd.DataFrame([['H', t_row['ISINiNAV'], t_row['EuronextCategory'], int(int_nbCompo), '1',
+                                      dte_date.strftime('%Y%m%d'), dte_navDate.strftime('%Y%m%d'), round(flt_nav, 4),
+                                      '-','-', round(flt_cash, 13),'-', int(flt_shareNb), round(flt_nav * int_divisor, 4),
+                                      str(int_divisor), t_row['ETF CCY'], t_row['Underlying index CCY'], t_row['ETF CCY'],
+                                      str_isin, str_ric, t_row['ETF BBG Code'],t_row['UnderlyingIndexRIC'],
+                                      t_row['Indicative NAV ID'],'-','-','-','-','-','-',flt_indexReturn]]
+                                    , columns = range(30))
+            # CONCAT
+            df_pcf = dframe.fDf_Concat_wColOfDf1(df_header, df_compo_pcf)
+            # Create PCF Files
+            str_pcfFilename =  '{}{}.txt'.format(t_row['Pcf_FileName'], dte_date.strftime('%Y%m%d'))
+            str_path = fl.fStr_CreateTxtFile(str_folder, str_pcfFilename, df_pcf, str_sep = '\t')
+            l_pathAttach.append(str_path)
+        except Exception as err:    
+            print('  ERROR in fLpath_loop, 5. Create PCF | {}'.format(str(err)))
+            raise
         
         #-------------------
         # CO - COMPO
         #-------------------
-        df_compo['1col'] = '3'
-        df_compo['SHARES'] = df_compo['UNIT'].apply(lambda x:round(x, 0))
-        df_compo['MCap'] = df_compo['SHARES'] * df_compo['PRICE_r']
-        df_compo['Weight_100'] = df_compo['Weight'] * 100
-        df_compo['CO'] = df_compo['Isin'].apply(lambda str_isin : str_isin[:2])
-        # FINAL COMPO
-        df_compo_CO = df_compo[['1col','ind','2col','Isin','SecurityName','SHARES','PRICE_r','MCap', 'Weight_100','CO','6col']].copy()
+        try:
+            df_compo['1col'] = '3'
+            df_compo['SHARES'] = df_compo['UNIT'].apply(lambda x:round(x, 0))
+            df_compo['MCap'] = df_compo['SHARES'] * df_compo['PRICE_r']
+            df_compo['Weight_100'] = df_compo['Weight'] * 100
+            df_compo['CO'] = df_compo['Isin'].apply(lambda str_isin : str_isin[:2])
+            # FINAL COMPO
+            df_compo_CO = df_compo[['1col','ind','2col','Isin','SecurityName','SHARES','PRICE_r','MCap', 'Weight_100','CO','6col']].copy()
+        except Exception as err:    
+            print('  ERROR in fLpath_loop, 6. CO COMPO | {}'.format(str(err)))
+            raise
         #-------------------
         # CO - Header
         #-------------------
-        df_compo['CASH'] = (df_compo['UNIT_r'] - df_compo['SHARES']) * df_compo['PRICE_r']
-        flt_cash = df_compo['CASH'].sum()
-        df_header_1 = pd.DataFrame([['1','-', str_isin, t_row['TrackerMnemoCode'], t_row['ETF Name'], '-', t_row['UnderlyingName'],
-                                     t_row['ISINiNAV'], '-', t_row['iNAVName'], t_row['ManagementStyle'], t_row['Category'], t_row['Region'], 
-                                     '-', t_row['InvestableUniverse'], '-', str_isin, '-', '-','']]
-                                , columns = range(20))
-        df_header_2 = pd.DataFrame([['2', dte_date.strftime('%Y%m%d'), str_isin, str(int_divisor), int_divisor*round(flt_nav, 4),
-                                     round(int_divisor * flt_nav - flt_cash, 2), round(flt_nav, 4), flt_cash, 100*flt_cash / (int_divisor*flt_nav), 
-                                     t_row['ETF CCY'], int(flt_shareNb), round(flt_shareNb * flt_nav, 2), '-', '-', '-', t_row['ManagementFee'],
-                                     round(flt_nav, 4), dte_navDate.strftime('%Y%m%d'), flt_indexReturn, dte_date.strftime('%Y%m%d')]]
-                                , columns = range(20))
-        # CONCAT
-        df_pcf = dframe.fDf_Concat_wColOfDf1(df_header_1, df_header_2)
-        df_pcf = dframe.fDf_Concat_wColOfDf1(df_pcf, df_compo_CO)
-        # Create PCF Files
-        str_COfilename =  '{}_{}.txt'.format(t_row['CO_FileName'], dte_date.strftime('%Y%m%d'))
-        str_path = fl.fStr_CreateTxtFile(str_folder, str_COfilename, df_pcf)
-        l_pathAttach.append(str_path)
+        try:
+            df_compo['CASH'] = (df_compo['UNIT_r'] - df_compo['SHARES']) * df_compo['PRICE_r']
+            flt_cash = df_compo['CASH'].sum()
+            df_header_1 = pd.DataFrame([['1','-', str_isin, t_row['TrackerMnemoCode'], t_row['ETF Name'], '-', t_row['UnderlyingName'],
+                                         t_row['ISINiNAV'], '-', t_row['iNAVName'], t_row['ManagementStyle'], t_row['Category'], t_row['Region'], 
+                                         '-', t_row['InvestableUniverse'], '-', str_isin, '-', '-','']]
+                                    , columns = range(20))
+            df_header_2 = pd.DataFrame([['2', dte_date.strftime('%Y%m%d'), str_isin, str(int_divisor), int_divisor*round(flt_nav, 4),
+                                         round(int_divisor * flt_nav - flt_cash, 2), round(flt_nav, 4), flt_cash, 100*flt_cash / (int_divisor*flt_nav), 
+                                         t_row['ETF CCY'], int(flt_shareNb), round(flt_shareNb * flt_nav, 2), '-', '-', '-', t_row['ManagementFee'],
+                                         round(flt_nav, 4), dte_navDate.strftime('%Y%m%d'), flt_indexReturn, dte_date.strftime('%Y%m%d')]]
+                                    , columns = range(20))
+            # CONCAT
+            df_pcf = dframe.fDf_Concat_wColOfDf1(df_header_1, df_header_2)
+            df_pcf = dframe.fDf_Concat_wColOfDf1(df_pcf, df_compo_CO)
+            # Create PCF Files
+            str_COfilename =  '{}_{}.txt'.format(t_row['CO_FileName'], dte_date.strftime('%Y%m%d'))
+            str_path = fl.fStr_CreateTxtFile(str_folder, str_COfilename, df_pcf, str_sep = '\t')
+            l_pathAttach.append(str_path)
+        except Exception as err:    
+            print('  ERROR in fLpath_loop, 7. Create CO | {}'.format(str(err)))
+            raise
         
     return l_pathAttach
 
@@ -1443,7 +1576,7 @@ def fDf_loopOnRic_CreateFile(d_param):
 def fDf_getFut_inDb(dte_futDate):
     str_req = """SELECT Column5, Column6, Column7, Column9, Column10
         FROM vwSTOXXEurope600FuturesRollIndexFile
-        WHERE Column1 = '""" + dte_futDate + "'"
+        WHERE Column1 = '{}'""".format(dte_futDate)
     df_futures = db.db_SelectReq(str_req, '', str_dbAmundi, '', '', True)
     return df_futures
 

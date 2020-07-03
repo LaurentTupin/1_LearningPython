@@ -1,9 +1,14 @@
-import os, time
-import pyodbc as db
-import pandas as pd
-import datetime as dt
-#import sqlalchemy
-import fct_Files as fl
+try:
+    import os, time
+    import pyodbc as db
+    import pandas as pd
+    import datetime as dt
+    #import sqlalchemy
+    import fct_Files as fl
+except Exception as err:
+    str_lib = str(err).replace("No module named ", "").replace("'", "")
+    print(" ATTENTION,  Missing library: '{0}' \n * Please Open Anaconda prompt and type: 'pip install {0}'".format(str_lib))
+
 
 
 #---------------------------------------------------------------

@@ -19,11 +19,10 @@ def fDic_downloadFiles(str_folderRoot, dte_date, bl_ArchiveMails, str_pcf, bl_df
         dic_df = pp.fDic_pcfAutomate_GetFiles2(df_Param, str_folderRoot, dte_date, bl_ArchiveMails, bl_dfRequired, bl_forceDwld)
             # False: do not df into dico
             # True: Force download
-        if not dic_df: print(' ERROR: dic_df is empty or imcomplete')
-        # Init
+        if not dic_df:      print('  ... (--) ERROR: dic_df is empty or imcomplete')
+        else:               print('  ... * Download Files successful !', '\n')
         str_resultFigures = pp.Initt(str(dte_date))
         df_Param = None
-        print('  ... * Download Files successful !', '\n')
     except: 
         print(' ERROR: Download files: fDic_downloadFiles')
         print('  str_folderRoot: ', str_folderRoot)

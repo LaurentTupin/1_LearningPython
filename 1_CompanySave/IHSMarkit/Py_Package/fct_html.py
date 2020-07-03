@@ -1,13 +1,15 @@
-import pandas as pd 
-import time
-import re
-import requests
-#from urllib.request import urlopen
-from bs4 import BeautifulSoup
-import unicodedata
-try:    import selenium
-except: print('selenium library is missing. Please Open Anaconda prompt and type the following: pip install selenium')
-
+try:
+    import pandas as pd 
+    import time
+    import re
+    import requests
+    #from urllib.request import urlopen
+    from bs4 import BeautifulSoup
+    import unicodedata
+    import selenium
+except Exception as err:
+    str_lib = str(err).replace("No module named ", "").replace("'", "")
+    print(" ATTENTION,  Missing library: '{0}' \n * Please Open Anaconda prompt and type: 'pip install {0}'".format(str_lib))
 
 
 ##https://www.youtube.com/watch?v=ndwuUzgAiPY

@@ -1,16 +1,21 @@
-import os
-import pandas as pd
-import datetime as dt
-import shutil
-from zipfile import ZipFile
-import glob
-import openpyxl
-import win32com.client as win32
-import xlsxwriter
-#from openpyxl.styles import NamedStyle, Font, PatternFill, colors, Border, Side # , Alignment, Color
-import openpyxl.styles as styl
-import psutil
-import time
+try:
+    import os, time
+    import pandas as pd
+    import datetime as dt
+    import shutil, psutil, glob
+    from zipfile import ZipFile
+    import win32com.client as win32
+    import xlsxwriter
+    import xlrd
+    import openpyxl
+    import openpyxl.styles as styl
+    #from openpyxl.styles import NamedStyle, Font, PatternFill, colors, Border, Side # , Alignment, Color
+except Exception as err:
+    str_lib = str(err).replace("No module named ", "").replace("'", "")
+    print(" ATTENTION,  Missing library: '{0}' \n * Please Open Anaconda prompt and type: 'pip install {0}'".format(str_lib))
+
+
+
 
 
 #---------------------------------------------------------------
@@ -375,6 +380,14 @@ def UpdateTxtFile(str_path, str_old, str_new = ''):
     with open(str_path, 'w') as file:
         file.write(str_text)
 
+
+
+#------------------------------------------------------------------------------
+# Open Files
+#------------------------------------------------------------------------------
+def fBk_OpenWk_xlrd(str_path):
+    o_Book = xlrd.open_workbook(str_path)
+    return o_Book
 
 
 #------------------------------------------------------------------------------
@@ -1037,7 +1050,6 @@ def fDf_convertToXlsx(str_path, str_SheetName = '', bl_header = None):
 #-----------------------------------------------------------------
 # FORMAT / STYLE
 #-----------------------------------------------------------------
-
 def fStr_StyleIntoExcel(str_path, str_SheetName = '', l_row = [1], str_styleName = 'Header_Perso',
                      bl_bold = True, str_fontColor = '', l_Fill = [], l_border = []):
     # Define EXCEL objects
@@ -1101,9 +1113,13 @@ def fStr_StyleIntoExcel(str_path, str_SheetName = '', l_row = [1], str_styleName
 #-----------------------------------------------------------------
 # ZIP
 #-----------------------------------------------------------------
-def ZipExtractFile(str_ZipPath, str_pathDest = '', str_FileName = '', bl_extractAll = False):
+def ZipExtractFile(str_ZipPath, str_pathDest = '', str_FileName = '', bl_extractAll = False, str_zipPassword = ''):
     try:
         with ZipFile(str_ZipPath, 'r') as zipObj:
+            if str_zipPassword != '':
+                zipObj.setpassword(pwd = bytes(str_zipPassword, 'utf-8'))
+                bl_extractAll = True
+                #                zipObj.extractall(pwd = bytes(str_zipPassword, 'utf-8'))                
             if bl_extractAll:
                 # Extract all the file
                 if str_pathDest == '':      zipObj.extractall()
@@ -1122,12 +1138,14 @@ def ZipExtractFile(str_ZipPath, str_pathDest = '', str_FileName = '', bl_extract
         if bl_extractAll:
             print(' - str_ZipPath : ', str_ZipPath)
             print(' - str_pathDest : ', str_pathDest)
+            print(' - str_zipPassword : ', str_zipPassword)
             raise
         else:
-            print(' - Failed to doanload the file : ', str_FileName)
-            print(' - File List in the Zip : ', l_fileInZip)
+            print(' - Failed to download the file : ', str_FileName)
+            if l_fileInZip:
+                print(' - File List in the Zip : ', l_fileInZip)
             print(' (**) Trying to extract all files...')
-            ZipExtractFile(str_ZipPath, str_pathDest, '', True)
+            ZipExtractFile(str_ZipPath, str_pathDest, '', True, str_zipPassword)
     return True
 
 #ZipExtractFile(r'C:\Users\laurent.tupin\Documents\5_Python\Py_Package\Brouillon\cccc.zip',

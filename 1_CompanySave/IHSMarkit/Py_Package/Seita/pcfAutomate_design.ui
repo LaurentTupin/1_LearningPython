@@ -168,6 +168,26 @@
    </item>
    <item>
     <property name="text">
+     <string>SG_EASY_MSCI_1</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>SG_EASY_MSCI_2</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>SG_EASY_MSCI_3</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>SG_EASY_MSCI_4</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
      <string>----------</string>
     </property>
    </item>
