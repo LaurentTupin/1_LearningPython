@@ -7,6 +7,7 @@ except Exception as err:
     print(" ATTENTION,  Missing library: '{0}' \n * Please Open Anaconda prompt and type: 'pip install {0}'".format(str_lib))
 
 
+
 #==============================================================================
 # Read file for Dataframe
 #==============================================================================
@@ -200,7 +201,7 @@ def round_down(n, decimals = 0):
 
 
 def fDf_GetFirst_onGroupBy(df_in, str_colPivot, str_colMeasure, bl_sort = True, l_ColSort = [], bl_ascending = False):
-    df = fDf_CleanPrepareDF(df_in, [str_colMeasure], [str_colPivot], 0)
+    df = fDf_CleanPrepareDF(df_in, l_colToBeFloat = [str_colMeasure], l_colToDropNA = [str_colPivot], o_fillNA_by = 0)
     # Get First on a Group By - 1 : Sort the value
     if l_ColSort:
         df.sort_values(by = l_ColSort, ascending = bl_ascending, inplace = True)
@@ -220,7 +221,7 @@ def fDf_GetFirst_onGroupBy(df_in, str_colPivot, str_colMeasure, bl_sort = True, 
 # Function not used, (Just to keep code I replaced)
 #==============================================================================
 def fDf_GetFirst_SumOnSecondCol(df_in, str_colPivot, str_colToSum_keepOnlyMax, str_colMeasure):
-    df = fDf_CleanPrepareDF(df_in, [str_colMeasure], [str_colPivot, str_colToSum_keepOnlyMax], 0)
+    df = fDf_CleanPrepareDF(df_in, l_colToBeFloat = [str_colMeasure], l_colToDropNA = [str_colPivot, str_colToSum_keepOnlyMax], o_fillNA_by = 0)
     
     # Group BY - keep only one row per Column Pivot 2 
     df_group = df.groupby(str_colToSum_keepOnlyMax).agg({str_colMeasure: 'sum'})

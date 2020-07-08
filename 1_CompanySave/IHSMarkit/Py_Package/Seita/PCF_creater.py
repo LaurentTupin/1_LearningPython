@@ -621,8 +621,9 @@ def pcf_BglrSamsung(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df
 def pcf_sgEasyMsci(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df):
     # Dataframe
     try:
-        df_1NavIndic = dic_df['fol_1Nav_Indicative']
-        df_2Val_Dmc = dic_df['out_2Val_Dmc']
+        df_1NavIndic =  dic_df['fol_1Nav_Indicative']
+        df_2Val_Dmc =   dic_df['out_2Val_Dmc']
+        df_FX =         dic_df['sql_FX']
         str_folder =    dic_df['Folder']
         l_pathAttach = []
         l_pathAttach_1 = []
@@ -639,16 +640,37 @@ def pcf_sgEasyMsci(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df)
         dte_navDate = dat.fDte_formatToDate(str(dte_navDate), '%d/%m/%Y')
         str_req = """exec spExcelGetComposition @Code = '<RIC>',@AsAtDate = '<DATE>', @RequestedSecurityType = 'Index',@DateType = 'Open'"""
         d_CompoDf = pp.fDdf_loopOnRic_SqlReq_SaveCsv(df_lConfig, str_req, dte_date, str_folder, '_comp')
+        # SecurityName
+        df_SecurityName = pd.read_csv(fl.fStr_BuildPath(str_folderRoot, r'SG_Easy\SgEasy_SecurityName.csv'))
     except Exception as err:    return 'ERROR: 1. Input 3 : Get Composition - {} | {}'.format(str_PCF, str(err)), []
     
+    str_req_CA = """SET NOCOUNT ON;
+                    IF OBJECT_ID ('tempdb..#Listing') IS NOT NULL DROP TABLE #Listing
+                    DECLARE @Filter NVARCHAR(255)
+                    DECLARE @FamilyID BIGINT
+                    DECLARE @RIC NVARCHAR(50) = '<RIC>'
+                    SELECT @Filter = MIN(Filter) FROM vwIndexSummary WHERE Ric = @RIC
+                    SELECT @FamilyID = MIN(FamilyID) FROM vwIndexSummary WHERE Ric = @RIC
+                    SELECT @FamilyID = MIN(RefFamilyID) FROM tblFamily WHERE FamilyID = @FamilyID
+                    SELECT ListingID into #Listing FROM  tblConstituent c WHERE FamilyID = @FamilyID and FilterValue like @Filter 
+                    and CURRENT_TIMESTAMP BETWEEN StartDate AND EndDate
+                    SELECT s.Isin, s.Ric, ca.* 
+                    FROM tblDistribution ca   
+                    	JOIN vwSecurityListing s on ca.ListingID = s.ListingID
+                    	JOIN #Listing l ON l.ListingID = s.ListingID
+                    WHERE CorporateActionSetID = 1 AND CorporateActionTypeID = 1 AND ca.XdDate = '<DATE>'
+                    ORDER BY Ric asc, ca.XdDate desc
+                    IF OBJECT_ID ('tempdb..#Listing') IS NOT NULL DROP TABLE #Listing"""
+                    
     # 1. DividendReinvestOptions = 1
     if not [x for x in ['_2','_3','_4'] if x in str_PCF]:
         try:
             df_lConfig_1 = df_lConfig.loc[df_lConfig['DividendReinvestOptions'] == 'FundRMethod 1']
             df_EPRAtax_perMic = pd.read_csv(fl.fStr_BuildPath(str_folderRoot, r'SG_Easy\SgEasy_EPRA_Tax.csv'))
             # Create Files for Output
-            d_param = {'DivMethod':1,   'dte_date': dte_date,   'dte_navDate': dte_navDate,     'str_folder': str_folder,    'df_lConfig': df_lConfig_1,
-                       'df_1NavIndic': df_1NavIndic,   'df_2Val_Dmc': df_2Val_Dmc,     'd_CompoDf': d_CompoDf,      'd_CorpActDf': df_EPRAtax_perMic}
+            d_param = {'DivMethod':1,               'dte_date': dte_date,           'dte_navDate': dte_navDate,     'str_folder': str_folder,
+                       'df_lConfig': df_lConfig_1,  'df_1NavIndic': df_1NavIndic,   'df_2Val_Dmc': df_2Val_Dmc,     'df_FX':df_FX,     
+                       'd_CompoDf': d_CompoDf,      'd_CorpActDf': df_EPRAtax_perMic,'df_SecurityName':df_SecurityName}
             l_pathAttach_1 = pp.fLpath_loopOnRic_CreateFile(d_param)
         except Exception as err:    return 'ERROR: 2. DividendReinvestOptions = 2 - {} | {}'.format(str_PCF, str(err)), []
         
@@ -657,24 +679,11 @@ def pcf_sgEasyMsci(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df)
         try:
             df_lConfig_2 = df_lConfig.loc[df_lConfig['DividendReinvestOptions'] == 'FundRMethod 2']
             # Input 4 : Corporate Actions
-            str_req = """SET NOCOUNT ON;            \n      IF OBJECT_ID ('tempdb..#Listing') IS NOT NULL DROP TABLE #Listing
-                        DECLARE @Filter BIGINT      \n      DECLARE @FamilyID BIGINT    \n      DECLARE @RIC NVARCHAR(50) = '<RIC>'
-                        SELECT @Filter = MIN(Filter) FROM vwIndexSummary WHERE Ric = @RIC
-                        SELECT @FamilyID = MIN(FamilyID) FROM vwIndexSummary WHERE Ric = @RIC
-                        SELECT @FamilyID = MIN(RefFamilyID) FROM tblFamily WHERE FamilyID = @FamilyID
-                        SELECT ListingID into #Listing FROM  tblConstituent c WHERE FamilyID = @FamilyID and FilterValue like @Filter 
-                        and CURRENT_TIMESTAMP BETWEEN StartDate AND EndDate
-                        SELECT s.Isin, s.Ric, ca.* 
-                        FROM tblDistribution ca   
-                        	JOIN vwSecurityListing s on ca.ListingID = s.ListingID
-                        	JOIN #Listing l ON l.ListingID = s.ListingID
-                        WHERE CorporateActionSetID = 1 AND ca.XdDate = '<DATE>'
-                        ORDER BY Ric asc, ca.XdDate desc
-                        IF OBJECT_ID ('tempdb..#Listing') IS NOT NULL DROP TABLE #Listing"""
-            d_CorpActDf = pp.fDdf_loopOnRic_SqlReq_SaveCsv(df_lConfig_2, str_req, dte_navDate, str_folder, '_CA')
+            d_CorpActDf = pp.fDdf_loopOnRic_SqlReq_SaveCsv(df_lConfig_2, str_req_CA, dte_navDate, str_folder, '_CA')
             # Create Files for Output
-            d_param = {'DivMethod':3,   'dte_date': dte_date,   'dte_navDate': dte_navDate,     'str_folder': str_folder,    'df_lConfig': df_lConfig_2,
-                       'df_1NavIndic': df_1NavIndic,   'df_2Val_Dmc': df_2Val_Dmc,     'd_CompoDf': d_CompoDf,      'd_CorpActDf': d_CorpActDf}
+            d_param = {'DivMethod':2,               'dte_date': dte_date,           'dte_navDate': dte_navDate,     'str_folder': str_folder,
+                       'df_lConfig': df_lConfig_2,  'df_1NavIndic': df_1NavIndic,   'df_2Val_Dmc': df_2Val_Dmc,     'df_FX':df_FX,     
+                       'd_CompoDf': d_CompoDf,      'd_CorpActDf': d_CorpActDf,     'df_SecurityName':df_SecurityName}
             l_pathAttach_2 = pp.fLpath_loopOnRic_CreateFile(d_param)
         except Exception as err:    return 'ERROR: 2. DividendReinvestOptions = 2 - {} | {}'.format(str_PCF, str(err)), []
     
@@ -683,8 +692,9 @@ def pcf_sgEasyMsci(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df)
         try:
             df_lConfig_3 = df_lConfig.loc[df_lConfig['DividendReinvestOptions'] == 'FundRMethod 3']
             # Create Files for Output
-            d_param = {'DivMethod':3,   'dte_date': dte_date,   'dte_navDate': dte_navDate,     'str_folder': str_folder,    'df_lConfig': df_lConfig_3,
-                       'df_1NavIndic': df_1NavIndic,   'df_2Val_Dmc': df_2Val_Dmc,     'd_CompoDf': d_CompoDf,      'd_CorpActDf': None}
+            d_param = {'DivMethod':3,               'dte_date': dte_date,           'dte_navDate': dte_navDate,     'str_folder': str_folder,
+                       'df_lConfig': df_lConfig_3,  'df_1NavIndic': df_1NavIndic,   'df_2Val_Dmc': df_2Val_Dmc,     'df_FX':df_FX,     
+                       'd_CompoDf': d_CompoDf,      'd_CorpActDf': None,            'df_SecurityName':df_SecurityName}
             l_pathAttach_3 = pp.fLpath_loopOnRic_CreateFile(d_param)
         except Exception as err:    return 'ERROR: 3. DividendReinvestOptions = 3 - {} | {}'.format(str_PCF, str(err)), []
     
@@ -692,9 +702,12 @@ def pcf_sgEasyMsci(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df)
     if not [x for x in ['_1','_2','_3'] if x in str_PCF]:
         try:
             df_lConfig_4 = df_lConfig.loc[df_lConfig['DividendReinvestOptions'] == 'FundRMethod 4']
+            # Input 4 : Corporate Actions
+            d_CorpActDf = pp.fDdf_loopOnRic_SqlReq_SaveCsv(df_lConfig_4, str_req_CA, dte_navDate, str_folder, '_CA')
             # Create Files for Output
-            d_param = {'DivMethod':4,   'dte_date': dte_date,   'dte_navDate': dte_navDate,     'str_folder': str_folder,    'df_lConfig': df_lConfig_4,
-                       'df_1NavIndic': df_1NavIndic,   'df_2Val_Dmc': df_2Val_Dmc,     'd_CompoDf': d_CompoDf,      'd_CorpActDf': None}
+            d_param = {'DivMethod':4,               'dte_date': dte_date,           'dte_navDate': dte_navDate,     'str_folder': str_folder,
+                       'df_lConfig': df_lConfig_4,  'df_1NavIndic': df_1NavIndic,   'df_2Val_Dmc': df_2Val_Dmc,     'df_FX':df_FX,     
+                       'd_CompoDf': d_CompoDf,      'd_CorpActDf': d_CorpActDf,     'df_SecurityName':df_SecurityName}
             l_pathAttach_4 = pp.fLpath_loopOnRic_CreateFile(d_param)
         except Exception as err:    return 'ERROR: 4. DividendReinvestOptions = 4 - {} | {}'.format(str_PCF, str(err)), []
     
