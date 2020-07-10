@@ -522,7 +522,8 @@ def pcf_BglrSamsung(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df
             
         Constituent = Constituent.reset_index(drop=True)
         Final = df_Header.merge(Constituent)
-        Final['Contracts/Shares'] = round(Final['Holdings'] * int_ApplicationSize / Final['SharesOut'], 4)
+        Final['Contracts/Shares'] = Final['Holdings'] * int_ApplicationSize / Final['SharesOut']
+        Final['Contracts/Shares'] = Final['Contracts/Shares'].apply(lambda x:dframe.round_Correction(x, 4))
         Final['Cash - Futures Exposure'] = (Final['NAV'] * int_ApplicationSize) - (Final['Price'] * Final['Contracts/Shares'] * 50)
     except: return 'ERROR: CONSTITUENT LEVEL - PARSED FILES  - {}'.format(str_PCF), []
     
@@ -672,7 +673,7 @@ def pcf_sgEasyMsci(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df)
                        'df_lConfig': df_lConfig_1,  'df_1NavIndic': df_1NavIndic,   'df_2Val_Dmc': df_2Val_Dmc,     'df_FX':df_FX,     
                        'd_CompoDf': d_CompoDf,      'd_CorpActDf': df_EPRAtax_perMic,'df_SecurityName':df_SecurityName}
             l_pathAttach_1 = pp.fLpath_loopOnRic_CreateFile(d_param)
-        except Exception as err:    return 'ERROR: 2. DividendReinvestOptions = 2 - {} | {}'.format(str_PCF, str(err)), []
+        except Exception as err:    return 'ERROR: 1. DividendReinvestOptions = 1 - {} | {}'.format(str_PCF, str(err)), []
         
     # 2. DividendReinvestOptions = 2
     if not [x for x in ['_1','_3','_4'] if x in str_PCF]:
@@ -715,7 +716,7 @@ def pcf_sgEasyMsci(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df)
     l_pathAttach = [path.replace(str_folderRoot, '') for path in l_pathAttach]
     
     # 5. Parallel Run: Order by ISIN the Manual Py
-    if [x for x in ['_1'] if x in str_PCF]:
+    if not [x for x in ['_1','_2','_3','_4'] if x in str_PCF]:
         try:
             pp.Act_OrderByIsin_Easy(df_lConfig, str_folder, dte_date)
         except Exception as err:    return 'ERROR: 4. DividendReinvestOptions = 4 - {} | {}'.format(str_PCF, str(err)), []
@@ -1022,7 +1023,7 @@ def pcf_Nikko63(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df):
                              'Nikko AM Global Internet ETF - Fund - ' + dte_navDate.strftime('%Y%m%d') + '.xlsx',
                              'Nikko AM Global Internet ETF - SGX - ' + dte_navDate.strftime('%Y%m%d') + '.xlsx']
         # Rounding issue from pandas
-        df_NAV['Price share CCY'] = df_NAV['Price share CCY'].apply(lambda x: round(x, 13))
+        df_NAV['Price share CCY'] = df_NAV['Price share CCY'].apply(lambda x:dframe.round_Correction(x, 13))
         flt_Nav = df_NAV[df_NAV['Share currency'] =='USD']['Price share CCY'].values[0]
         flt_aum = df_NAV[df_NAV['Share currency'] =='USD']['TNA of the fund in fund CCY'].values[0]
         flt_aum_share = df_NAV[df_NAV['Share currency'] =='USD']['TNA of the share in fund CCY'].values[0]
@@ -1067,7 +1068,7 @@ def pcf_Nikko63(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df):
             df_Basket['Qty_basket'] = df_Basket['Qty'] * int_CreationUnits / flt_share * (flt_aum_share / flt_aum)
         else:
             df_Basket['Qty_basket'] = df_Basket['Qty'] * int_CreationUnits / flt_share 
-        df_Basket['Qty_basket'] = df_Basket['Qty_basket'].apply(lambda x: math.floor(x))
+        df_Basket['Qty_basket'] = df_Basket['Qty_basket'].apply(lambda x:dframe.round_Correction(x))
         df_Basket['Basket_MktCap'] = df_Basket['Qty_basket'] * df_Basket['Price'] / df_Basket['Fx']
         df_Basket['Weight'] = df_Basket['Basket_MktCap'] / flt_BasketNav
         # Variables Again
@@ -1080,7 +1081,7 @@ def pcf_Nikko63(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df):
         df_SGX = df_Basket.copy()
         df_SGX['Fx'] = 1 / df_SGX['Fx']
         df_SGX = dframe.fDf_InsertColumnOfIndex(df_SGX, 1, 0)
-        df_SGX['Price'] = df_SGX['Price'].apply(lambda x : round(x,6))
+        df_SGX['Price'] = df_SGX['Price'].apply(lambda x:dframe.round_Correction(x,6))
         df_SGX = df_SGX[['ind', 'Name','Ccy','Price','Qty_basket','Isin','Sedol','Fx']]
     except Exception as err:    return 'ERROR: # 22. SGX customization - {} | {}'.format(str_PCF, str(err)), []
     # 23. Finish Basket (select columns only now because other columns were necessary for SGX)
@@ -1091,7 +1092,7 @@ def pcf_Nikko63(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df):
     # 24. Build Df on Fund
     try:
         df_Fund = df_Holdings[['Name','Isin','Sedol','Ccy','Qty','Price','Fund_MktCap']].copy()
-        df_Fund['Qty'] = df_Fund['Qty'].apply(lambda x: math.floor(x))
+        df_Fund['Qty'] = df_Fund['Qty'].apply(lambda x:dframe.round_down(x))
         df_Fund['Weight'] = df_Fund['Fund_MktCap'] / flt_aum
         # Variables again
         flt_FundMarketCap = df_Holdings['Fund_MktCap'].sum()
@@ -2119,7 +2120,7 @@ def fDf_GetCompo_forICE(str_pcfpath, str_sheetName, int_header, dte_pcfDate, int
     df_compo['6col_idFund'] = str(int_id)
     df_compo['7col_isin'] = str_isin
     df_compo['PlusOuMoins'] = ['+' if x>=0 else '-' for x in df_compo['QUANTITY']]
-    df_compo['QUANTITY'] = df_compo['QUANTITY'].apply(lambda x: abs(x))
+    df_compo['QUANTITY'] = df_compo['QUANTITY'].apply(lambda x:abs(x))
     # End
     df_compo = df_compo[['1col_2', 'ISIN', '3col_rien', 'SEDOL', '5col_date', '6col_idFund', '7col_isin', 
                          'QUANTITY', 'PlusOuMoins','NAME', '11col_rien', 'CURRENCY', 'PRICE']]
@@ -2206,7 +2207,7 @@ def fDf_getHSI(df_in, int_stockCode = -1, str_isin = '', str_isin2 = '', in_id2 
     df_Pcf['9Col'] = df_Pcf['9Col'].mask(df_Pcf['1Col'] == '1', flt_nav * flt_UnitsOutstanding - flt_sumCol10)
     df_Pcf['9Col'] = df_Pcf['9Col'].mask(df_Pcf['8Col'] < 0, '-')
     # colonne 8
-    df_Pcf['8Col'] = df_Pcf['8Col'].apply(lambda x : abs(x))
+    df_Pcf['8Col'] = df_Pcf['8Col'].apply(lambda x:abs(x))
     # colonne rest
     #print(7)
     df_Pcf['11Col'] = df_Pcf['PRICE']
@@ -2438,7 +2439,7 @@ def pcf_Nikko(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df):
     # 1. Variables
     try:
         # Rounding issue form pandas
-        df_OUT_navFile_Nikko['Price share CCY'] = df_OUT_navFile_Nikko['Price share CCY'].apply(lambda x: round(x, 13))
+        df_OUT_navFile_Nikko['Price share CCY'] = df_OUT_navFile_Nikko['Price share CCY'].apply(lambda x:dframe.round_Correction(x, 13))
         flt_NavPerShare = df_OUT_navFile_Nikko[df_OUT_navFile_Nikko['Share currency'] =='USD']['Price share CCY'].values[0]
         flt_aum = df_OUT_navFile_Nikko[df_OUT_navFile_Nikko['Share currency'] =='USD']['TNA of the fund in fund CCY'].values[0]
         flt_totalShareIssue = df_OUT_navFile_Nikko[df_OUT_navFile_Nikko['Share currency'] =='USD']['Nb of outstanding shares'].values[0]
@@ -2464,7 +2465,7 @@ def pcf_Nikko(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df):
         # BASKET
         df_Basket = df_Holdings[['Name','Isin','Sedol','Ccy','Qty','Price','Fx']].copy()
         df_Basket['Qty_basket'] = df_Basket['Qty'] / flt_totalShareIssue * int_CreationUnits
-        df_Basket['Qty_basket'] = df_Basket['Qty_basket'].apply(lambda x: math.floor(x))
+        df_Basket['Qty_basket'] = df_Basket['Qty_basket'].apply(lambda x:dframe.round_down(x))
         df_Basket['Basket_MktCap'] = df_Basket['Qty_basket'] * df_Basket['Price'] / df_Basket['Fx']
         df_Basket['Weight'] = df_Basket['Basket_MktCap'] / flt_BasketNav
         df_Basket = df_Basket[['Name','Isin','Sedol','Ccy','Qty_basket','Price','Basket_MktCap','Weight']].copy()
@@ -2483,7 +2484,7 @@ def pcf_Nikko(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df):
     # 212. Build Df on Fund
     try:
         df_Fund = df_Holdings[['Name','Isin','Sedol','Ccy','Qty','Price','Fund_MktCap']].copy()
-        df_Fund['Qty'] = df_Fund['Qty'].apply(lambda x: math.floor(x))
+        df_Fund['Qty'] = df_Fund['Qty'].apply(lambda x:dframe.round_down(x))
         df_Fund['Weight'] = df_Fund['Fund_MktCap'] / flt_aum
     except Exception as err:    return 'ERROR: 212. Build Df on Fund - {} | {}'.format(str_PCF, str(err)), []
     # 222. Build Df on Fund
@@ -2584,7 +2585,7 @@ def pcf_NikkoSGX(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df):
     
     # 1. Variables
     try:
-        df_OUT_navFile_Nikko['Price share CCY'] = df_OUT_navFile_Nikko['Price share CCY'].apply(lambda x: round(x, 13))
+        df_OUT_navFile_Nikko['Price share CCY'] = df_OUT_navFile_Nikko['Price share CCY'].apply(lambda x:dframe.round_Correction(x, 13))
         flt_NavPerShare = df_OUT_navFile_Nikko[df_OUT_navFile_Nikko['Share currency'] =='USD']['Price share CCY'].values[0]
         flt_aum = df_OUT_navFile_Nikko[df_OUT_navFile_Nikko['Share currency'] =='USD']['TNA of the fund in fund CCY'].values[0]
         flt_totalShareIssue = df_OUT_navFile_Nikko[df_OUT_navFile_Nikko['Share currency'] =='USD']['Nb of outstanding shares'].values[0]
@@ -2606,7 +2607,7 @@ def pcf_NikkoSGX(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df):
         # BASKET 
         df_Basket = df_Holdings[['Name','Isin','Sedol','Ccy','Qty','Price','Fx']].copy()
         df_Basket['Qty_basket'] = df_Basket['Qty'] / flt_totalShareIssue * int_CreationUnits
-        df_Basket['Qty_basket'] = df_Basket['Qty_basket'].apply(lambda x: math.floor(x))
+        df_Basket['Qty_basket'] = df_Basket['Qty_basket'].apply(lambda x:dframe.round_down(x))
         df_Basket['Basket_MktCap'] = df_Basket['Qty_basket'] * df_Basket['Price'] / df_Basket['Fx']        
         
         # Variables Again
@@ -2618,7 +2619,7 @@ def pcf_NikkoSGX(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df):
         df_Basket = df_Basket[['Name','Ccy','Price','Qty_basket','Isin','Sedol','Fx']]
         df_Basket = dframe.fDf_InsertColumnOfIndex(df_Basket, 1, 0)
         # ROUNDING
-        df_Basket['Price'] = df_Basket['Price'].apply(lambda x : round(x,6))
+        df_Basket['Price'] = df_Basket['Price'].apply(lambda x:dframe.round_Correction(x,6))
     except: return 'ERROR: {} - 2. Build Df for SGX'.format(str_PCF), []
     
     # 3. Build last DF from Model

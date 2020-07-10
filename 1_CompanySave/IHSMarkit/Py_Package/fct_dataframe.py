@@ -7,6 +7,37 @@ except Exception as err:
     print(" ATTENTION,  Missing library: '{0}' \n * Please Open Anaconda prompt and type: 'pip install {0}'".format(str_lib))
 
 
+#==============================================================================
+# Special rounding treatment
+#==============================================================================
+def round_down(nb_in, decimals = 0):
+    """floor() rounds down. int() truncates. The difference is clear when you use negative numbers
+    math.floor(-3.5)    -4
+    int(-3.5)           -3"""
+    multiplier = 10 ** int(decimals)
+    Result = math.floor(nb_in * multiplier) / multiplier
+    return Result
+
+def round_up(nb_in, decimals = 0):
+    multiplier = 10 ** int(decimals)
+    Result = math.ceil(nb_in * multiplier) / multiplier
+    return Result
+
+def round_Correction(nb_in, decimals = 0):
+    try:
+        if nb_in != 0:      flt_add = 0.5 * (nb_in/abs(nb_in))
+        else:               return 0
+        multiplier = 10 ** int(decimals)
+        Result = int((nb_in * multiplier) + flt_add) / multiplier
+    except Exception as err:    
+        print('  ERRROR in round_Correction: {}'.format(str(err)))
+        print('  - nb_in: ', nb_in)
+        print('  - decimals: ', decimals)
+        print('  - flt_add: ', flt_add)
+        print('  - multiplier: ', multiplier)
+        raise
+    return Result
+
 
 #==============================================================================
 # Read file for Dataframe
@@ -193,11 +224,6 @@ def fDf_imposerStr_0apVirgule(df, str_colName, int_0apVirgule = 2):
         return df
     return df_result
 
-
-def round_down(n, decimals = 0):
-    multiplier = 10 ** decimals
-    Result = math.floor(n * multiplier) / multiplier
-    return Result
 
 
 def fDf_GetFirst_onGroupBy(df_in, str_colPivot, str_colMeasure, bl_sort = True, l_ColSort = [], bl_ascending = False):

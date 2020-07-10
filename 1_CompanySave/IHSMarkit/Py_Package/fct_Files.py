@@ -322,6 +322,8 @@ def fStr_BuildFolder_wRoot(str_folderPart, str_folderRoot):
     if str_folderPart[:2] == '\\\\':    return str_folderPart
     elif str_folderPart[:2] == 'C:':    return str_folderPart
     elif str_folderPart[:2] == 'E:':    return str_folderPart
+    elif 'Manual_py' in str_folderPart:
+        return str_folderRoot.replace('Auto_py\\', '') + str_folderPart
     else:                               
         return str_folderRoot + str_folderPart
     
@@ -410,7 +412,7 @@ def fStr_TransformFilName_fromXXX_forGlobFunction(str_fileName_withX, bl_exactNu
     nb = 1
     while nb in range(1, int_nbXX + 1):
         nb += 1
-        for i in range(1,20):
+        for i in range(1,100):
             str_XXX = '{' + i * 'X' + '}'
             if str_fileName.count(str_XXX) > 0:
                 nb = nb + str_fileName.count(str_XXX) - 1     # just in case there is several time the same XXX, we dont want to pass again on this loop
@@ -457,7 +459,6 @@ def fL_GetFileListInFolder(str_folder, str_fileName_withX, bl_searchOnlyIfPossib
                     return l_filesFlex
                 else:                
                     print(' EMPTY: file not found in fL_GetFileListInFolder')
-                    print(' - Maybe check the Date (file exist but not the right date, or the number of X exceed 15 ???? ')
                     raise
     except:
         print('   ERROR in fL_GetFileListInFolder')

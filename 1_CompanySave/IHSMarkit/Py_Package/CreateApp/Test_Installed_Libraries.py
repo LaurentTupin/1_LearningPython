@@ -32,6 +32,20 @@ except:
 #except:
 #    print('--------------------------------------------------------------------------------')
 #    print('Error in import folder')
+    
+    
+try:        import paramiko
+except:
+    print('--------------------------------------------------------------------------------')
+    print('You do not have the library paramiko. Please Open Anaconda prompt and type the following: ')
+    print('pip install paramiko --user')
+    bl_try_Importing = False    
+try:        import selenium
+except:
+    print('--------------------------------------------------------------------------------')
+    print('You do not have the library selenium. Please Open Anaconda prompt and type the following: ')
+    print('pip install selenium --user')
+    bl_try_Importing = False
 try:        import time
 except:
     print('--------------------------------------------------------------------------------')
@@ -91,12 +105,6 @@ except:
     print('--------------------------------------------------------------------------------')
     print('You do not have the library win32com. Please Open Anaconda prompt and type the following: ')
     print('pip install pypiwin32  --user')
-    bl_try_Importing = False
-try:        import paramiko
-except:
-    print('--------------------------------------------------------------------------------')
-    print('You do not have the library paramiko. Please Open Anaconda prompt and type the following: ')
-    print('pip install paramiko --user')
     bl_try_Importing = False
 try:        from PyQt5.QtCore import pyqtSlot
 except Exception as e: 

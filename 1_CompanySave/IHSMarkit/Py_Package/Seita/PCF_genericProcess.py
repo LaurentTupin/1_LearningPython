@@ -100,8 +100,8 @@ def fdf_compare2files(str_link1, str_link2, i_colToKeep = 0, v_sheetName = ''):
             else:
                 try:
                     bl_ColToKeep = True
-                    flt_1 = float(df1.loc[i_row, i_col])
-                    flt_2 = float(df2.loc[i_row, i_col])
+                    flt_1 = dframe.round_Correction(float(df1.loc[i_row, i_col]), 10)
+                    flt_2 = dframe.round_Correction(float(df2.loc[i_row, i_col]), 10)
                     flt_diff = flt_1 - flt_2
                     if flt_diff == 0:   flt_diffPourc = 0
                     elif flt_2 == 0:    flt_diffPourc = 100
@@ -112,8 +112,9 @@ def fdf_compare2files(str_link1, str_link2, i_colToKeep = 0, v_sheetName = ''):
                         df.loc[i_row, i_col] = ''
                         bl_ColToKeep = False
                     else:
-                        df.loc[i_row, i_col] = str(df1.loc[i_row, i_col]) + ' || ' + str(df2.loc[i_row, i_col]) \
-                                            + ' | Diff: ' + str(round(flt_diff,1)) + ' | Diff%: ' + str(round(flt_diffPourc, 2))
+                        df.loc[i_row, i_col] = str(flt_1) + ' || ' + str(flt_2) \
+                                            + ' | Diff: ' + str(dframe.round_Correction(flt_diff,1)) \
+                                            + ' | Diff%: ' + str(dframe.round_Correction(flt_diffPourc, 2))
                 except: 
                     df.loc[i_row, i_col] = str(df1.loc[i_row, i_col]) + ' || ' + str(df2.loc[i_row, i_col])
                 
@@ -882,8 +883,8 @@ def Act_DownFiles(df_Param, row, str_folderRaw, str_fileName, dte_date, str_fold
                         shutil.copyfile(pathSource, fl.fStr_BuildPath(str_folderRaw, fileName))
                 else:
                     shutil.copyfile(os.path.join(str_pathSource, str_fileName), str_path)
-            except:
-                print('   ERROR in Act_DownFiles: shutil.copy did not work')
+            except Exception as err:
+                print('   ERROR in Act_DownFiles: {}'.format(str(err)))
                 print('   - str_pathSource: ', str_pathSource)
                 print('   - str_fileName: ', str_fileName)
                 return False
@@ -1159,7 +1160,7 @@ def fStr_SplitFileName_startEnd(str_fileName, str_ExactName, int_File_startW, in
         else:                           str_File_endW = str_fileName[-int(int_File_endW):]
     return str_File_startW, str_File_endW
 
-def fStr_generateFileName(df_Param, row, str_folderRaw, dte_date):
+def fStr_generateFileName(df_Param, row, str_folderRaw, dte_date, bl_tryReplaceTheX = True):
     str_fileName = str(df_Param.loc[row, 'fileName'])
     str_fileDate = str(df_Param.loc[row, 'fileDate'])
     DateOffset = df_Param.loc[row, 'DateOffset']
@@ -1168,7 +1169,7 @@ def fStr_generateFileName(df_Param, row, str_folderRaw, dte_date):
     str_fileName = str_fileName.replace('{fileDate}', str_NewDate)
     # Name of the file with XX
     try:
-        if str_fileName.count('{') and str_fileName.count('}') > 0 :
+        if bl_tryReplaceTheX and str_fileName.count('{') and str_fileName.count('}') > 0 :
             if str_fileName.count('{X}') > 0:   bl_exactNumberX = False
             elif str_fileName.count('{*}') > 0: bl_exactNumberX = False
             else:                               bl_exactNumberX = True
@@ -1221,12 +1222,6 @@ def fDic_pcfAutomate_GetFiles2(df_Param, str_folderRoot, dte_date, bl_ArchiveMai
     
     for i, row in enumerate(df_Param.index):
         bl_forceDwld_local = bl_forceDwld
-        # Variables in Param CSV
-        str_folderRaw = fStr_generateFolderRaw(df_Param, row, str_folderRoot, dte_date)
-        str_fileName = fStr_generateFileName(df_Param, row, str_folderRaw, dte_date)
-        # Is File Optional for Download ???
-        bl_Optional = False
-        if str(df_Param.loc[row, 'bl_Optional']).lower() == 'true':     bl_Optional = True
         
         #-------------------------------------------------------------
         # Is ID already has been done (Dowloaded or Saved into DF) ??
@@ -1236,10 +1231,16 @@ def fDic_pcfAutomate_GetFiles2(df_Param, str_folderRoot, dte_date, bl_ArchiveMai
         else:                           l_ID_alreadyDone.append(str_ID)
         #-------------------------------------------------------------
         
+        # Variables in Param CSV
+        str_folderRaw = fStr_generateFolderRaw(df_Param, row, str_folderRoot, dte_date)
+        str_fileName = fStr_generateFileName(df_Param, row, str_folderRaw, dte_date, bl_tryReplaceTheX = not bl_forceDwld_local)
+        # Is File Optional for Download ???
+        bl_Optional = False
+        if str(df_Param.loc[row, 'bl_Optional']).lower() == 'true':     bl_Optional = True
+        
         # Create the folder
         try:        fl.fBl_createDir(str_folderRaw)
         except:     return 'ERROR in GenProcess. _GetFiles2: Could not Create Folder: ' + str_folderRaw
-        
         
         #======================================================================================
         # SEARCH: Try to get the data from files already dwld - (Add DATAFRAME in the dictionary)
@@ -1335,7 +1336,7 @@ def fStr_CreateEtfFile(str_folder, str_fileName, dte_date, str_Isin1, str_id, st
     str_text += '[UNDERLYING]{0}'.format('\n')
     str_text += 'COUNT=1{0}'.format('\n')
     str_text += '{0}'.format('\n')
-    str_text += 'ENTRY={0} +{1}={2} 1 RER 1'.format(str_IsinFinal, str(round(flt_nav, 4)), str_ccy)
+    str_text += 'ENTRY={0} +{1}={2} 1 RER 1'.format(str_IsinFinal, str(dframe.round_Correction(flt_nav, 4)), str_ccy)
     # Create Txt file And rename it
     fl.act_createFile(False, str_folder, str_fileName, str_text)
     #    fl.act_createFile(False, str_folder, str_fileName.replace('.etf', '.txt'), str_text)
@@ -1443,7 +1444,7 @@ def fLpath_loopOnRic_CreateFile(d_param):
         df_1NavIndic =  d_param['df_1NavIndic']
         df_2Val_Dmc =   d_param['df_2Val_Dmc']
         df_FX =         d_param['df_FX']
-        df_SecurityName =     d_param['df_SecurityName']
+        df_SecurityName=d_param['df_SecurityName']
         d_CompoDf =     d_param['d_CompoDf'] 
         dte_date =      d_param['dte_date']
         dte_navDate =   d_param['dte_navDate']
@@ -1474,7 +1475,7 @@ def fLpath_loopOnRic_CreateFile(d_param):
                 print(" WARNING: the ETF (Isin = {} , Name = {} ) is not in the 2.Val_Dmc File: 'Last-Valuation-MARKIT-'".format(str_isin, t_row['Pcf_FileName']))
                 continue
             flt_nav = df_1NavIndic[df_1NavIndic['Fund Code'] == str_isin]['Calculated Target Nav'].values[0]
-            flt_nav_G2 = round(flt_nav, 4) 
+            flt_nav_G2 = dframe.round_Correction(flt_nav, 4) 
             flt_TotalNav = flt_nav * int_divisor
             flt_shareNb = df_2Val_Dmc[df_2Val_Dmc['ISIN Code'] == str_isin]['Share Nb'].values[0]
             flt_indexReturn = df_1NavIndic[df_1NavIndic['Fund Code'] == str_isin]['Index Return Converted'].values[0]
@@ -1562,7 +1563,7 @@ def fLpath_loopOnRic_CreateFile(d_param):
                     # Calculate UNIT specific for CO on Method 4:
                     flt_CO_TotalNav = (flt_nav_G2 - flt_nav) * int_divisor
                     df_compo['Additional_Shares'] = flt_CO_TotalNav * df_compo['Weight'] / df_compo['AdjustedPrice_fxH']
-                    df_compo['Additional_Shares_r'] = df_compo['Additional_Shares'].apply(lambda x:round(x, 0))
+                    df_compo['Additional_Shares_r'] = df_compo['Additional_Shares'].apply(lambda x:dframe.round_Correction(x, 0))
                     df_compo['CO_UNIT'] = df_compo['UNIT'] + df_compo['Additional_Shares_r']
             elif int_DivMethod == 3:
                 df_compo['AdjustedPrice_fxH'] = df_compo['UnadjustedPrice'] * df_compo['FXRate_toEtf']
@@ -1580,9 +1581,9 @@ def fLpath_loopOnRic_CreateFile(d_param):
             df_compo['6col'] = '-'
             df_compo = dframe.fDf_InsertColumnOfIndex(df_compo, l_colSort = ['Isin'])
             df_compo['15col'] = 'T'
-            df_compo['PRICE_r'] = df_compo['AdjustedPrice_fxH'].apply(lambda x:round(x, 4))
-            df_compo['FXRate_toEtf_r'] = df_compo['FXRate_toEtf'].apply(lambda x:round(x, 4))
-            df_compo['UNIT_r'] = df_compo['UNIT'].apply(lambda x:round(x, 4))
+            df_compo['PRICE_r'] = df_compo['AdjustedPrice_fxH'].apply(lambda x:dframe.round_Correction(x, 4))
+            df_compo['FXRate_toEtf_r'] = df_compo['FXRate_toEtf'].apply(lambda x:dframe.round_Correction(x, 4))
+            df_compo['UNIT_r'] = df_compo['UNIT'].apply(lambda x:dframe.round_Correction(x, 4))
                 
             # Get Number of rows in Composition
             int_nbCompo = len(df_compo)
@@ -1600,9 +1601,10 @@ def fLpath_loopOnRic_CreateFile(d_param):
             if flt_cash == 0:   flt_cash = int(flt_cash)
             
             df_header = pd.DataFrame([['H', t_row['ISINiNAV'], t_row['EuronextCategory'], int(int_nbCompo), '1',
-                                      dte_date.strftime('%Y%m%d'), dte_navDate.strftime('%Y%m%d'), round(flt_nav, 4),
-                                      '-','-', round(flt_cash, 13),'-', int(flt_shareNb), round(flt_nav * int_divisor, 4),
-                                      str(int_divisor), str_etfCcy, str_indexCcy, str_etfCcy,
+                                      dte_date.strftime('%Y%m%d'), dte_navDate.strftime('%Y%m%d'), dframe.round_Correction(flt_nav, 4),
+                                      '-','-', dframe.round_Correction(flt_cash, 13),'-', int(flt_shareNb), 
+                                      dframe.round_Correction(flt_nav * int_divisor, 4),
+                                      str(int_divisor), str_etfCcy, str_etfCcy, str_etfCcy,
                                       str_isin, str_ric, t_row['ETF BBG Code'],t_row['UnderlyingIndexRIC'],
                                       t_row['Indicative NAV ID'],'-','-','-','-','-','-',flt_indexReturn]]
                                     , columns = range(30))
@@ -1621,11 +1623,11 @@ def fLpath_loopOnRic_CreateFile(d_param):
         #-------------------
         try:
             df_compo['1col'] = '3'
-            if int_DivMethod == 4:      df_compo['SHARES'] = df_compo['CO_UNIT'].apply(lambda x:round(x, 0))
-            else:                       df_compo['SHARES'] = df_compo['UNIT'].apply(lambda x:round(x, 0))
+            if int_DivMethod == 4:      df_compo['SHARES'] = df_compo['CO_UNIT'].apply(lambda x:dframe.round_Correction(x, 0))
+            else:                       df_compo['SHARES'] = df_compo['UNIT'].apply(lambda x:dframe.round_Correction(x, 0))
             df_compo['MCap'] = df_compo['SHARES'] * df_compo['PRICE_r']
             df_compo['Weight_100'] = df_compo['Weight'] * 100
-            df_compo['Weight_100'] = df_compo['Weight_100'].apply(lambda x:round(x, 9))
+            df_compo['Weight_100'] = df_compo['Weight_100'].apply(lambda x:dframe.round_Correction(x, 9))
             # FINAL COMPO
             df_compo_CO = df_compo[['1col','ind','2_EtfIsin','Isin','Security_Name','SHARES','PRICE_r','MCap',
                                     'Weight_100','Country_code','6col']].copy()
@@ -1642,10 +1644,12 @@ def fLpath_loopOnRic_CreateFile(d_param):
                                          t_row['ISINiNAV'], '-', t_row['iNAVName'], t_row['ManagementStyle'], t_row['Category'], t_row['Region'], 
                                          '-', t_row['InvestableUniverse'], '-', str_isin, '-', '-','']]
                                     , columns = range(20))
-            df_header_2 = pd.DataFrame([['2', dte_date.strftime('%Y%m%d'), str_isin, str(int_divisor), int_divisor*round(flt_nav, 4),
-                                         round(int_divisor * flt_nav - flt_cash, 2), round(flt_nav_G2, 8), flt_cash, 100*flt_cash / (int_divisor*flt_nav), 
-                                         str_etfCcy, int(flt_shareNb), round(flt_shareNb * flt_nav, 2), '-', '-', '-', t_row['ManagementFee'],
-                                         round(flt_nav, 4), dte_navDate.strftime('%Y%m%d'), flt_indexReturn, dte_date.strftime('%Y%m%d')]]
+            df_header_2 = pd.DataFrame([['2', dte_date.strftime('%Y%m%d'), str_isin, str(int_divisor), int_divisor*dframe.round_Correction(flt_nav, 4),
+                                         dframe.round_Correction(int_divisor * flt_nav - flt_cash, 2), 
+                                         dframe.round_Correction(flt_nav_G2, 8), 
+                                         flt_cash, 100*flt_cash / (int_divisor*flt_nav), str_etfCcy, int(flt_shareNb), 
+                                         dframe.round_Correction(flt_shareNb * flt_nav, 2), '-', '-', '-', t_row['ManagementFee'],
+                                         dframe.round_Correction(flt_nav, 4), dte_navDate.strftime('%Y%m%d'), flt_indexReturn, dte_date.strftime('%Y%m%d')]]
                                     , columns = range(20))
             # CONCAT
             df_pcf = dframe.fDf_Concat_wColOfDf1(df_header_1, df_header_2)
