@@ -9,7 +9,7 @@ import PCF_genericProcess as pp
 def fDic_downloadFiles(str_folderRoot, dte_date, bl_ArchiveMails, str_pcf, bl_dfRequired = True, bl_forceDwld = False):
     # Download Files
     try:
-        print('============= ' +  str_pcf + ' =============')
+        print('============= {} ============='.format(str_pcf))
         # From CSV Parameters
         try: df_Param = pd.read_csv('Seita_Param.csv')
         except: print(' ERROR: Cannot read Seita_Param')

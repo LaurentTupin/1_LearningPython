@@ -344,10 +344,14 @@ class c_outlookMail():
             # Define Inbox object (can be Send Items or else)
             o_folderBox = self.o_folderAcct.Folders[str_outlkMailbox]
             # Go into Inbox Folders hierarchy
-            if l_folders:
-                o_folder = o_folderBox.Folders[l_folders[0]]
+            if l_folders and l_folders != ['']:
+                # First Folder
+                try:        o_folder = o_folderBox.Folders[l_folders[0]]
+                except:     o_folder = o_folderBox
+                # All the other folder
                 for folder in l_folders[1:]:
-                    o_folder = o_folder.Folders[folder]
+                    try:    o_folder = o_folder.Folders[folder]
+                    except: print(' ERROR in outlk_DefineFolder: Cannot find the folder: {}'.format(folder))
             else:   o_folder = o_folderBox
         except Exception as err:
             print(' ERROR in outlk_DefineFolder: Cannot find the folders')
@@ -372,7 +376,7 @@ class c_outlookMail():
             raise
         # Put the info into Class
         self.o_ArchiveFolder = o_ArchiveFolder
-        return self.o_ArchiveFolder 
+        return self.o_ArchiveFolder
     
     def outlk_GetMails(self):
         if self.o_folder is None:       self.outlk_DefineFolder()
@@ -471,13 +475,24 @@ class c_outlookMail():
         self.l_docDownloaded = l_docDownloaded
         return self.l_docDownloaded
     
-    def outlk_ArchiveEmail(self):
-        if self.o_latestMail is None:    self.outlk_GetLatestMail()
-        try:        self.o_latestMail.Move(self.o_ArchiveFolder)
-        except Exception as err:
-            print(' ERROR in outlk_ArchiveEmail')
-            print(' - ', str(err))
-            raise
+    def outlk_ArchiveEmail(self, o_mails = None):
+        if o_mails is None:
+            if self.o_latestMail is None:    self.outlk_GetLatestMail()
+            try:        self.o_latestMail.Move(self.o_ArchiveFolder)
+            except Exception as err:
+                print(' ERROR in outlk_ArchiveEmail || {}'.format(str(err)))
+                raise
+        else:
+            o_mails.Sort("[ReceivedTime]", True)
+            try:
+                for o_mail in o_mails:
+                    o_mail.Move(self.o_ArchiveFolder)
+            except Exception as err:
+                print(' ERROR in outlk_ArchiveEmail (o_mails) || {}'.format(str(err)))
+                raise
+        
+        
+            
 #____________________________________________________________________________    
     
     
@@ -718,7 +733,7 @@ def fMail_getmail_mostRecent(o_mails, l_Sub_stringToLookFor = [], str_to = '', s
 
 #____________________________________________________________________________
 def fBl_downMailAttch (str_folderRaw, l_mail, l_outlookAttach_fileType = []):
-    print('  INFORMATION DEV: replace fBl_downMailAttch by  outlk_DownloadEmailsPJ')
+    print('  INFORMATION DEV: replace fBl_downMailAttch fBl_downMailAttch by outlk_DownloadEmailsPJ')
     #inst_outlookMail.outlk_DownloadEmailsPJ(str_folderRaw, '', str_Attach_End[0])
     
     l_attach=[]
@@ -747,7 +762,7 @@ def fBl_downMailAttch (str_folderRaw, l_mail, l_outlookAttach_fileType = []):
 
 #____________________________________________________________________________
 def fBl_downMailAttch2 (str_folderRaw, l_mail, str_Attach_Debut = '', str_Attach_End = ''):
-    print('  INFORMATION DEV: replace by outlk_DownloadEmailsPJ')
+    print('  INFORMATION DEV: replace fBl_downMailAttch2 by outlk_DownloadEmailsPJ')
     #inst_outlookMail.outlk_DownloadEmailsPJ(str_folderRaw, str_Attach_Debut, str_Attach_End)
      
     l_attach=[]

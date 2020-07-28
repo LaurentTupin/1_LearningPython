@@ -148,6 +148,14 @@ def fDf_InsertColumnOfIndex(df, int_StartNumber = 1, int_PositionOf_ColumnIndex 
         df = df[l_col[:int_PositionOf_ColumnIndex] + ['ind'] + l_col[int_PositionOf_ColumnIndex:]]
     return df
 
+def fDf_Make1stRow_columns(df_in):
+    try:
+        df_return = df_in.iloc[1:].copy()
+        df_return.columns = list(df_in.iloc[0])
+        df_return.reset_index(drop = True, inplace = True) 
+    except: return df_in
+    return df_return
+
 
 def fDf_InsertRows(df, int_nbRows, int_rows):
     df_return = df

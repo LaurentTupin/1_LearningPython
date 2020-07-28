@@ -32,9 +32,11 @@ str_Program = 'Seita'
 str_designFileName = 'pcfAutomate_design.ui'
 str_windowTitle = 'PCF Production'
 
-str_networkPath = r'\\uk-pdeqtfs01\E\Data\Lucerne\Data\SOLA PCF\Auto_Py' + '\\'
-str_pathDesktop = os.path.join(os.environ['USERPROFILE'], 'IHS Markit')
-str_cloudPath = os.path.join(str_pathDesktop, r'HK PCF Services Team - General\Auto_py') + '\\'
+str_lucerneNetworkPath = r'\\uk-pdeqtfs01\E\Data\Lucerne\Data\SOLA PCF\Auto_Py' + '\\'
+str_S3NetworkPath = r'\\PRDFIL001WI\DeltaOneShare\PCFDistribution\Auto_py' + '\\'
+str_pathDesktop = os.environ['USERPROFILE']
+str_pathLocal = os.path.join(str_pathDesktop, r'PCF\Auto_py') + '\\'
+str_cloudPath = os.path.join(str_pathDesktop, r'IHS Markit\HK PCF Services Team - General\Auto_py') + '\\'
 
 
 class class_App(QDialog):
@@ -47,7 +49,6 @@ class class_App(QDialog):
         self.lineEdit_Date.setText(dt.datetime.now().date().strftime('%Y-%m-%d'))
         self.lineEdit_folderRoot.setText(str_cloudPath)
         # Activate Button Event
-        self.checkBox_DevEnv.stateChanged.connect(self.onChange_DevEnv)
         self.push_downloadFiles.clicked.connect(self.onPush_downloadFiles)
         self.push_producePcf.clicked.connect(self.onPush_producePcf)
         self.push_loadPcf.clicked.connect(self.onPush_loadPcf)
@@ -64,6 +65,11 @@ class class_App(QDialog):
         self.comboBox_DB.activated.connect(self.onChange__Database)
         self.push_sendFTP.clicked.connect(self.onPush__sendFTP)
         #self.comboBox_MailType.activated.connect(self.onChange__MailType)
+        
+        # change Check Box on OneDrive to a ComboBox with several choice        
+        #self.checkBox_DevEnv.stateChanged.connect(self.onChange_DevEnv)
+        self.comboBox_RootFolder.activated.connect(self.onChange__RootFolder)
+        
         # Load Log
         db.Log_Python({'str_action':'OPEN', 'str_Program':'Seita', 'str_path':os.path.dirname(os.path.abspath(__file__))})
         
@@ -90,18 +96,35 @@ class class_App(QDialog):
             #            xlApp.Workbooks.Open(str_path)
         except: self.textEdit_Error.append(' ERROR: Could not Open the file')
         
-    def onChange_DevEnv(self):
-        bl_OneDrive = self.checkBox_DevEnv.isChecked()
-        if bl_OneDrive:     self.lineEdit_folderRoot.setText(str_cloudPath)
-        else:               self.lineEdit_folderRoot.setText(str_networkPath)
+    #    def onChange_DevEnv(self):
+    #        bl_OneDrive = self.checkBox_DevEnv.isChecked()
+    #        if bl_OneDrive:     self.lineEdit_folderRoot.setText(str_cloudPath)
+    #        else:               self.lineEdit_folderRoot.setText(str_lucerneNetworkPath)
+    
+    def onChange__RootFolder(self):
+        str_rootFolder = self.comboBox_RootFolder.currentText()
+        if 'IHS_Drive' in str_rootFolder:
+            self.lineEdit_folderRoot.setText(str_cloudPath)
+        elif 'S3' in str_rootFolder:
+            self.lineEdit_folderRoot.setText(str_S3NetworkPath)
+        elif 'Local' in str_rootFolder:
+            self.lineEdit_folderRoot.setText(str_pathLocal)
+            fl.fBl_createDir(str_pathLocal)
+            fl.Act_CopPasteFolder_severalTry(os.path.join(str_pathLocal, 'file'), 
+                                             [os.path.join(str_cloudPath, 'file'), os.path.join(str_S3NetworkPath, 'file'), os.path.join(str_lucerneNetworkPath, 'file')],
+                                             dte_after = 900, l_typeFile = ['.csv', '.xls', 'xlsx'])
+        elif 'Lucerne' in str_rootFolder:
+            self.lineEdit_folderRoot.setText(str_lucerneNetworkPath)
     
     @pyqtSlot()
     def onPush_KillExcel(self):
         try:    
-            inst_xlApp = fl.c_win32_xlApp()
-            inst_xlApp.QuitXlApp(bl_force = True, bl_killExcelProcess = True)
-            #fl.Act_KillExcel()
-        except: db.Log_Python({'str_action':'Kill Excel', 'bl_error':1, 'str_Program':'Seita'})
+            #            inst_xlApp = fl.c_win32_xlApp()
+            #            inst_xlApp.QuitXlApp(bl_force = True, bl_killExcelProcess = True)
+            fl.Act_KillExcel()
+        except Exception as err: 
+            print(' ERROR: {}'.format(str(err)))
+            db.Log_Python({'str_action':'Kill Excel', 'bl_error':1, 'str_Program':'Seita'})
         
     @pyqtSlot()
     def onPush_downloadFiles(self):
@@ -151,8 +174,8 @@ class class_App(QDialog):
         str_folderRoot = self.lineEdit_folderRoot.text()
         bl_ArchiveMails = self.checkBox_ArchiveMails.isChecked()
         try:    str_pcf = self.listWidget_Pcf.currentItem().text()
-        except: 
-            str_ErrorComment = "You didnt choose a PCF to Produce"
+        except Exception as err: 
+            str_ErrorComment = "You didnt choose a PCF to Produce || {}".format(str(err))
             self.textEdit_Error.append(str_ErrorComment)
             db.Log_Python({'str_action':'ProducePCF', 'bl_error':1, 'str_comment':str_ErrorComment, 'str_Program':'Seita'})
             return 0
@@ -164,8 +187,8 @@ class class_App(QDialog):
                 self.textEdit_Error.append(str_resultFigures)
                 db.Log_Python({'str_action':'ProducePCF', 'bl_error':1, 'str_comment':str_pcf, 'str_Program':'Seita'})
                 return 0
-        except:
-            self.textEdit_Error.append(" ERROR Produce: You didnt choose the right PCF: " + str_pcf)
+        except Exception as err: 
+            self.textEdit_Error.append(" ERROR Produce: You didnt choose the right PCF: {} ||| {}".format(str_pcf, str(err)))
             db.Log_Python({'str_action':'ProducePCF', 'bl_error':1, 'str_comment':str_pcf, 'str_Program':'Seita'})
             return 0
         # Display the main figures
@@ -230,9 +253,9 @@ class class_App(QDialog):
             str_folderRoot = self.lineEdit_folderRoot.text()
             str_link1 = str_folderRoot + self.listWidget_pathPcf.currentItem().text()
             # PATH 2....
-            if str_folderRoot == str_cloudPath:
+            if str_folderRoot in [str_cloudPath, str_S3NetworkPath, str_pathLocal]:
                 str_link2 = str_folderRoot.replace('\\Auto_py','\\Manual_py') + self.listWidget_pathPcf.currentItem().text()
-            elif str_folderRoot == str_networkPath:
+            elif str_folderRoot in [str_lucerneNetworkPath]:
                 str_link2 = str_folderRoot.replace('\\Auto_Py','') + self.listWidget_pathPcf.currentItem().text()
             else:
                 str_link2 = str_folderRoot.replace('\\Auto_Py','') + self.listWidget_pathPcf.currentItem().text()

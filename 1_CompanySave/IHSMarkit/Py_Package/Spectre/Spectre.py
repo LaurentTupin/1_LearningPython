@@ -16,15 +16,15 @@ import fct_DB as db
 str_Program = 'Spectre'
 str_designFileName = 'NPA_design.ui'
 str_windowTitle = 'Night Process App'
-
 str_logFolder = r'\\uk-pdeqtfs01\E\Data\Lucerne\Data\SOLA PCF\Auto_Py\Log'
+str_sqlFileName = r'Re-Published ETF_Update Table.txt'
 
 str_cloudPath = os.path.join(os.environ['USERPROFILE'], r'IHS Markit\HK PCF Services Team - General\Manual_py') #+ '\\'
 str_cloudPath_Auto = str_cloudPath.replace('Manual_py', 'Auto_py')
-str_networkPath = r'\\uk-pdeqtfs01\E\Data\Lucerne\Data\SOLA PCF' #+ '\\'
-str_networkPath_Auto = str_networkPath + r'\Auto_py' #+ '\\'
+str_networkPath = r'\\PRDFIL001WI\DeltaOneShare\PCFDistribution\Manual_py' #+ '\\'
+str_networkPath_Auto = str_networkPath.replace('Manual_py', 'Auto_py')
 
-str_sqlFileName = r'Re-Published ETF_Update Table.txt'
+
 
 
 #-----------------------------------------------------------------
@@ -52,8 +52,8 @@ class class_App(QDialog):
         # Define Value
         dte_date = dt.datetime.now().date().strftime('%Y-%m-%d')
         self.lineEdit_Date.setText(dte_date)
-        self.lineEdit_Origin.setText(str_cloudPath)
-        self.lineEdit_Target.setText(str_networkPath)
+        self.lineEdit_Origin.setText(str_cloudPath_Auto)
+        self.lineEdit_Target.setText(str_networkPath_Auto)
         # Activate Button Event
         self.push_Clear.clicked.connect(self.onPush__Clear)
         self.Push_Republished.clicked.connect(self.OnPush__Republished)

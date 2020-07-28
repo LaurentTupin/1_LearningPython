@@ -94,7 +94,7 @@
     <string>Back-Up Auto</string>
    </property>
    <property name="checked">
-    <bool>false</bool>
+    <bool>true</bool>
    </property>
   </widget>
   <widget class="QLineEdit" name="lineEdit_Date">

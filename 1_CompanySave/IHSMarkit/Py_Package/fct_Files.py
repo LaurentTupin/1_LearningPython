@@ -5,17 +5,21 @@ try:
     import shutil, psutil, glob
     from zipfile import ZipFile
     import win32com.client as win32
+    import xlwings as xw
     import xlsxwriter
     import xlrd
     import openpyxl
     import openpyxl.styles as styl
     #from openpyxl.styles import NamedStyle, Font, PatternFill, colors, Border, Side # , Alignment, Color
+    import fct_dataframe as dframe
 except Exception as err:
     str_lib = str(err).replace("No module named ", "").replace("'", "")
     print(" ATTENTION,  Missing library: '{0}' \n * Please Open Anaconda prompt and type: 'pip install {0}'".format(str_lib))
 
 
-
+def fStr_Message(str_in):
+    print(str_in)
+    return '\n' + str_in
 
 
 #---------------------------------------------------------------
@@ -37,9 +41,364 @@ def dec_singletonsClass(input_classe):
     return wrap_getInstances
 
 
+def dec_getTimePerf(int_secondesLimitDisplay = 1):
+    '''
+    Time Performance Decorators on a function
+    You can calculate and compare Performance on any function just by decorating it
+    '''    
+    def dec_decoratorinside(input_fct):
+        def wrap_modifiedFunction(*l_paramInput, **d_paramInput):
+            # Before Function Execution...
+            time_Debut = time.time()
+            # Function execution 
+            #   If you want to make stuff after execution of the function, you need to call function before returning it    
+            launchFunction = input_fct(*l_paramInput, **d_paramInput)
+            # After Function Execution...
+            time_Fin = time.time()
+            time_duree = time_Fin - time_Debut
+            sec_duree = int(time_duree)
+            milli_duree = int((time_duree - sec_duree) * 1000)
+            if sec_duree >= int_secondesLimitDisplay:
+                print(' * Execution time: {} = {} sec, {} milliSec'.format(input_fct, sec_duree, milli_duree))
+            # Return the Function at the end
+            return launchFunction
+        return wrap_modifiedFunction
+    return dec_decoratorinside
+
+
 #---------------------------------------------------------------
 # ------------- CLASS Excel Management (XLS, XLSX) -------------
 #---------------------------------------------------------------
+@dec_singletonsClass
+class c_xlApp_xlwings():
+    '''# DOC: https://docs.xlwings.org/en/stable/api.html'''
+    def __init__(self):
+        self.__wkIsOpen = False
+        self.d_wkOpen = {}
+        self.fBl_ExcelIsOpen()
+        self.__int_xlsAppPid = -1
+        self.xl_lastSheet = None
+    
+    #=====================================================        
+    @property
+    def visible(self):
+        return self.__visible
+    @visible.setter
+    def visible(self, bl_visible):
+        self.__visible = bl_visible
+        self.xl_App.visible = self.__visible
+    @property
+    def screen_updating(self):
+        return self.__screen_updating
+    @screen_updating.setter
+    def screen_updating(self, bl_screen_updating):
+        self.__screen_updating = bl_screen_updating
+        self.xl_App.screen_updating = self.__screen_updating
+    @property
+    def display_alerts(self):
+        return self.__display_alerts
+    @display_alerts.setter
+    def display_alerts(self, bl_display_alerts):
+        self.__display_alerts = bl_display_alerts
+        self.xl_App.display_alerts = self.__display_alerts
+    @property
+    def wb_path(self):
+        return self.__wb_path
+    @wb_path.setter
+    def wb_path(self, str_path):
+        self.__wb_path = str_path
+    #=====================================================
+    
+    def fBl_ExcelIsOpen(self):
+        try:
+            xl_Apps = xw.apps
+            if xl_Apps: self.__blXlWasOpen = True
+            else:       self.__blXlWasOpen = False
+        except Exception as err: 
+            self.__blXlWasOpen = False
+            print('  WARNING in fBl_ExcelIsOpen: {}'.format(str(err)))
+        return self.__blXlWasOpen
+        
+    def FindXlApp(self, bl_visible = True, bl_screen_updating = True, bl_display_alerts = True):
+        '''Always get a new instance of Excel that we are going to kill'''        
+        # Additonal check to be sure
+        xl_Apps = xw.apps
+        if not xl_Apps:
+            self.__int_xlsAppPid = -1
+        
+        # Get the App
+        if self.__int_xlsAppPid >= 0:
+            try:
+                xl_App = xl_Apps[int(self.__int_xlsAppPid)]
+            except:
+                xl_App = None
+                try:
+                    for App in xl_Apps:
+                        pid = App.pid
+                        if pid == self.__int_xlsAppPid:
+                            xl_App = App
+                    if xl_App is None: raise
+                except:
+                    xl_App = xl_Apps.active
+                    if self.__int_xlsAppPid == xl_App.pid:
+                        print(' INFORMATION: pid method did not work')
+                    else:
+                        print(" WARNING: We saved the PID as #{}# but active pid is #{}#".format(self.__int_xlsAppPid, xl_App.pid))
+                        print(' - List of Excel App open: {}'.format(xl_Apps))
+                        self.__int_xlsAppPid = xl_App.pid
+        else:
+            try:    
+                xl_App = xw.apps.add()   # or xl_App = xw.App()
+                self.__int_xlsAppPid = int(xl_App.pid)
+            except Exception as err:
+                print('  ERROR in FindXlApp || {}'.format(str(err)))
+                raise
+        # Options
+        self.__visible =        bl_visible
+        self.__screen_updating= bl_screen_updating
+        self.__display_alerts = bl_display_alerts
+        xl_App.visible =         self.__visible
+        xl_App.screen_updating = self.__screen_updating
+        xl_App.display_alerts =  self.__display_alerts
+        self.xl_App = xl_App
+        return self.xl_App
+    
+    def OpenWorkbook(self, str_path = '', str_password = None):
+        if str_path != '':          self.wb_path = str_path            
+        # Open Workbook
+        #xl_book = xw.Book(str_path...)
+        try:
+            xl_book = self.xl_App.books.open(self.wb_path)
+        except Exception as err:    print(' ERROR in OpenWorkbook - Open || {}'.format(str(err)))
+        # Fill PARAM
+        self.xl_lastBook = xl_book
+        self.__wkIsOpen = True
+        # Dico - {path : obj_workbook}
+        self.d_wkOpen[self.wb_path] = xl_book
+        # Just for the record
+        #        xl_books = self.xl_App.books # All Workbooks open (xl_books = xw.books  # on active app)
+        #        xl_book = self.xl_App.books['Book1'] # Select one workbook by its name (xl_book = xw.Book('Book1'))
+        #        xl_book = xl_books.add() # Create a book    (xl_book = xw.Book())
+        return self.xl_lastBook
+    
+    # SHEET
+    def DefineWorksheet(self, str_sheetName = '', int_sheetNumber = -1, str_sheetNameToADD = ''):
+        xl_lastBook = self.xl_lastBook
+        self.xl_lastSheet_name = str_sheetName
+        
+        # Sheet with a Name
+        if str_sheetName != '':	
+            try:	xl_sheet = xl_lastBook.sheets[str_sheetName]
+            except:							# After an error, all should have been defined in the call, so RETURN to get out
+                self.DefineWorksheet('', int_sheetNumber, str_sheetNameToADD = str_sheetName)
+                return self.xl_lastSheet
+        else:
+            # Sheet with a Number
+            if int_sheetNumber > 0:
+                try:
+                    xl_sheet = xl_lastBook.sheets[int_sheetNumber - 1]
+                    #int_sheetNumber = xl_sheet.index
+                except:
+                    self.DefineWorksheet('', -1, str_sheetNameToADD)
+                    return self.xl_lastSheet
+                # Rename the Sheet if possible (if its a recall with str_sheetName defined in str_sheetNameToADD)
+                self.xl_lastSheet = xl_sheet  #(ONly for the rename)
+                self.RenameSheet(str_sheetNameToADD)
+            else:
+                # ADD worksheet
+                self.AddWorksheet(str_sheetNameToADD)
+                return self.xl_lastSheet 		# All defined in Add worksheet, we can get out
+        # End
+        self.xl_lastSheet = xl_sheet
+        self.SelectWorksheet()
+        return self.xl_lastSheet
+    
+    def RenameSheet(self, str_sheetName = ''):
+        try:
+            if str_sheetName != '':
+                self.xl_lastSheet.name = str_sheetName
+                self.xl_lastSheet_name = str_sheetName
+        except Exception as err:      print('  ERROR in Rename Sheet, sh Name: #{}# || {}'.format(str_sheetName, str(err)))
+        
+    def AddWorksheet(self, str_sheetName = None, str_beforeSheet = None, str_afterSheet = None):
+        xl_lastBook = self.xl_lastBook
+        xl_sheets = xl_lastBook.sheets
+        try:
+            xl_sheet = xl_sheets.add(name = str_sheetName, before = str_beforeSheet, after = str_afterSheet)
+        except Exception as err:
+            print(' ERROR in AddWorksheet. Sheet Name: #{}# || {}'.format(str_sheetName, str(err)))
+        self.xl_lastSheet = xl_sheet
+        # Define Sheet Name
+        self.xl_lastSheet_name = str_sheetName
+        self.SelectWorksheet()
+        return self.xl_lastSheet
+    
+    def SelectWorksheet(self):
+        xl_lastSheet = self.xl_lastSheet
+        try:
+            xl_lastSheet.select()
+            #xl_lastSheet.activate
+            return True
+        except Exception as err:
+            print(' ERROR in SelectWorksheet. Sheet Name = #{}# || {}'.format(self.xl_lastSheet_name, str(err)))
+        return False
+        
+    def InsertDf_inRange(self, df, t_cell = (1,1), bl_autofitCol = False):
+        xl_sheet = self.xl_lastSheet
+        #https://docs.xlwings.org/en/stable/converters.html
+        if t_cell == (1,1):
+            xl_sheet.range('A1').options(index = False, header = False).value = df
+        else:
+            xl_sheet.range(t_cell).options(index = False, header = False).value = df
+        # Just for the record
+        #        xl_sheet.Range('A1:C3')
+        #        xl_sheet.Range((1,1), (3,3))
+        #        xl_sheet.Range('NamedRange')
+        #        xl_sheet.Range(xw.Range('A1'), xw.Range('B2'))
+        #        xl_sheet.clear()
+        #        xl_sheet.clear_contents()
+        #        xl_sheet.delete()
+
+        # Autofits the width of either columns, rows or both on a whole Sheet.
+        if bl_autofitCol:
+            xl_sheet.autofit('columns')
+        return True
+    
+    def save_Book(self, str_newPath = ''):
+        xl_book = self.xl_lastBook
+        if self.__wkIsOpen:
+            # Display Alert
+            self.xl_App.DisplayAlerts = False
+            try:
+                if str_newPath == '':   xl_book.save()
+                else:                   xl_book.save(str_newPath)
+            except Exception as err:
+                print('  Error in SaveAs (Files): {}'.format(str(err)))
+                raise
+            finally:
+                self.xl_App.DisplayAlerts = self.display_alerts
+        else:   print('  ERROR in Save_Book | a WB need to be open before to bes Saved')
+	
+    def close_Book(self, bl_saveBeforeClose = None):
+        if not bl_saveBeforeClose is None:
+            self.__saveBeforeClose = bl_saveBeforeClose
+        if self.__wkIsOpen:
+            xl_book = self.xl_lastBook
+            # Save
+            if self.__saveBeforeClose:
+                self.save_Book()
+            # Close without saving
+            xl_book.close()     
+            # check if still Wk Open 
+            self.CheckAnyWkIsOpen()
+        return True
+            
+    def Quit_xlApp(self, bl_force = False, bl_killExcelProcess = False):
+        # Input
+        self.__killExcelProcess = bl_killExcelProcess
+        self.xl_App.visible =         True
+        self.xl_App.screen_updating = True
+        self.xl_App.display_alerts =  True
+        # Force or not Force
+        if bl_force:
+            if self.__wkIsOpen:
+                try:    self.close_Book()
+                except: print(' ERROR on Quit_xlApp: close_Book did not work. We are in Force Close mode: We kill Excel anyway !')
+            self.KillExcel()
+        else:
+            # if a previous Excel session App is open, not killing the process but only current App
+            if self.__blXlWasOpen:
+                if self.__killExcelProcess:
+                    print('''  (*) Warning on Quit_xlApp: A previous workbook is still Open. 
+                          Not Killing process but just Excel App
+                          If you want to kill Excel Process, SET bl_force = True  AND bl_killExcelProcess = True''')
+                    self.__killExcelProcess = False
+            if self.__wkIsOpen:
+                self.CheckAnyWkIsOpen(bl_message_lOpenBook = True)
+                if self.__wkIsOpen:
+                    print('  (*) Warning on Quit_xlApp: Not closing EXCEL, at least a workbook is still Open')
+                else:
+                    self.KillExcel()
+            else:   self.KillExcel()
+        return True
+
+    def KillExcel(self):
+        # Additonal Check if some Wk are open
+        if self.__wkIsOpen:
+            print('''  INFORMATION on misusage: you try to KillExcel while you still have Excel Workbook Open. 
+                  It will be saved but code should not be used this way''')
+            self.CheckAnyWkIsOpen(bl_message_lOpenBook = True)
+            self.close_Book(bl_saveBeforeClose = True)
+        # KillExcel
+        try:
+            if self.__killExcelProcess:
+                for proc in psutil.process_iter():
+                    if any(procstr in proc.name() for procstr in ['Excel', 'EXCEL', 'excel']):
+                        proc.kill()
+            else:
+                self.xl_App.quit() 
+                self.xl_App.kill()
+            #----- restart Init for the Next Instance -----
+            self.__wkIsOpen = False
+            self.d_wkOpen = {}
+            self.__blXlWasOpen = False
+            self.__int_xlsAppPid = -1
+        except Exception as err:
+            print('  Error in KillExcel: {}'.format(str(err)))
+            raise
+            
+    def CheckAnyWkIsOpen(self, bl_message_lOpenBook = False):
+        try:
+            xl_App = self.xl_App
+            l_wkOpen = [xl_book.name for xl_book in xl_App.Workbooks]
+            if bl_message_lOpenBook:    print(' List of open Workbook: {}'.format(l_wkOpen))
+            d_wkOpen_Copy = self.d_wkOpen.copy()
+            for path, xl_book in d_wkOpen_Copy.items():
+                try:
+                    xl_book_name = xl_book.name
+                    if not xl_book_name in l_wkOpen:
+                        del self.d_wkOpen[path]
+                except: del self.d_wkOpen[path]
+            # Conclude if any wk is open
+            if self.d_wkOpen:   self.__wkIsOpen = True
+            else:               self.__wkIsOpen = False
+        except: # Exception as err:
+            #print('  INFORMATION: CheckAnyWkIsOpen (Files): {}'.format(str(err)))
+            self.__wkIsOpen = False
+            self.__killExcelProcess= True
+        return self.__wkIsOpen
+    
+    #----------------------------------------- 
+    # JUST for the record    
+    #-----------------------------------------
+    def ExecuteMacro(self, str_macroName, o_arg = None):
+        vb_function = self.xl_App.macro(str_macroName)
+        o_result = vb_function(o_arg)
+        return o_result
+
+    def CodeToTry():
+        pass
+        #import xlwings as xw
+        #import pandas as pd
+        #import numpy as np
+        #str_path = r'C:\Users\Laurent.Tu\Documents\Taff\Nikko AM.xlsx'        
+        #xl_Apps = xw.apps
+        #if xl_Apps:
+        #    xl_App = xl_Apps.active
+        #else:
+        #    xl_App = xl_Apps.add()        
+        #xl_book = xl_App.books.open(str_path)
+        #xl_sheets = xl_book.sheets
+        #xl_sheet = xl_sheets[0]
+        #df = pd.DataFrame(np.random.rand(10, 4), columns=['a', 'b', 'c', 'd'])
+        #xl_sheet.range('A1').options(index = False, header = False).value = df
+        #xl_book.save()
+        #xl_book.close()
+        #xl_App.quit()
+        #xl_App.kill()
+
+
+
 @dec_singletonsClass
 class c_win32_xlApp():
     def __init__(self):
@@ -87,15 +446,18 @@ class c_win32_xlApp():
                     #xlApp = win32.DispatchEx('Excel.Application')
                     #xlApp = win32.dynamic.Dispatch('Excel.Application')
             except AttributeError as err_att:
-                print('  ERROR in FindXlApp: {}'.format(str(err_att)))
                 if "no attribute 'CLSIDToClassMap'" in str(err_att):
+                    print('  WARNING in FindXlApp: no attribute CLSIDToClassMap || {}'.format(str(err_att)))
                     self.del_Gen_py_folder('FindXlApp')
                     return self.xlApp
+                else:
+                    print('  ERROR in FindXlApp || {}'.format(str(err_att)))
+                    raise
         xlApp.Visible = self.__visible
         self.xlApp = xlApp
         return self.xlApp
 		
-    def WaitFile(self, int_sec = 1, str_msg = ' (*-*) Wait for file to load (in c_win32_xlApp)...', otherARG = ''):
+    def WaitFile(self, int_sec = 1, str_msg = ' (*-*) Wait for file to load (in c_win32_xApp)...', otherARG = ''):
         if otherARG != '': print('otherARG', otherARG, type(otherARG))
         print(str_msg)
         time.sleep(int_sec)
@@ -118,41 +480,45 @@ class c_win32_xlApp():
             self.xlApp = xlApp
             return self.xlApp
         
-    def OpenWorkbook(self, str_path = ''):
-        if str_path != '':
-            self.wb_path = str_path            
-        xlWb = self.xlApp.Workbooks.Open(self.wb_path)
+    def OpenWorkbook(self, str_path = '', str_password = ''):
+        if str_path != '':          self.wb_path = str_path            
+        # OPEN
+        if str_password != '':
+            xlWb = self.xlApp.Workbooks.Open(self.wb_path, False, True, None, Password = str_password)
+        else:
+            xlWb = self.xlApp.Workbooks.Open(self.wb_path)
         self.xl_lastWk = xlWb
         # Dico - {path : obj_workbook}
         self.d_wkOpen[self.wb_path] = xlWb
         self.__wkIsOpen = True
         return self.xl_lastWk
     
+    
     def SelectWorksheet(self):
         xlWs = self.xl_lastWsh
         # Authorize 10 try to add worksheet
-        for i_try in range(1, 11):
+        for i_try in range(1, 6):
             try:
                 xlWs.Select
                 return True
-            except:		self.WaitFile(1, ' (**) Error on SelectWorksheet (in c_win32_xlApp), try number {}'.format(str(i_try)))
+            except:		self.WaitFile(1, ' (**) Error on SelectWorksheet (in c_win32_xApp), try number {}'.format(str(i_try)))
         return False
 				
     def AddWorksheet(self, str_sheetName = ''):
         xlWb = self.xl_lastWk
         # Authorize 10 try to add worksheet
-        for i_try in range(1, 11):
+        for i_try in range(1, 6):
             try:
                 if str_sheetName == '':		xlWs = xlWb.add_worksheet()
                 else:						xlWs = xlWb.add_worksheet(str_sheetName)
                 break
-            except:		self.WaitFile(1, ' (**) Error on AddWorksheet (in c_win32_xlApp), try number {}'.format(str(i_try)))
+            except:		self.WaitFile(1, ' (**) Error on AddWorksheet (in c_win32_xApp), try number {}'.format(str(i_try)))
         self.xl_lastWsh = xlWs
         #--------------------------------------------------
         # Shitty stuff because sheet name is not recognised
         try:        self.str_lastSheetName = self.xl_lastWsh.Name
         except Exception as Err:
-            print('  ERROR in  AddWorksheet(c_win32_xlApp): {}'.format(str(Err)))
+            print('  ERROR in  AddWorksheet(c_win32_xApp): {}'.format(str(Err)))
             print('  - str_sheetName: ', str_sheetName)
             self.str_lastSheetName = str_sheetName
         #--------------------------------------------------
@@ -160,10 +526,12 @@ class c_win32_xlApp():
         return self.xl_lastWsh
 	
     def RenameSheet(self, str_sheetName = ''):
-        if str_sheetName != '':
-            try:	self.xl_lastWsh.Name = str_sheetName  	        #xlWs.title
-            except:	self.WaitFile(1, ' (**) Warning on DefineWorksheet: Could not rename Sheet into : {}'.format(str_sheetName))
-		
+        try:
+            if str_sheetName != '':
+                try:	self.xl_lastWsh.Name = str_sheetName  	        #xlWs.title
+                except:	self.WaitFile(1, ' (**) Warning on DefineWorksheet: Could not rename Sheet into : {}'.format(str_sheetName))
+        except Exception as err:      print('  ERROR in RenameSheet || {}'.format(str(err)))
+        
     def DefineWorksheet(self, str_sheetName = '', int_sheetNumber = -1, str_sheetNameToADD = ''):
         xlWb = self.xl_lastWk
 		# Sheets(str_sheetName)
@@ -179,7 +547,8 @@ class c_win32_xlApp():
             self.xl_lastWsh = xlWs
         else:
             if int_sheetNumber > 0:         # Number is defined
-                try:	xlWs = xlWb.Sheets(int_sheetNumber)
+                try:	
+                    xlWs = xlWb.Sheets(int_sheetNumber)
                 except:						# After an error, all should have been defined in the call to add worksheet, so RETURN to get out
                     self.WaitFile(1, ' (**) Warning on DefineWorksheet: Could not find Sheet Number : {}'.format(str(int_sheetNumber)))
                     self.DefineWorksheet('', -1, str_sheetNameToADD)
@@ -196,7 +565,7 @@ class c_win32_xlApp():
         # Shitty stuff because sheet Name is not recognised
         try:    self.str_lastSheetName = self.xl_lastWsh.Name
         except Exception as Err:
-            print('  ERROR in  DefineWorksheet(c_win32_xlApp): {}'.format(str(Err)))
+            print('  ERROR in  DefineWorksheet(c_win32_xApp): {}'.format(str(Err)))
             print('  - ', str_sheetName, int_sheetNumber, str_sheetNameToADD)
             self.str_lastSheetName = str_sheetName
         #--------------------------------------------------
@@ -225,7 +594,7 @@ class c_win32_xlApp():
                 raise
             finally:
                 self.xlApp.DisplayAlerts = self.__displayAlert
-        else:   print('  ERROR in SaveAs (c_win32_xlApp) | a WB need to be open before to bes Saved AS')
+        else:   print('  ERROR in SaveAs (c_win32_xApp) | a WB need to be open before to bes Saved AS')
 	
     def CloseWorkbook(self, bl_saveBeforeClose = True):
         self.__saveBeforeClose = bl_saveBeforeClose
@@ -250,8 +619,8 @@ class c_win32_xlApp():
             # Conclude if any wk is open
             if self.d_wkOpen:   self.__wkIsOpen = True
             else:               self.__wkIsOpen = False
-        except Exception as err:
-            print('  INFORMATION: CheckAnyWkIsOpen (Files): {}'.format(str(err)))
+        except: # Exception as err:
+            #print('  INFORMATION: CheckAnyWkIsOpen (Files): {}'.format(str(err)))
             self.__wkIsOpen = False
             self.__killExcelProcess= True
         return self.__wkIsOpen
@@ -280,8 +649,10 @@ class c_win32_xlApp():
             else:
                 self.xlApp.Application.Quit()
                 del (self.xlApp)
-            #----- Delete Object to restart by Init for the Next Instance -----
-            self.__del__()
+            #----- restart Init for the Next Instance -----
+            self.__wkIsOpen = False
+            self.d_wkOpen = {}
+            self.__blXlWasOpen = False
         except Exception as err:
             print('  Error in Kill_Excel (Files): {}'.format(str(err)))
             raise
@@ -295,23 +666,33 @@ class c_win32_xlApp():
             self.Kill_Excel()
         else:
             if self.__blXlWasOpen:
-                print('  (*) Warning QuitXlApp(c_win32_xlApp): Not closing EXCEL, a previous workbook might be still Open')
+                print('  (*) Warning QuitXlApp(c_win32_xApp): Not closing EXCEL, a previous workbook might be still Open')
             else:
                 self.CheckAnyWkIsOpen()
                 if self.__wkIsOpen:
-                    print('  (*) Warning QuitXlApp(c_win32_xlApp): Not closing EXCEL, a workbook is still Open')
+                    print('  (*) Warning QuitXlApp(c_win32_xApp): Not closing EXCEL, a workbook is still Open')
                 else:       
                     self.Kill_Excel()
-                    
-    def __del__(self):
-        #        print('     *** fin Instance')
-        pass
 
 
 
+# KILL EXCEL
+def Act_KillExcel():
+    for proc in psutil.process_iter():
+        if any(procstr in proc.name() for procstr in ['Excel', 'EXCEL', 'excel']):
+            proc.kill()
+    
+    
 #------------------------------------------------------------------------------
 # List Files in folder
 #------------------------------------------------------------------------------
+def fStr_GetFolderFromPath(str_path):
+    str_folder = str('\\'.join(str_path.split('\\')[:-1]))
+    return str_folder
+def fStr_GetFileFromPath(str_path):
+    str_fileName = str(str_path.split('\\')[-1])
+    return str_fileName
+    
 def fStr_BuildPath(str_folder, str_FileName):
     if str_FileName == '':      str_path = str_folder
     elif str_folder == '':      str_path = str_FileName
@@ -383,7 +764,6 @@ def UpdateTxtFile(str_path, str_old, str_new = ''):
         file.write(str_text)
 
 
-
 #------------------------------------------------------------------------------
 # Open Files
 #------------------------------------------------------------------------------
@@ -395,6 +775,22 @@ def fBk_OpenWk_xlrd(str_path):
 #------------------------------------------------------------------------------
 # Transform Names
 #------------------------------------------------------------------------------
+def Act_Rename(str_folder, str_OriginalName, str_NewName, bl_message = True):    
+    try:
+        if str_NewName.upper() != str_OriginalName.upper():
+            if bl_message:
+                print(' RENAMING')
+                print(' - str_OriginalName    : ', str_OriginalName)
+                print(' - str_NewName: ', str_NewName)
+            try:        os.rename(os.path.join(str_folder, str_OriginalName), os.path.join(str_folder, str_NewName))
+            except:     shutil.move(os.path.join(str_folder, str_OriginalName), os.path.join(str_folder, str_NewName))
+    except: 
+        print(' ERROR in Act_Rename: Rename stuff')
+        print(' - ', str_folder, str_OriginalName, str_NewName)
+        raise
+    return True
+
+
 def fStr_TransformFilName_fromXXX_forGlobFunction(str_fileName_withX, bl_exactNumberX):
     # Check if its a normal Name without {X}:
     if '{X' not in str_fileName_withX and 'X}' not in str_fileName_withX:
@@ -576,8 +972,6 @@ def fL_GetFileList_withinModel(L_FileName, str_fileName_withX):
 
 
 
-
-
 #------------------------------------------------------------------------------
 # Files Date
 #------------------------------------------------------------------------------ 
@@ -598,67 +992,103 @@ def fDte_GetModificationDate(str_pathFile):
     return True
 
 
-
-#------------------------------------------------------------------------------
-# DELETE
-#------------------------------------------------------------------------------ 
-def del_allTxtFileInFolder_ifOldEnought(str_folder, int_dayHisto = 60):
+def fL_KeepFiles_wTimeLimit(l_pathFile, dte_after = 10, dte_before = 0):
+    # Parameters in
+    if type(dte_after) == int:
+        dte_after = dt.datetime.now() - dt.timedelta(dte_after)
+    if type(dte_before) == int:
+        if dte_before != 0:
+            dte_before = dt.datetime.now() - dt.timedelta(dte_before)
+    # Keep file in list within the Limit Date
     try:
-        dte_delete = dt.datetime.now() - dt.timedelta(int_dayHisto)
-        l_fic = fList_FileInDir_Txt(str_folder)
-        for fic in l_fic:
-            str_path = os.path.join(str_folder, fic)
-            if fDte_GetModificationDate(str_path) < dte_delete and fDte_GetModificationDate(str_path) != -1:
-                os.remove(str_path)
-    except:
-        print(' ERROR in del_fic')
-        print(' - ', str_folder, int_dayHisto)
+        l_pathReturn = [path for path in l_pathFile if fBl_FileExist(path)]
+        l_pathReturn = [path for path in l_pathReturn if dt.datetime.fromtimestamp(os.path.getmtime(path)) > dte_after]
+        if dte_before != 0:
+            l_pathReturn = [path for path in l_pathReturn if dt.datetime.fromtimestamp(os.path.getmtime(path)) <= dte_before]
+    except Exception as err:
+        print(' ERROR in fL_KeepFiles_wTimeLimit: {}'.format(str(err)))
         raise
-    return 0
+    return l_pathReturn
 
 
-def del_fic(str_path, int_dayHisto):
-    print('     DEPRECATED function: del_fic')
-    a = del_allTxtFileInFolder_ifOldEnought(str_path, int_dayHisto)
-    return a
 
-
-def del_fichier(str_folder, str_fileName):
+#-----------------------------------------------------------------
+# CREATE
+#-----------------------------------------------------------------
+def fBl_createDir(str_folder):
     try:
-        str_path = os.path.join(str_folder, str_fileName)
-        if str_fileName == '': str_path = str_folder
-        os.remove(str_path)
+        if not os.path.exists(str_folder):
+            try: 
+                os.makedirs(str_folder)
+                return True
+            except:
+                print(' ERROR: fBl_createDir - Program could NOT create the Dir')
+                print(' - ', str_folder)
+                raise     
     except:
-        print(' ERROR in del_fichier')
-        print(' - ', str_folder, str_fileName)
-        raise
-    return 0
-
-
-def del_fichier_ifOldEnought(str_folder, str_fileName, int_dayHisto = 5):
-    try:
-        str_path = os.path.join(str_folder, str_fileName)
-        if str_fileName == '': 
-            str_path = str_folder
-            str_folder = '\\'.join(str_folder.split('\\')[:-1])
-        # if folder does not exist : sortir de la fonction sans delete rien (et en ayant creer le dossier)
-        if fBl_createDir(str_folder):
-            print(' Information: Folder was not existing (in del_fichier_ifOldEnought): ', str_folder)
-            return 0
-        dte_delete = dt.datetime.now() - dt.timedelta(int_dayHisto)
-        dte_ModificationDate = fDte_GetModificationDate(str_path)
-        if dte_ModificationDate == -1:
-            # File not exisiting
-            pass
-        elif dte_ModificationDate < dte_delete:
-            os.remove(str_path)
-        else: pass
-    except:
-        print(' ERROR in del_fichier_ifOldEnought')
-        print(' - Parameters:', str_folder, str_fileName, int_dayHisto)
-        raise
-    return 0
+        print(' ERROR: fBl_createDir - Path cannot be tested on its existence ??')
+        print(' - ', str_folder)
+        raise 
+    return False    # Folder already exist
     
+
+def act_createFile(bl_folderRelative, str_folder, str_fileName = 'test.txt', str_text = ''):
+    dir_current = os.getcwd()
+    try:
+        # Define folder
+        if bl_folderRelative:
+            str_folder = os.getcwd().replace(str_folder,'') + str_folder
+        # Create folder
+        fBl_createDir(str_folder)
+        # Change Dir
+        os.chdir(str_folder)
+    except: 
+        print(" ERROR: act_createFile - Create Dir")
+        print(' - str_folder', str_folder)
+        print(' - str_fileName', str_fileName)
+        raise
+    # Create File
+    try:            f = open(str_fileName,"w+")
+    except: 
+        try:        os.chdir(dir_current)
+        except:     print(" ERROR: act_createFile - os.chdir(dir_current) did not work -- f = open(str_fileName, ")
+        print(" ERROR: act_createFile - Could not create the file")
+        print(' - str_folder', str_folder)
+        print(' - str_fileName', str_fileName)
+        raise
+    try: 
+        f.write(str_text)
+        f.close()
+    except:
+        try:        f.close()
+        except:     print(" ERROR: act_createFile - f.close()")
+        try:        os.chdir(dir_current)
+        except:     print(" ERROR: act_createFile - os.chdir(dir_current) did not work -- f.write(str_text)")
+        print(" ERROR: act_createFile - Could not write in the file")
+        print(' - str_folder', str_folder)
+        print(' - str_fileName', str_fileName)
+        print(' - str_text', str_text)        
+        raise
+    try:            os.chdir(dir_current)
+    except:
+        print(" ERROR: act_createFile - os.chdir(dir_current) did not work")
+        raise        
+    return 0
+
+
+def fStr_CreateTxtFile(str_folder, str_FileName, df_data, str_sep = '', bl_header = False, bl_index = False):
+    try:
+        if str_FileName == '':      str_path = str_folder
+        else:                       str_path = os.path.join(str_folder, str_FileName)
+        if str_sep == '':           str_sep = ','
+        # TO CSV
+        df_data.to_csv(str_path, sep = str_sep, header = bl_header, index = bl_index)
+    except:
+        print('  ERROR in fl.fStr_CreateTxtFile: Could not create the file: ')
+        print('  - str_folder :', str_folder, 'str_FileName :', str_FileName)
+        return False
+    return str_path
+
 
 #-----------------------------------------------------------------
 # READ
@@ -723,87 +1153,71 @@ def fStr_readFile(bl_folderRelative, str_folder, str_fileName = 'test.txt'):
     return str_return
     
 
-
-#-----------------------------------------------------------------
-# CREATE
-#-----------------------------------------------------------------
-def fBl_createDir(str_folder):
+#------------------------------------------------------------------------------
+# DELETE
+#------------------------------------------------------------------------------ 
+def del_allTxtFileInFolder_ifOldEnought(str_folder, int_dayHisto = 60):
     try:
-        if not os.path.exists(str_folder):
-            try: 
-                os.makedirs(str_folder)
-                return True
-            except:
-                print(' ERROR: fBl_createDir - Program could NOT create the Dir')
-                print(' - ', str_folder)
-                raise
-        else: 
-            return False      # Folder already exist
+        dte_delete = dt.datetime.now() - dt.timedelta(int_dayHisto)
+        l_fic = fList_FileInDir_Txt(str_folder)
+        for fic in l_fic:
+            str_path = os.path.join(str_folder, fic)
+            if fDte_GetModificationDate(str_path) < dte_delete and fDte_GetModificationDate(str_path) != -1:
+                os.remove(str_path)
     except:
-        print(' ERROR: fBl_createDir - Path cannot be tested on its existence ??')
-        print(' - ', str_folder)
-        raise 
-    return False
-    
-
-def act_createFile(bl_folderRelative, str_folder, str_fileName = 'test.txt', str_text = ''):
-    dir_current = os.getcwd()
-    try:
-        # Define folder
-        if bl_folderRelative:
-            str_folder = os.getcwd().replace(str_folder,'') + str_folder
-        # Create folder
-        fBl_createDir(str_folder)
-        # Change Dir
-        os.chdir(str_folder)
-    except: 
-        print(" ERROR: act_createFile - Create Dir")
-        print(' - str_folder', str_folder)
-        print(' - str_fileName', str_fileName)
+        print(' ERROR in del_fic')
+        print(' - ', str_folder, int_dayHisto)
         raise
-    # Create File
-    try:            f = open(str_fileName,"w+")
-    except: 
-        try:        os.chdir(dir_current)
-        except:     print(" ERROR: act_createFile - os.chdir(dir_current) did not work -- f = open(str_fileName, ")
-        print(" ERROR: act_createFile - Could not create the file")
-        print(' - str_folder', str_folder)
-        print(' - str_fileName', str_fileName)
-        raise
-    try: 
-        f.write(str_text)
-        f.close()
-    except:
-        try:        f.close()
-        except:     print(" ERROR: act_createFile - f.close()")
-        try:        os.chdir(dir_current)
-        except:     print(" ERROR: act_createFile - os.chdir(dir_current) did not work -- f.write(str_text)")
-        print(" ERROR: act_createFile - Could not write in the file")
-        print(' - str_folder', str_folder)
-        print(' - str_fileName', str_fileName)
-        print(' - str_text', str_text)        
-        raise
-    try:            os.chdir(dir_current)
-    except:
-        print(" ERROR: act_createFile - os.chdir(dir_current) did not work")
-        raise        
     return 0
 
 
-def fStr_CreateTxtFile(str_folder, str_FileName, df_data, str_sep = '', bl_header = False, bl_index = False):
+def del_fic(str_path, int_dayHisto):
+    print('     DEPRECATED function: del_fic')
+    a = del_allTxtFileInFolder_ifOldEnought(str_path, int_dayHisto)
+    return a
+
+
+def del_fichier(str_folder, str_fileName):
     try:
-        if str_FileName == '':      str_path = str_folder
-        else:                       str_path = os.path.join(str_folder, str_FileName)
-        if str_sep == '':           str_sep = ','
-        # TO CSV
-        df_data.to_csv(str_path, sep = str_sep, header = bl_header, index = bl_index)
+        str_path = os.path.join(str_folder, str_fileName)
+        if str_fileName == '': str_path = str_folder
+        os.remove(str_path)
     except:
-        print('  ERROR in fl.fStr_CreateTxtFile: Could not create the file: ')
-        print('  - str_folder :', str_folder, 'str_FileName :', str_FileName)
-        return False
-    return str_path
+        print(' ERROR in del_fichier')
+        print(' - ', str_folder, str_fileName)
+        raise
+    return 0
 
 
+def del_fichier_ifOldEnought(str_folder, str_fileName, int_dayHisto = 5):
+    try:
+        str_path = os.path.join(str_folder, str_fileName)
+        if str_fileName == '': 
+            str_path = str_folder
+            str_folder = '\\'.join(str_folder.split('\\')[:-1])
+        # if folder does not exist : sortir de la fonction sans delete rien (et en ayant creer le dossier)
+        if fBl_createDir(str_folder):
+            print(' Information: Folder was not existing (in del_fichier_ifOldEnought): ', str_folder)
+            return 0
+        dte_delete = dt.datetime.now() - dt.timedelta(int_dayHisto)
+        dte_ModificationDate = fDte_GetModificationDate(str_path)
+        if dte_ModificationDate == -1:
+            # File not exisiting
+            pass
+        elif dte_ModificationDate < dte_delete:
+            os.remove(str_path)
+        else: pass
+    except:
+        print(' ERROR in del_fichier_ifOldEnought')
+        print(' - Parameters:', str_folder, str_fileName, int_dayHisto)
+        raise
+    return 0
+    
+
+
+#-----------------------------------------------------------------
+# CREATE XLS Files
+#-----------------------------------------------------------------
 def fStr_createExcel_1Sh(str_folder, str_FileName, df_Data, str_SheetName = '', bl_header = False):
     try:
         # Define Path
@@ -968,8 +1382,6 @@ def fStr_fillXls_celByCel_plsSheets(str_folder,str_FileName,l_dfData,l_SheetName
         return False
     return str_path
 
-
-
 # 1 file out - 1 Dataframe - 1 Sheet
 def fStr_fillXls_celByCel(str_path, df_data, str_SheetName = '', xlWs = 0, int_nbRows = 0, int_rowsWhere = 1):
     try:
@@ -1013,6 +1425,167 @@ def fStr_fillXls_celByCel(str_path, df_data, str_SheetName = '', xlWs = 0, int_n
         try:                        inst_xlApp.QuitXlApp(bl_force = False)
         except Exception as err:    print('  ERROR: Excel could not be closed | {}'.format(str(err)))
     return str_path
+
+def Act_win32OpenSaveXls(str_path):
+    inst_xlApp = c_win32_xlApp()
+    inst_xlApp.FindXlApp(bl_visible = True)
+    inst_xlApp.OpenWorkbook(str_path)
+    inst_xlApp.CloseWorkbook(True)
+    return True
+
+def OpenSaveXls_xlWing(str_path):
+    inst_xlWings = c_xlApp_xlwings()
+    inst_xlWings.FindXlApp(bl_visible = True, bl_screen_updating = False, bl_display_alerts = False)
+    inst_xlWings.OpenWorkbook(str_path)
+    inst_xlWings.close_Book(bl_saveBeforeClose = True)
+    return True
+
+
+# 1 file out - n Dataframe - n Sheet
+def fStr_fillXls_df_xlWgs_sevSh(str_folder,str_FileName,l_dfData,l_SheetName=[],l_nbRows=[],l_rowsWhere=[]):
+    try:
+        str_path = fStr_BuildPath(str_folder, str_FileName)
+        # Open the file (win32)
+        inst_xlWings = c_xlApp_xlwings()
+        inst_xlWings.FindXlApp(bl_visible = True, bl_screen_updating = False, bl_display_alerts = False)
+        inst_xlWings.OpenWorkbook(str_path)
+        # Dataframe
+        for i in range(len(l_dfData)):
+            df_data = l_dfData[i]
+            try:        str_SheetName = l_SheetName[i]
+            except:     str_SheetName = ''
+            #Sheet
+            inst_xlWings.DefineWorksheet(str_SheetName, i + 1)
+            # ------ Insert or delete ROWS ------
+            if l_nbRows:
+                try:        int_nbRows = l_nbRows[i]
+                except:     int_nbRows = 0
+                try:        int_rowsWhere = l_rowsWhere[i]
+                except:     int_rowsWhere = 1
+            # FILL THE SHEET
+            fStr_fillXls_df_xlWgs(str_path, df_data, str_SheetName, inst_xlWings.xl_lastSheet, int_nbRows, int_rowsWhere)
+        
+        # Close Wk
+        inst_xlWings.close_Book(bl_saveBeforeClose = True)
+        #inst_xlWings.Quit_xlApp()
+    except:
+        print('  ERROR in fStr_fillXls_df_xlWgs_sevSh: Could not create the PCF: ' + str_path)
+        try: 		
+            inst_xlWings.visible = True
+            inst_xlWings.screen_updating = True
+            inst_xlWings.display_alerts = True
+        except: 	print('  ERROR in fStr_fillXls_df_xlWgs_sevSh: visible & Cie did not work')
+        return False
+    return str_path
+
+
+# 1 file out - 1 Dataframe - 1 Sheet
+def fStr_fillXls_df_xlWgs(str_path, df_data, str_SheetName = '', xl_sheet = 0, int_nbRows = 0, int_rowsWhere = 1):
+    try:
+        inst_xlWings = c_xlApp_xlwings()
+        
+        # If Sheet is nothing, we must define it
+        if xl_sheet == 0:
+            bl_CloseExcel = True    # We do not close the workbook if we need to fill several Sheet
+            inst_xlWings.FindXlApp(bl_visible = True, bl_screen_updating = False, bl_display_alerts = False)
+            inst_xlWings.OpenWorkbook(str_path)
+            xl_sheet = inst_xlWings.DefineWorksheet(str_SheetName, 1)
+            if not xl_sheet:        print('  (--) ERROR in fStr_fillXls_celByCel: really could not find the sheet')
+        else:   
+            bl_CloseExcel = False
+            inst_xlWings.xl_lastSheet = xl_sheet
+        
+        # ------ Insert or delete ROWS ------
+        if int_nbRows > 0:
+            for i in range(0, int_nbRows):      xl_sheet.range("{0}:{0}".format(str(int_rowsWhere))).api.Insert()
+        elif int_nbRows < 0:
+            for i in range(0, -int_nbRows):     xl_sheet.range("{0}:{0}".format(str(int_rowsWhere))).api.Delete()
+        # ------ Fill DF------
+        inst_xlWings.InsertDf_inRange(df_data)
+        # Close if only one sheet
+        if bl_CloseExcel:
+            try:                        inst_xlWings.close_Book(bl_saveBeforeClose = True)
+            except Exception as err:    print('  ERROR in fl.fStr_fillXls_df_xlWgs: close_Book | {}'.format(str(err)))
+    except Exception as err:
+        print('  ERROR in fl.fStr_fillXls_df_xlWgs | {}'.format(str(err)))
+        print('  - str_path : ', str_path)
+        print('  - str_SheetName : ', str_SheetName)
+        print('  - int_nbRows : ', int_nbRows, 'int_rowsWhere: ', int_rowsWhere)
+        try: 		
+            inst_xlWings.visible = True
+            inst_xlWings.screen_updating = True
+            inst_xlWings.display_alerts = True
+        except: 	print('  ERROR in fStr_fillXls_df_xlWgs: visible & Cie did not work')
+        return False
+    return str_path
+
+
+
+
+
+
+def fTup_GetLastRowCol(xl_sh, int_rowStart = 1, int_colStart = 1):
+    int_row = int_rowStart
+    int_col = int_colStart
+    while xl_sh.Cells(int_row, int_colStart).Value != None:
+        int_row += 1
+    int_lastRow = int_row - 1
+    
+    while xl_sh.Cells(int_rowStart, int_col).Value != None:
+        int_col += 1
+    int_lastCol = int_col - 1
+    #    print(xl_sh.Name, 'last_row', int_lastRow, 'last_col', int_lastCol)
+    return int_lastRow, int_lastCol
+
+
+# UK (ASEAN40): SGFABASKETFILETO 
+def fDf_readExcelWithPassword(str_path, str_SheetName, str_ExcelPassword):
+    d_data = {}
+    inst_xlApp = c_win32_xlApp()
+    inst_xlApp.FindXlApp(bl_visible = True)
+    inst_xlApp.xlApp.DisplayAlerts = False
+    inst_xlApp.OpenWorkbook(str_path, str_ExcelPassword)
+    
+    # Sheet 1: Summary
+    xl_sh = inst_xlApp.DefineWorksheet('Summary', 1)
+        # Do we need to take only the last row ???????
+    int_lastRow, int_lastCol = fTup_GetLastRowCol(xl_sh, 2000, 1)
+    rg_content = xl_sh.Range(xl_sh.Cells(7, 1), xl_sh.Cells(int_lastRow, 31)).Value
+    df_Summary = pd.DataFrame(list(rg_content))
+    # Sheet 2: Equity
+    xl_sh = inst_xlApp.DefineWorksheet('Equity', 2)
+    int_lastRow, int_lastCol = fTup_GetLastRowCol(xl_sh, 9, 1)
+    rg_content = xl_sh.Range(xl_sh.Cells(9, 1), xl_sh.Cells(int_lastRow, int_lastCol)).Value
+    df_Equity = pd.DataFrame(list(rg_content))
+    # Sheet 8: Div
+    xl_sh = inst_xlApp.DefineWorksheet('Div', 8)
+    int_lastRow, int_lastCol = fTup_GetLastRowCol(xl_sh, 170, 1)
+    rg_content = xl_sh.Range(xl_sh.Cells(5, 1), xl_sh.Cells(int_lastRow, int_lastCol)).Value
+    df_Div_Data = pd.DataFrame(list(rg_content))
+    # Sheet 9: Est Cash
+    xl_sh = inst_xlApp.DefineWorksheet('Est Cash', 9)
+    rg_content = xl_sh.Range(xl_sh.Cells(1, 1), xl_sh.Cells(40, 5)).Value
+    df_EstCash = pd.DataFrame(list(rg_content))
+    # Add columns
+    df_Summary = dframe.fDf_Make1stRow_columns(df_Summary)
+    df_Equity = dframe.fDf_Make1stRow_columns(df_Equity)
+    df_Div_Data = dframe.fDf_Make1stRow_columns(df_Div_Data)
+    df_EstCash = dframe.fDf_Make1stRow_columns(df_EstCash)
+    # Remove Data
+    df_Summary = df_Summary.iloc[-30:].copy()
+    df_Summary.reset_index(drop = True, inplace = True) 
+    # RETURN 
+    d_data['Summary'] = df_Summary
+    d_data['Equity'] = df_Equity
+    d_data['Div'] = df_Div_Data
+    d_data['Est Cash'] = df_EstCash
+    # CLose
+    inst_xlApp.CloseWorkbook(True)
+    inst_xlApp.QuitXlApp(bl_force = False)
+    
+    return d_data
+    
+    
 
 
 def fDf_convertToXlsx(str_path, str_SheetName = '', bl_header = None):
@@ -1155,23 +1728,7 @@ def ZipExtractFile(str_ZipPath, str_pathDest = '', str_FileName = '', bl_extract
   
     
 
-#------------------------------------------------------------------------------
-# Files : renaming
-#------------------------------------------------------------------------------   
-def Act_Rename(str_folder, str_OriginalName, str_NewName, bl_message = True):    
-    try:
-        if str_NewName.upper() != str_OriginalName.upper():
-            if bl_message:
-                print(' RENAMING')
-                print(' - str_OriginalName    : ', str_OriginalName)
-                print(' - str_NewName: ', str_NewName)
-            try:        os.rename(os.path.join(str_folder, str_OriginalName), os.path.join(str_folder, str_NewName))
-            except:     shutil.move(os.path.join(str_folder, str_OriginalName), os.path.join(str_folder, str_NewName))
-    except: 
-        print(' ERROR in Act_Rename: Rename stuff')
-        print(' - ', str_folder, str_OriginalName, str_NewName)
-        raise
-    return True
+
 
 
 #------------------------------------------------------------------------------
@@ -1192,78 +1749,121 @@ def fL_GetListDirFileInFolders(l_subDir, l_typeFile = []):
         for Dir in l_subDir:
             list_fic = [(Dir, fic) for fic in fList_FileInDir(Dir)]
             if list_fic: listTuple_PathFic += list_fic
-    #    for Dir in l_subDir:
-    #        if l_typeFile:
-    #            list_fic = [(Dir, fic) for fic in fList_FileInDir(Dir) if fic[-3:] in l_typeFile or fic[-4:] in l_typeFile]
-    #        else: 
-    #            list_fic = [(Dir, fic) for fic in fList_FileInDir(Dir)]
-    #        if list_fic: listTuple_PathFic += list_fic
     return listTuple_PathFic
 
 
-def Act_CopyUpdateFiles(l_PathFic_from, l_PathFic_dest, str_originFolder_replacedByDestFolder = '', str_removeInDestFolder = ''):
-    if str_originFolder_replacedByDestFolder == '':
-        print('Fill the 3rd argument on the function: Act_CopyUpdateFiles')
-        return False
-    # Loop on File to copy / update them
-    for t_file in l_PathFic_from:
-        str_path = t_file[0]
-        str_file = t_file[1]
-        str_path_Dest = str_path.replace('.', str_originFolder_replacedByDestFolder)
-        str_path_Dest = str_path_Dest.replace(str_removeInDestFolder, '')
+
+
+def Act_CopyUpdateFiles_specialBackUp(l_FolderFic_from, str_DestFolder, dte_after = 10, str_removeInDestFolder = ''):
+    str_message = ''
+    
+    # Date limite
+    if type(dte_after) == int:
+        dte_after = dt.datetime.now() - dt.timedelta(dte_after)
+    
+    # Get list of Origin Files
+    l_pathOrigin = [os.path.join(str_folder, str_file) for (str_folder, str_file) in l_FolderFic_from]
+    l_pathOrigin_wLimit = fL_KeepFiles_wTimeLimit(l_pathOrigin, dte_after)
+    
+    # Create the Folder Destination
+    try:
+        l_folderDest = [fStr_GetFolderFromPath(str_path).replace('.', str_DestFolder, 1).replace(str_removeInDestFolder, 
+                        '') for str_path in l_pathOrigin_wLimit]
+        l_folderDest_unique = list(set(l_folderDest))
+        for folder in l_folderDest_unique:
+            fBl_createDir(folder)
+    except Exception as err:
+        str_message += fStr_Message(' ERROR in Act_CopyUpdateFiles_specialBackUp: could not crete folder in Dest ||| {}'.format(str(err)))
+        return str_message
         
-        # If file is new --> Copy
-        if (str_path_Dest, str_file) not in l_PathFic_dest:
-            print('COPY NEW...   ', 'Folder Origin:   ' + str_path, ' ||| Folder Dest:   ' + str_path_Dest, ' ||| File:   ' + str_file)
-            fBl_createDir(str_path_Dest)
-            shutil.copyfile(str_path + '\\' + str_file, str_path_Dest + '\\' + str_file)
+    # Get the Destination Path
+    l_pathDest = [str_path.replace('.', str_DestFolder, 1).replace(str_removeInDestFolder, '') for str_path in l_pathOrigin_wLimit]
+    #    l_pathDest = [os.path.join(str_folder.replace('.', str_DestFolder).replace(str_removeInDestFolder, ''), str_file) for 
+    #                  (str_folder, str_file) in l_FolderFic_from]
+    
+    # Loop on File to copy / update them
+    for i_it in range(len(l_pathOrigin_wLimit)):
+        str_pathOrigin = l_pathOrigin_wLimit[i_it]
+        str_pathDest = l_pathDest[i_it]
+        # If File DOES NOT Exists
+        if not fBl_FileExist(str_pathDest):
+            str_message += fStr_Message('COPY...  Origin: {} ||| Dest: {}'.format(str_pathOrigin, fStr_GetFolderFromPath(str_pathDest)))
+            try:        shutil.copy(str_pathOrigin, str_pathDest)
+            except:     str_message += fStr_Message(' (--) ERROR: file could not be Copied !!!') 
         else:
-            dte_lastmod = fDte_GetModificationDate(str_path + '\\' + str_file)
-            dte_lastmod_dest = fDte_GetModificationDate(str_path_Dest + '\\' + str_file)
-            # Compare Date
+            # Compare Date (Update only if CLoud is more recent)
+            dte_lastmod = fDte_GetModificationDate(str_pathOrigin)
+            dte_lastmod_dest = fDte_GetModificationDate(str_pathDest)
             if dte_lastmod > dte_lastmod_dest:
-                print('COPY UPDATE...', 'Folder Origin:   ' + str_path, ' ||| Folder Dest:   ' + str_path_Dest, ' ||| File:   ' + str_file)
-                if '.\\Archive' in str_originFolder_replacedByDestFolder:
+                str_message += fStr_Message('UPDATE...  Origin: {} ||| Dest: {}'.format(str_pathOrigin, fStr_GetFolderFromPath(str_pathDest)))
+                #---ARCHIVES--------------
+                if r'\Archive' in str_DestFolder[-10:]:
                     str_dateTime =  str(dte_lastmod_dest.strftime('%Y%m%d'))
-                    shutil.copyfile(str_path_Dest + '\\' + str_file, str_path_Dest + '\\' + str_dateTime + '_' + str_file)
-                shutil.copyfile(str_path + '\\' + str_file, str_path_Dest + '\\' + str_file)
+                    shutil.copyfile(str_pathDest, fStr_GetFolderFromPath(str_pathDest) + '\\' + str_dateTime + '_' + fStr_GetFileFromPath(str_pathDest))
+                #------------------------
+                try:        shutil.copy(str_pathOrigin, str_pathDest)
+                except:     str_message += fStr_Message(' (--) ERROR: file could not be Updated !!!') 
+    str_message += fStr_Message(' ... End CopyPaste Process !!!')
+    return str_message
+
+
+def Act_CopyUpdateFiles(l_PathFic_from, l_PathFic_dest, str_DestFolder = '', str_removeInDestFolder = ''):
+    Act_CopyUpdateFiles_specialBackUp(l_PathFic_from, str_DestFolder, dte_after = 900, str_removeInDestFolder = str_removeInDestFolder)
+    
+    #    if str_DestFolder == '':
+    #        print('Fill the 3rd argument on the function: Act_CopyUpdateFiles')
+    #        return False
+    #    # Loop on File to copy / update them
+    #    for t_file in l_PathFic_from:
+    #        str_path = t_file[0]
+    #        str_file = t_file[1]
+    #        str_path_Dest = str_path.replace('.', str_DestFolder)
+    #        str_path_Dest = str_path_Dest.replace(str_removeInDestFolder, '')
+    #        
+    #        # If file is new --> Copy
+    #        if (str_path_Dest, str_file) not in l_PathFic_dest:
+    #            print('COPY NEW...   ', 'Folder Origin:   ' + str_path, ' ||| Folder Dest:   ' + str_path_Dest, ' ||| File:   ' + str_file)
+    #            fBl_createDir(str_path_Dest)
+    #            shutil.copyfile(str_path + '\\' + str_file, str_path_Dest + '\\' + str_file)
+    #        else:
+    #            dte_lastmod = fDte_GetModificationDate(str_path + '\\' + str_file)
+    #            dte_lastmod_dest = fDte_GetModificationDate(str_path_Dest + '\\' + str_file)
+    #            # Compare Date
+    #            if dte_lastmod > dte_lastmod_dest:
+    #                print('COPY UPDATE...', 'Folder Origin:   ' + str_path, ' ||| Folder Dest:   ' + str_path_Dest, ' ||| File:   ' + str_file)
+    #                if '.\\Archive' in str_DestFolder:
+    #                    str_dateTime =  str(dte_lastmod_dest.strftime('%Y%m%d'))
+    #                    shutil.copyfile(str_path_Dest + '\\' + str_file, str_path_Dest + '\\' + str_dateTime + '_' + str_file)
+    #                shutil.copyfile(str_path + '\\' + str_file, str_path_Dest + '\\' + str_file)
     return True
 
 
-def Act_CopyUpdateFiles_specialBackUp(l_FolderFic_from, str_DestFolder, int_onlyFileMoreRecentThan = 7, str_removeInDestFolder = ''):
-    # Loop on File to copy / update them
-    for t_file in l_FolderFic_from:
-        str_folder = t_file[0]
-        str_file = t_file[1]
-        str_pathOrigin = os.path.join(str_folder, str_file)
-        
-        str_folder_Dest = str_folder.replace('.', str_DestFolder)
-        str_folder_Dest = str_folder_Dest.replace(str_removeInDestFolder, '')
-        str_pathDest = os.path.join(str_folder_Dest, str_file)
-        
-        # Process Only if more recent for 7 days (7 for example)
-        dte_lastmod = fDte_GetModificationDate(str_pathOrigin)
-        dte_limit = dt.datetime.now() - dt.timedelta(int_onlyFileMoreRecentThan)
-        
-        if dte_lastmod > dte_limit:
-            # If File DOES NOT Exists
-            if not fBl_FileExist(str_pathDest):
-                print('COPY NEW...   ', 'Folder Origin:   ' + str_folder, ' ||| Folder Dest:   ' + str_folder_Dest, ' ||| File:   ' + str_file)
-                fBl_createDir(str_folder_Dest)
-                shutil.copyfile(str_pathOrigin, str_pathDest)
-            else:
-                # Compare Date (Update only if CLoud is more recent)
-                dte_lastmod_dest = fDte_GetModificationDate(str_pathDest)
-                if dte_lastmod > dte_lastmod_dest:
-                    print('COPY UPDATE...', 'Folder Origin:   ' + str_folder, ' ||| Folder Dest:   ' + str_folder_Dest, ' ||| File:   ' + str_file)
-                    shutil.copyfile(str_pathOrigin, str_pathDest)
-    return True
+def fStr_CopPasteFolder(str_folderOrigin, str_folderTarget, dte_after = 10, l_typeFile = [], str_folderExcept = ''):
+    # Date limite
+    if type(dte_after) == int:
+        dte_after = dt.datetime.now() - dt.timedelta(dte_after)
+
+    # Environment of work
+    dir_current = os.getcwd()
+    os.chdir(str_folderOrigin)
+    # Get all the sub Dir in the folder -- Except the folder (if empty, no exception)
+    l_SubDir_Origin = fL_GetListSubFolder_except('.', str_folderExcept)
+    # Get Tuples in List (Path, File Python)
+    l_PathFic = fL_GetListDirFileInFolders(l_SubDir_Origin, l_typeFile)
+    # Copy / Update files from a list of tuple to another
+    str_message = Act_CopyUpdateFiles_specialBackUp(l_PathFic, str_folderTarget, dte_after)
+    # Fin !!
+    os.chdir(dir_current)
+    return str_message
 
 
-
-
-
-
+def Act_CopPasteFolder_severalTry(str_folderDest, l_pathOrigin, dte_after = 10, l_typeFile = [], str_folderExcept = ''):
+    for pathOrigin in l_pathOrigin:
+        try:
+            fStr_CopPasteFolder(pathOrigin, str_folderDest, dte_after = dte_after, l_typeFile = l_typeFile,str_folderExcept = str_folderExcept)
+            return True
+        except: pass
+    return False
 
 
 
