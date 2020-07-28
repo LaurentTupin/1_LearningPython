@@ -891,7 +891,7 @@ def pcf_EasyFi(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df):
     
     l_pathAttach = [path.replace(str_folderRoot, '') for path in l_resultPath]
     
-    return 'ok', l_pathAttach
+    return str_resultFigures, l_pathAttach
 #___________________________________________________________________________________________
 
 

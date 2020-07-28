@@ -2,7 +2,7 @@ try:
     import os, time
     import pandas as pd
     import datetime as dt
-    import shutil, psutil, glob
+    import shutil, psutil, glob, csv
     from zipfile import ZipFile
     import win32com.client as win32
     import xlwings as xw
@@ -1076,13 +1076,18 @@ def act_createFile(bl_folderRelative, str_folder, str_fileName = 'test.txt', str
     return 0
 
 
-def fStr_CreateTxtFile(str_folder, str_FileName, df_data, str_sep = '', bl_header = False, bl_index = False):
+def fStr_CreateTxtFile(str_folder, str_FileName, df_data, str_sep = '', bl_header = False, bl_index = False,
+                       o_quoting = csv.QUOTE_MINIMAL, o_quotechar = '"'):
     try:
         if str_FileName == '':      str_path = str_folder
         else:                       str_path = os.path.join(str_folder, str_FileName)
         if str_sep == '':           str_sep = ','
         # TO CSV
-        df_data.to_csv(str_path, sep = str_sep, header = bl_header, index = bl_index)
+        df_data.to_csv(str_path, sep = str_sep, 
+                       header = bl_header, index = bl_index, 
+                       quoting = o_quoting, 
+#                       quotechar = o_quotechar
+                       )
     except:
         print('  ERROR in fl.fStr_CreateTxtFile: Could not create the file: ')
         print('  - str_folder :', str_folder, 'str_FileName :', str_FileName)
@@ -1572,8 +1577,8 @@ def fDf_readExcelWithPassword(str_path, str_SheetName, str_ExcelPassword):
     df_Div_Data = dframe.fDf_Make1stRow_columns(df_Div_Data)
     df_EstCash = dframe.fDf_Make1stRow_columns(df_EstCash)
     # Remove Data
-    df_Summary = df_Summary.iloc[-30:].copy()
-    df_Summary.reset_index(drop = True, inplace = True) 
+    df_Summary = df_Summary.iloc[-10:].copy()
+    df_Summary.reset_index(drop = True, inplace = True)
     # RETURN 
     d_data['Summary'] = df_Summary
     d_data['Equity'] = df_Equity

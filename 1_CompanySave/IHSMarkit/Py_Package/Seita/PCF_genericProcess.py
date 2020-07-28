@@ -373,7 +373,6 @@ def fDf_phillipCap_GetPivotCode_wDiv(df_Compo, str_colName, str_folder, str_file
     return df_codePivot
 
 
-
 def WisdomTree_GetPivotCode(df_Compo, str_colName, str_folder, str_fileName):
     try:
         # Pivot Code
@@ -385,6 +384,21 @@ def WisdomTree_GetPivotCode(df_Compo, str_colName, str_folder, str_fileName):
         df_codePivot.fillna(value = '', inplace = True)
     except: 
         print('ERROR WisdomTree_GetPivotCode')
+        raise
+    return df_codePivot
+
+
+def Asean40_GetPivotCode(df_Compo, str_colName, str_folder, str_fileName):
+    try:
+        # Pivot Code
+        l_ric = df_Compo[str_colName].tolist()
+        str_req =  """{0}{1} SELECT Ric as RIC, Isin as ISIN  
+                        {1} FROM SolaDBServer..tblCodePivot {1} WHERE IsActive = 1 AND Ric IN ('{2}') 
+                        """.format('SET NOCOUNT ON;', '\n', "','".join(l_ric))
+        df_codePivot = db.fDf_GetRequest_or_fromCsvFile(str_req, str_fileName, 1, str_folder)
+        df_codePivot.fillna(value = '', inplace = True)
+    except: 
+        print('ERROR Asean40_GetPivotCode')
         raise
     return df_codePivot
 
