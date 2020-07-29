@@ -143,17 +143,18 @@ def pcf_PhillipCap(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df)
     
     # 7. Create the files
     try:
-        # FX
         str_path0 = fl.fStr_BuildPath(str_folder, l_pcfFileName[0])
-        str_path0 = fl.fStr_createExcel_1Sh(str_path0, '', df_Forex, bl_header = True)
-        fl.fStr_StyleIntoExcel(str_path0, str_styleName = 'Border_Header', l_border = ['thin', 'FF000000'])                                                             
-        # PCF 
         str_path1 = fl.fStr_BuildPath(str_folder, l_pcfFileName[1])
+        str_path0 = fl.fStr_createExcel_1Sh(str_path0, '', df_Forex, bl_header = True)
         str_path1 = fl.fStr_createExcel_1Sh(str_path1, '', df_PCF)
+        # add some style in FX output df
+        fl.fStr_StyleIntoExcel(str_path0, str_styleName = 'Border_Header', l_border = ['thin', 'FF000000'])
+        # END, path to return
         l_pathAttach = [str_path0, str_path1]
+        l_pathAttach = [path.replace(str_folderRoot, '') for path in l_pathAttach]
     except Exception as err:    return 'ERROR: 7. Create the files - {} | {}'.format(str_PCF, str(err)), []
 
-    l_pathAttach = [path.replace(str_folderRoot, '') for path in l_pathAttach]
+    
 
     return str_resultFigures, l_pathAttach
 #___________________________________________________________________________________________
