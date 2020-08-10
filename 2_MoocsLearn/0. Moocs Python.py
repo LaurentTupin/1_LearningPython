@@ -208,8 +208,8 @@
 	#Liste de liste
 		L = [1, 3.5, "une chaine", []]
 
-	
-	
+
+
 #Tuple
 	# ********* Même opération car séquence *********
 	# Comme liste mais immuable (pas de modification après création)
@@ -263,7 +263,8 @@
 			#Sort de la boucle while si l'utilisateur met 'non'
 	
 	# CONTINUE
-	#Le mot-clé continue permet de… continuer une boucle, en repartant directement à la ligne du while ou for
+	#Le mot-clé continue permet de
+ continuer une boucle, en repartant directement à la ligne du while ou for
 	i = 1
 	while i < 20:
 		if i % 3 == 0:
@@ -1178,7 +1179,8 @@
 		# Instruction(s) exécutée(s) qu'il y ait eu des erreurs ou non
 
 
-	# Pass:  tester un bloc d'instructions… mais ne rien faire si erreur
+	# Pass:  tester un bloc d'instructions
+ mais ne rien faire si erreur
 	try:
 		resultat = numerateur / denominateur
 	except: 
@@ -1186,7 +1188,8 @@
 
 	# Les Assertions
 		# Les assertions sont un moyen simple de s'assurer, avant de continuer, qu'une condition est respectée. 
-		# En général, on les utilise dans des blocs try … except.
+		# En général, on les utilise dans des blocs try 
+ except.
 	assert var == 5		# Si le test renvoie True, l'exécution se poursuit normalement. Sinon, une exception AssertionError est levée.
 	assert var == 8
 		Traceback (most recent call last):
