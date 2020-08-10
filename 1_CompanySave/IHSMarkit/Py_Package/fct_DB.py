@@ -279,21 +279,21 @@ def db_EXEC(str_req, str_server = '', str_database = '', str_uid = '', str_pwd =
 
 # ***** Select to dataframe *****************
 #@dec_getTimePerf(10)
-def db_SelectReq(str_req, str_server = '',str_database = '', str_uid = '', str_pwd = '', bl_prod = True, bl_EmptyMessage = True):
+def db_SelectReq(str_req, str_server = '',str_database = '', str_uid = '', str_pwd = '', bl_prod = True, bl_AlertIfEmptyReq = True):
     inst_db = c_sqlDB()
     db_DefineConnectCursor(str_req, str_server, str_database, str_uid, str_pwd)
-    inst_db.bl_AlertIfEmptyReq = bl_EmptyMessage
+    inst_db.bl_AlertIfEmptyReq = bl_AlertIfEmptyReq
     df_result = inst_db.getDataFrame_fReq()
     inst_db.db_Commit()
     return df_result
 
 # ***** Mulitple Proc to dataframe *****************
 #@dec_getTimePerf(10)
-def db_MultipleReq(str_req, str_server = '',str_database = '', str_uid = '', str_pwd = '', bl_prod = True, bl_EmptyMessage = True):
+def db_MultipleReq(str_req, str_server = '',str_database = '', str_uid = '', str_pwd = '', bl_prod = True, bl_AlertIfEmptyReq = True):
     inst_db = c_sqlDB()
     db_DefineConnectCursor(str_req, str_server, str_database, str_uid, str_pwd)
     inst_db.db_Execute()
-    inst_db.bl_AlertIfEmptyReq = bl_EmptyMessage
+    inst_db.bl_AlertIfEmptyReq = bl_AlertIfEmptyReq
     df_result = inst_db.getDataFrame_multipleReq()
     inst_db.db_Commit()
     return df_result
@@ -311,7 +311,7 @@ def fDf_sqlBuildSelect(str_from, str_select = '*', l_where = [], str_groupBy = '
 
 # ***** SQL Request and Save into CSV  *****************
 #@dec_getTimePerf(5)
-def fDf_GetRequest_or_fromCsvFile(str_req, str_fileName, int_dayToKeep, str_cloudPathForCsv = '', bl_EmptyMessage = True):
+def fDf_GetRequest_or_fromCsvFile(str_req, str_fileName, int_dayToKeep, str_cloudPathForCsv = '', bl_AlertIfEmptyReq = True):
     inst_db = c_sqlDB()
     inst_db.cloudPathForCsv = str_cloudPathForCsv
     
@@ -327,7 +327,7 @@ def fDf_GetRequest_or_fromCsvFile(str_req, str_fileName, int_dayToKeep, str_clou
     try:    df_return = pd.read_csv(str_Path, header = 0)
     except:
         # ----- Does not EXIST -----
-        df_return = db_SelectReq(str_req, bl_EmptyMessage = bl_EmptyMessage)
+        df_return = db_SelectReq(str_req, bl_AlertIfEmptyReq = bl_AlertIfEmptyReq)
         # ----- Save the request on CSV -----
         try:    df_return.to_csv(str_Path, index = False, header = True)
         except: print(' Warning in fDf_GetRequest_or_fromCsvFile: No access to {}\n - file: {}'.format(str_Path, str_fileName))

@@ -1,11 +1,8 @@
 try:
-    import sys
-    #import numpy as np
     import pandas as pd
     import datetime as dt
     from pandas.tseries.offsets import BDay
     from dateutil.relativedelta import relativedelta
-    sys.path.append('../')
     import fct_DB as db
 except Exception as err:
     str_lib = str(err).replace("No module named ", "").replace("'", "")
@@ -106,7 +103,7 @@ def fDat_GetCorrectOffsetDate_Calendar(dte_date, str_pyFormat, int_offset, str_C
                             AND DATEADD (dd, -1, DATEADD(yy, DATEDIFF(yy, 0, GETDATE()) +1, 0))""".format(str(str_CalendarID))
             str_fileName_Calendar = 'sql_Calendar_{}.csv'.format(str(str_CalendarID))
             int_dayToKeep = 4
-            df_Calendar = db.fDf_GetRequest_or_fromCsvFile(str_sqlReq, str_fileName_Calendar, int_dayToKeep)
+            df_Calendar = db.fDf_GetRequest_or_fromCsvFile(str_sqlReq, str_fileName_Calendar, int_dayToKeep, bl_AlertIfEmptyReq = False)
             
             # Define if we need to go backward or forward in case Date is Holiday
             if int_offset > 0:     

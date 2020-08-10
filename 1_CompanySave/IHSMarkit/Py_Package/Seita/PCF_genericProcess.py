@@ -818,13 +818,13 @@ def Act_DownFiles_FTP(df_Param, row, str_folderRaw, str_fileName, str_FileDownlo
 
 
 #------------------------------------------------------------------------------------------------------------------------------------
-def Act_DownFiles_SQL(df_Param, row, str_folderRaw, str_fileName, dte_date, bl_EmptyMessage = True):
+def Act_DownFiles_SQL(df_Param, row, str_folderRaw, str_fileName, dte_date, bl_AlertIfEmptyReq = True):
     # Param
     str_PCF = str(df_Param.loc[row, 'PCF'])
     str_req = fStr_generateSQLReq(df_Param, row, dte_date)
     # Execute Req
     try:
-        df_sql = db.db_SelectReq(str_req, bl_EmptyMessage = bl_EmptyMessage)
+        df_sql = db.db_SelectReq(str_req, bl_AlertIfEmptyReq = bl_AlertIfEmptyReq)
     except:
         print('     ERROR in Act_DownFiles_SQL: We could not execute the SQL in PCF: ', str_PCF)
         print('     - ', str_req)
@@ -923,7 +923,7 @@ def Act_DownFiles(df_Param, row, str_folderRaw, str_fileName, dte_date, str_fold
             if not bl_success: return False
         # SQL
         elif str_FileDownloadMode == 'SQL_noMsg':
-            bl_success = Act_DownFiles_SQL(df_Param, row, str_folderRaw, str_fileName, dte_date, bl_EmptyMessage = False)
+            bl_success = Act_DownFiles_SQL(df_Param, row, str_folderRaw, str_fileName, dte_date, bl_AlertIfEmptyReq = False)
             if not bl_success: return False
         # ZIP
         elif str_FileDownloadMode == 'ZIP':
@@ -933,12 +933,22 @@ def Act_DownFiles(df_Param, row, str_folderRaw, str_fileName, dte_date, str_fold
                 if not bl_success: return False
         # HTML
         elif str_FileDownloadMode == 'HTML_JSON':
-            df_fut = html.fDf_htmlGetArray_json(str_url_2, str_url_keyword)
+            df_fut = []
+            #----------------------------------------------------------------------
+            # In case of several str_url_keyword
+            if ',' in str_url_keyword:
+                l_url_keyword = str_url_keyword.split(',')
+                for url_keyword in l_url_keyword:
+                    df_fut2 = html.fDf_htmlGetArray_json(str_url_2, url_keyword)
+                    if len(df_fut2) > 0:
+                        if len(df_fut) <= 0:    df_fut = df_fut2.copy()
+                        else:                   df_fut = dframe.fDf_Concat_wColOfDf1(df_fut, df_fut2, True, 1)
+            else:   df_fut = html.fDf_htmlGetArray_json(str_url_2, str_url_keyword)
             #----------------------------------------------------------------------
             # In case of Holiday not accounted or else, date must bu offset until we found data
             i_offset = 1
             while len(df_fut) == 0:
-                str_dateURL = dat.fDat_GetCorrectOffsetDate_Calendar(dte_date, str_fileDate, int(DateOffset) -i_offset, str(CalendarID))
+                str_dateURL = dat.fDat_GetCorrectOffsetDate_Calendar(dte_date, str_fileDate, int(DateOffset)-i_offset, str(CalendarID))
                 str_url_2 = str_url.replace('{fileDate}', str_dateURL)
                 print(' Careful the URL was not found, we needed to search the URL: \n', str_url_2)
                 df_fut = html.fDf_htmlGetArray_json(str_url_2, str_url_keyword)
@@ -950,12 +960,13 @@ def Act_DownFiles(df_Param, row, str_folderRaw, str_fileName, dte_date, str_fold
             #str_url = "https://www.cmegroup.com/trading/energy/crude-oil/light-sweet-crude_quotes_settlements_futures.html"
             #str_url = f'https://www.cmegroup.com/CmeWS/mvc/Settlements/Futures/Settlements/425/FUT?tradeDate={str_date}'
         elif str_FileDownloadMode == 'HTML_JSON_YUANTA':
-            d_listUrl = {}
             str_url_Root = str_url_2.replace('api/Orders?fundid=', '#/Orders/')
             df_html = html.fDf_htmlGetArray_json(str_url_2)
             if len(df_html) == 0:       print(' INFORMATION: No Orders on URL: ', str_url_2)
             #--------------------------------------------------------------
             # Special treatment on str_url_keyword which is a dico from here
+            # d_listUrl = fDic_GetDicFromString(str_url_keyword,  'list')
+            d_listUrl = {}
             l_coupleDico = str_url_keyword.split('||')
             for str_couple in l_coupleDico:
                 str_couple = str_couple.replace("'", "").replace("[", "").replace("]", "").replace(" ", "")
@@ -969,8 +980,8 @@ def Act_DownFiles(df_Param, row, str_folderRaw, str_fileName, dte_date, str_fold
                     str_url_3 = str_url_2.replace(i_Key, i_urlPart)
                     df_html_3 = html.fDf_htmlGetArray_json(str_url_3)
                     if len(df_html_3) > 0:
-                        if len(df_html_1) > 0:  df_html_1 = dframe.fDf_Concat_wColOfDf1(df_html_1, df_html_3, True, 1)
-                        else:                   df_html_1 = df_html_3.copy()
+                        if len(df_html_1) <= 0: df_html_1 = df_html_3.copy()
+                        else:                   df_html_1 = dframe.fDf_Concat_wColOfDf1(df_html_1, df_html_3, True, 1)
                     else:
                         print(' INFORMATION: there is no data on URL: {}'.format( str_url_3))
                         print(' - URL root to look for other data: {}'.format(str_url_Root))
@@ -1188,7 +1199,7 @@ def fStr_generateFileName(df_Param, row, str_folderRaw, dte_date, bl_tryReplaceT
     str_fileName = str_fileName.replace('{fileDate}', str_NewDate)
     # Name of the file with XX
     try:
-        if bl_tryReplaceTheX and str_fileName.count('{') and str_fileName.count('}') > 0 :
+        if bl_tryReplaceTheX and str_fileName.count('{') > 0 and str_fileName.count('}') > 0 :
             if str_fileName.count('{X}') > 0:   bl_exactNumberX = False
             elif str_fileName.count('{*}') > 0: bl_exactNumberX = False
             else:                               bl_exactNumberX = True
@@ -1361,6 +1372,27 @@ def fStr_CreateEtfFile(str_folder, str_fileName, dte_date, str_Isin1, str_id, st
     #    fl.act_createFile(False, str_folder, str_fileName.replace('.etf', '.txt'), str_text)
     #    fl.Act_Rename(str_folder, str_fileName.replace('.etf', '.txt'), str_fileName)
     return os.path.join(str_folder, str_fileName)
+
+def fDf_WtEtfFile(dte_date, str_Isin1, str_id, str_IsinFinal, str_ccy, flt_nav):
+    df_etf = pd.DataFrame(columns = range(0, 1))
+    df_etf.loc[len(df_etf)] = ['#@!ETF {0}'.format(dte_date.strftime('%d%m%y'))]
+    df_etf.loc[len(df_etf)] = [' ']
+    df_etf.loc[len(df_etf)] = ['[INDEX]']
+    df_etf.loc[len(df_etf)] = ['ISIN={0}'.format(str_Isin1)]
+    df_etf.loc[len(df_etf)] = ['ALPHA={0}'.format(str_id)]
+    df_etf.loc[len(df_etf)] = ['CASH=0']
+    df_etf.loc[len(df_etf)] = ['FUNDSHARES=1']
+    df_etf.loc[len(df_etf)] = ['NAME=INAV WISDOMTREE ENHANCED COMMODITY UCITS ACC']
+    df_etf.loc[len(df_etf)] = ['#MAILADDRESS=mk_index_production@markit.com']
+    df_etf.loc[len(df_etf)] = ['#MAILADDRESS=Data.eu@wisdomtree.com']
+    df_etf.loc[len(df_etf)] = ['#MAILADDRESS=Sola@ihsmarkit.com']
+    df_etf.loc[len(df_etf)] = [' ']
+    df_etf.loc[len(df_etf)] = ['[UNDERLYING]']
+    df_etf.loc[len(df_etf)] = ['COUNT=1']
+    df_etf.loc[len(df_etf)] = [' ']
+    df_etf.loc[len(df_etf)] = ['ENTRY={0} +{1}={2} 1 RER 1'.format(str_IsinFinal, str(dframe.round_Correction(flt_nav, 4)), str_ccy)]
+    return df_etf
+    
 
 
 

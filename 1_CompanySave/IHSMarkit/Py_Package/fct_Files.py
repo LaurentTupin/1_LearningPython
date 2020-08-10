@@ -9,6 +9,7 @@ try:
     import xlsxwriter
     import xlrd
     import openpyxl
+    import openpyxl.reader.excel as openpyxl_Excel
     import openpyxl.styles as styl
     #from openpyxl.styles import NamedStyle, Font, PatternFill, colors, Border, Side # , Alignment, Color
     import fct_dataframe as dframe
@@ -786,7 +787,9 @@ def Act_Rename(str_folder, str_OriginalName, str_NewName, bl_message = True):
             except:     shutil.move(os.path.join(str_folder, str_OriginalName), os.path.join(str_folder, str_NewName))
     except: 
         print(' ERROR in Act_Rename: Rename stuff')
-        print(' - ', str_folder, str_OriginalName, str_NewName)
+        print(' - str_folder: ', str_folder)
+        print(' - str_OriginalName: ', str_OriginalName)
+        print(' - str_NewName: ', str_NewName)
         raise
     return True
 
@@ -1082,16 +1085,17 @@ def fStr_CreateTxtFile(str_folder, str_FileName, df_data, str_sep = '', bl_heade
         if str_FileName == '':      str_path = str_folder
         else:                       str_path = os.path.join(str_folder, str_FileName)
         if str_sep == '':           str_sep = ','
+        elif str_sep == '\\t':      str_sep = '\t'
         # TO CSV
         df_data.to_csv(str_path, sep = str_sep, 
                        header = bl_header, index = bl_index, 
-                       quoting = o_quoting, 
-#                       quotechar = o_quotechar
+                       quoting = o_quoting, #quotechar = o_quotechar
                        )
     except:
         print('  ERROR in fl.fStr_CreateTxtFile: Could not create the file: ')
-        print('  - str_folder :', str_folder, 'str_FileName :', str_FileName)
-        return False
+        print('  - str_path :', str_path)
+        print('  - other param :', str_sep, bl_header, bl_index, o_quoting)
+        raise
     return str_path
 
 
@@ -1683,7 +1687,417 @@ def fStr_StyleIntoExcel(str_path, str_SheetName = '', l_row = [1], str_styleName
     # SAVE
     xlWb.save(filename = str_path)
     return str_path
+ #----------------------------------------
+
+
+
+# DOCUMENTATION : https://openpyxl.readthedocs.io/en/stable/_modules/openpyxl/styles/alignment.html
+ 
+# NIKKO - Basket & Fund
+{
+    'A10:H100':{'font':{'name':'Calibri', 'size':9}},
+    'C11:C100':{'font':{'name':'Calibri', 'size':9},'alignment':{'horizontal':'left'}},
+    'A1:H9':{'font':{'name':'Calibri', 'size':10, 'bold':True}},
+    'B1:B1':{'date':'dd-mmm-yy','font':{'name':'Calibri', 'size':10, 'bold':True}, 
+             'alignment':{'horizontal':'left'}, 
+             'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': 'F2F2F2'}},
+    'B2:B8':{'font':{'name':'Calibri', 'size':10, 'bold':True},
+             'alignment':{'horizontal':'right'}, 
+             'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': 'F2F2F2'}},
+    'A10:H10':{'font':{'size':9,'bold':True,'color':styl.colors.WHITE}, 
+               'alignment':{'vertical':'center', 'wrapText':True}, 
+               'fill':{'patternType':'solid','fill_type':'solid','fgColor': '4F81BD'}},
+    'A3:A3':{'font':{'size':10,'bold':True,'color':styl.colors.WHITE}, 'fill':{'patternType':'solid','fill_type':'solid','fgColor': '4F81BD'}},
+    'A1:A1':{'font':{'size':10,'bold':True,'color':styl.colors.WHITE}, 'fill':{'patternType':'solid','fill_type':'solid','fgColor': '808080'}},
+    'Column_size':{'A':34,'B':24},
+    'Row_size':{10:40},
+    'Table_bord':{'A2:B8':'normBlack', 'B2:B8':'normBlack'},
+    'Table_bord_full':{'A1:B1':'normBlack', 'A2:A2':'normBlack'},
+    'Table_bord_EndDown':{'A10':'normBlack'},
+    'num_format_col':{'E10':'#,##0','F10':'#,##0.00','G10':'#,##0.00','H10':'0.00%'},
+}
     
+## NIKKO - SGX
+{
+    'A1:H100':{'font':{'name':'Arial', 'size':10}},
+    'B2:D16':{'font':{'name':'Arial', 'size':10, 'bold':True}},
+    'B6:B6':{'font':{'name':'Arial', 'size':10, 'bold':True,'color':styl.colors.WHITE},
+             'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': '002060'}},
+    'B4:B4':{'font':{'name':'Arial', 'size':10, 'bold':True,'color':styl.colors.WHITE},
+             'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': '808080'}},
+    'C4:C4':{'date':'dd-mmm-yy','font':{'name':'Arial', 'size':10, 'bold':True},
+              'alignment':{'horizontal':'left'}, 
+              'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': 'F2F2F2'}},
+    'C5:D16':{'font':{'name':'Arial', 'size':10, 'bold':True},
+              'alignment':{'horizontal':'right'}, 
+              'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': 'F2F2F2'}},
+    'B19':{'font':{'name':'Arial', 'size':10},
+           'alignment':{'horizontal':'left'}, 
+           'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': 'F2F2F2'}},
+    'B19:H19':{'font':{'name':'Arial', 'size':10, 'bold':True,'color':styl.colors.WHITE},
+               'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': '808080'}},
+    'Column_size':{'A':4,'B':73,'C':45,'D':14,'E':25,'F':25},
+    'Table_bord':{'B4:D16':'normBlack','B4:B16':'normBlack','C4:D4':'normBlack','B5:B5':'normBlack'},
+    'Table_bord_EndDown_full':{'B19':'normBlack'},
+    'num_format_col':{'D19':'0.00','E19':'0.0000'},
+    'num_format':{'C15:C15':'#,##0.00','C16:C16':'0.00'}
+}
+ 
+## ChinaAMC
+#{'A1:K100':{'font':{'name':'Arial', 'size':10}},
+#    'B2:C20':{'font':{'name':'Arial', 'size':10, 'bold':True}},
+#    'B8:B8':{'font':{'name':'Arial', 'size':10, 'bold':True,'color':styl.colors.WHITE},
+#             'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': '002060'}},
+#    'B5:B6':{'font':{'name':'Arial', 'size':10, 'bold':True,'color':styl.colors.WHITE},
+#             'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': '808080'}},
+#    'B22:K22':{'font':{'name':'Arial', 'size':10, 'bold':True,'color':styl.colors.WHITE},
+#               'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': '808080'}},
+#    'C5:C6':{'font':{'name':'Arial', 'size':10, 'bold':True},
+#             'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': 'F2F2F2'}},
+#    'C8:C20':{'font':{'name':'Arial', 'size':10, 'bold':True},'alignment':{'horizontal':'right'},
+#              'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': 'F2F2F2'}},
+#    'B23':{'font':{'name':'Arial', 'size':10},'alignment':{'horizontal':'left'},
+#           'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': 'F2F2F2'}},
+#    'Column_size':{'A':4,'B':75,'C':70,'D':12,'G':21,'K':25},
+#    'Table_bord':{'B9:C20':'normBlack','C9:C20':'normBlack'},
+#    'Table_bord_full':{'B5:C6':'normBlack','B8:C8':'normBlack'},
+#    'Table_bord_EndDown_full':{'B22':'normBlack'},
+#    'num_format':{'C5:C6':'m/d/yyyy','C14:C14':'#,##0.0000','C15:C17':'#,##0','C18:C19':'#,##0.00','C20:C20':'#,##0'},
+#    'num_format_col':{'E22':'0.00','F22':'0.00','G22':'0.00000000000000','K22':'0.00000000000000'}
+#}
+
+## WisdomTree
+#{'A1:U1':{'font':{'bold':True,'color':styl.colors.WHITE}, 'fill':{'patternType':'solid','fill_type':'solid','fgColor': '4F81BD'}}, 
+#    'A5:G5':{'font':{'bold':True,'color':styl.colors.WHITE}, 'fill':{'patternType':'solid','fill_type':'solid','fgColor': '4F81BD'}}, 
+#    'A10:T10':{'font':{'bold':True,'color':styl.colors.WHITE}, 'fill':{'patternType':'solid','fill_type':'solid','fgColor': '4F81BD'}},
+#    'Table_bord_EndDown_full':{'A1':'WT_blue', 'A5':'WT_blue', 'A10':'WT_blue'}     
+#}
+
+
+
+
+
+def Act_StyleIntoExcel(str_path, str_format = '', str_SheetName = ''):
+    # EVAL
+    try:
+        if str_format == '':    return True
+        d_format = eval(str_format)
+    except Exception as err:
+        print(' ERROR Act_StyleIntoExcel - EVAL')
+        print(' - Err :', err)
+        return False
+    # Define EXCEL objects
+    try:
+        xlWb = openpyxl_Excel.load_workbook(filename = str_path)
+        if str_SheetName == '':     xlWs = xlWb.active
+        else:                       xlWs = xlWb[str_SheetName]
+    except Exception as err:
+        print(' ERROR Act_StyleIntoExcel, could not define the sheet')
+        print(' - Err :', err, '\n')
+        return False
+    # Launch the different process included into the dico
+    try:
+        for str_area, d_formatValue in d_format.items():
+            if 'column_size' in str_area.lower():
+                Act_resizeRowColumn(xlWs, 'column', d_formatValue)
+            elif 'row_size' in str_area.lower():
+                Act_resizeRowColumn(xlWs, 'row', d_formatValue)
+            elif 'Table_bord'.lower() in str_area.lower():
+                str_keyType = str_area          # Area is now Table_bord / Table_bord_endDown....
+                if '_full' in str_keyType.lower():          bl_full = True
+                else:                                       bl_full = False
+                d_border = d_format[str_keyType]
+                for str_areaBorder, str_borderName in d_border.items():
+                    if '_EndDown'.lower() in str_keyType.lower():
+                        rg_toSelect = fRg_SelectRangeToApplyFormat(xlWs, str_areaBorder, bl_includeHeader = True)
+                    else:
+                        rg_toSelect = xlWs[str_areaBorder]
+                    Act_loopBorder(str_keyType, rg_toSelect, str_borderName, bl_full)
+            elif 'num_format' in str_area.lower():
+                str_keyType = str_area          # Area is now num_format
+                d_colParam = d_format[str_keyType]
+                for str_areaFormat, str_format in d_colParam.items():
+                    if '_col' in str_keyType.lower():
+                        rg_toSelect = fRg_SelectRangeToApplyFormat(xlWs, str_areaFormat, bl_includeHeader = False, bl_column = True)
+                    else:
+                        rg_toSelect = xlWs[str_areaFormat]
+                    Act_loopFormat(rg_toSelect, str_format, 'num_format')
+            else:
+                str_styleName = fStr_defineStyle(xlWb, d_formatValue)
+                # Define Aera if we just put one cell as input
+                if ':' in str_area:     rg_toSelect = xlWs[str_area]
+                else:                   rg_toSelect = fRg_SelectRangeToApplyFormat(xlWs, str_area, bl_includeHeader = True)
+                Act_loopFormat(rg_toSelect, str_styleName)
+    except Exception as err:
+        print(' ERROR Act_StyleIntoExcel: Loop on Area for Style')
+        print(' - Err :', err, '\n')
+    # SAVE
+    try:    xlWb.save(filename = str_path)
+    except Exception as err:
+        print(' ERROR Act_StyleIntoExcel, xlWb.save')
+        print(' - Err :', err)
+        return False
+    return True
+
+#-----------------------------------------------------
+def fStr_defineStyle(xlWb, d_formatValue):
+    # Define and add a Style format depending on a name dev created (NikkoHeader_Blue)
+    try:
+        # Define the Style - Name
+        # {'font':{'name':'Calibri', 'size':9}}
+        l_styleName = list(d_formatValue.keys())
+        for dic in list(d_formatValue.values()):
+            if isinstance(dic, dict):
+                l_styleName.extend(list(dic.keys()))
+                l_styleName.extend(list(dic.values()))
+        str_styleName = '_'.join([str(x) for x in l_styleName])
+        str_styleName = str_styleName.replace(' ', '')
+        # Format Date
+        if 'date' in d_formatValue:
+            str_formatDate = d_formatValue['date']
+            o_style = styl.NamedStyle(name = str_styleName, number_format = str_formatDate)
+        else:
+            o_style = styl.NamedStyle(name = str_styleName)
+        
+        # Conditional
+        if 'font' in d_formatValue:
+            d_font = d_formatValue['font']
+            o_style.font = styl.Font(**d_font)
+        if 'fill' in d_formatValue:
+            d_fill = d_formatValue['fill']
+            o_style.fill = styl.PatternFill(**d_fill)
+        if 'alignment' in d_formatValue:
+            d_align = d_formatValue['alignment']
+            o_style.alignment = styl.Alignment(**d_align)
+            
+    except Exception as err:
+        print(' ERROR fStr_defineStyle: Loop on Area for Style')
+        print(' - Err :', err)
+        print(' - d_formatValue :', d_formatValue)
+        print(' - str_styleName :', str_styleName)
+        print(' - o_style :', o_style)
+        raise
+    # Save the Style in WK
+    try:        xlWb.add_named_style(o_style)
+    except:     print(' Information: Style already exists in the workbook: {}'.format(str_styleName))
+    return str_styleName
+
+#-----------------------------------------------------
+def Act_loopFormat(l_rows, str_styleName, str_type = ''):
+    # Loop Cell by Cell to apply a format
+    try:
+        for row in l_rows:
+            for cell in row:
+                if 'num_format' in str_type.lower():
+                    cell.number_format = str_styleName
+                else:
+                    cell.style = str_styleName
+    except Exception as err:
+        print(' ERROR Act_loopFormat: Loop on Area for Style')
+        print(' - Param :', str_styleName)
+        print(' - Err :', err)
+        try:
+            print(' - row :', row)
+            print(' - cell :', cell)
+        except: pass
+        raise
+
+#-----------------------------------------------------
+def Act_resizeRowColumn(xlWs, str_type, d_formatValue):
+    try:
+        if 'col' in str_type:
+            for col in d_formatValue:
+                col_dimension = d_formatValue[col]
+                if isinstance(col_dimension, int):
+                    xlWs.column_dimensions[col].width = col_dimension
+                else:   print(' ERROR in Act_resizeRowColumn - Column_size need to be an integer')
+        elif 'row' in str_type:
+            for row in d_formatValue:
+                row_dimension = d_formatValue[row]
+                if isinstance(row_dimension, int):
+                    xlWs.row_dimensions[row].height = row_dimension
+                else:   print(' ERROR in Act_resizeRowColumn - row_dimension need to be an integer')
+    except Exception as err:
+        print(' ERROR Act_resizeRowColumn')
+        print(' - Err :', err)
+        raise
+
+#-----------------------------------------------------
+def Act_loopBorder(str_type, rg_toSelect, str_borderName, bl_full = False):
+    try:
+        if str_borderName == 'normBlack':
+            o_border = styl.Side(border_style = 'thin')
+        elif str_borderName == 'WT_blue':
+            o_border = styl.Side(border_style = 'thin', color = '4A7FB0')
+        else:       print('Please define the Border in Act_loopBorder || {}'.format(str_borderName))
+        
+        #===========================
+        # Full Array => *Ignore all below condition
+        if bl_full:
+            for row in rg_toSelect:
+                for cell in row:
+                    cell.border =   styl.Border(top = o_border, bottom = o_border, left = o_border, right = o_border)
+            return True
+        
+        #===========================
+        # Get the characteristics of the Array
+        if rg_toSelect[0] == rg_toSelect[-1]:
+            bl_uniqueRow = True
+            if rg_toSelect[0][0] == rg_toSelect[0][-1]:
+                bl_uniqueCell = True
+            else:   bl_uniqueCell = False
+        else:
+            bl_uniqueCell = False
+            bl_uniqueRow = False
+            if rg_toSelect[0][0] == rg_toSelect[0][-1]:
+                bl_uniqueCol = True
+            else:   bl_uniqueCol = False
+        #===========================
+        # I. One Cell
+        if bl_uniqueCell:
+            cell = rg_toSelect[0][0]
+            cell.border =   styl.Border(top = o_border, bottom = o_border, left = o_border, right = o_border)
+            return True
+        #===========================
+        # II. One Row
+        if bl_uniqueRow:
+            row_unique = rg_toSelect[0]
+            for cell in row_unique:
+                # left cell
+                if cell == row_unique[0]:
+                    cell.border =   styl.Border(top = o_border, bottom = o_border, left = o_border)
+                # right cell
+                elif cell == row_unique[-1]:
+                    cell.border =   styl.Border(top = o_border, bottom = o_border, right = o_border)
+                else: cell.border = styl.Border(top = o_border, bottom = o_border)
+            return True
+        #===========================
+        # II. One column
+        if bl_uniqueCol:
+            for row in rg_toSelect:
+                cell = row[0]
+                # Top cell
+                if cell == rg_toSelect[0][0]:
+                    cell.border =   styl.Border(left = o_border, right = o_border, top = o_border)
+                # bottom cell
+                elif cell == rg_toSelect[-1][0]:
+                    cell.border =   styl.Border(left = o_border, right = o_border, bottom = o_border)
+                else: cell.border = styl.Border(left = o_border, right = o_border)
+            return True
+        #===========================
+        # III. Proper Array
+        # III.a. Loop for Left and right
+        for row in rg_toSelect:
+            cell_left = row[0]
+            cell_right = row[-1]
+            cell_left.border =      styl.Border(left = o_border)
+            cell_right.border =     styl.Border(right = o_border)
+        # III.b. Loop for Top 
+        row_top = rg_toSelect[0]
+        for cell in row_top:
+            # Top-left cell
+            if cell == rg_toSelect[0][0]:
+                cell.border =   styl.Border(top = o_border, left = o_border)
+            # Top-right cell
+            elif cell == rg_toSelect[0][-1]:
+                cell.border =   styl.Border(top = o_border, right = o_border)
+            else: 
+                cell.border =   styl.Border(top = o_border)
+        # III.c. Loop for bottom
+        row_bottom = rg_toSelect[-1]
+        for cell in row_bottom:
+            # bottom-left cell
+            if cell == rg_toSelect[-1][0]:
+                cell.border =   styl.Border(bottom = o_border, left = o_border)
+            # bottom-right cell
+            elif cell == rg_toSelect[-1][-1]:
+                cell.border =   styl.Border(bottom = o_border, right = o_border)
+            else: 
+                cell.border =   styl.Border(bottom = o_border)
+    except Exception as err:
+        print(' ERROR Act_loopBorder')
+        print(' - Err :', err)
+        print(' - Param :', str_type, str_borderName)
+        print(' - rg_toSelect :', rg_toSelect)
+        try:    print(' - row :', row)
+        except: pass
+        try:    print(' - cell :', cell)
+        except: pass
+        raise
+
+
+#-----------------------------------------------------
+def fRg_SelectRangeToApplyFormat(xlWs, str_cell, bl_includeHeader = True, bl_column = False):
+    try:
+        d_colNumber = {0:'A', 1:'A', 2:'B', 3:'C', 4:'D', 5:'E', 6:'F', 7:'G', 8:'H', 9:'I', 10:'J', 11:'K', 
+                       12:'L', 13:'M', 14:'N', 15:'O', 16:'P', 17:'Q', 18:'R', 19:'S', 20:'T', 21:'U', 
+                       22:'V', 23:'W', 24:'X', 25:'Y', 26:'Z', 27:'AA', 28:'AB', 29:'AC', 30:'AD', 
+                       31:'AE', 32:'AF', 33:'AG', 34:'AH', 35:'AI', 36:'AJ', 37:'AK', 38:'AL', 39:'AM'}
+        # CAREFULL (still just for one letter in the column)
+        str_colStart = str_cell[0]
+        # find The column number
+        d_NumberCol = {value:key for key,value in d_colNumber.items() if key > 0}
+        int_colBase = d_NumberCol[str_colStart]
+        # Find the Row object
+        int_rowHeader = int(str_cell[1:])
+        row_header = xlWs[int_rowHeader]
+        #print(str_colStart, int_rowHeader, row_header)
+        #---------------------
+        # Get the Max row
+        i_rowNumFin = int_rowHeader
+        for i_numRow in range(1, 10000):
+            ROW = xlWs[int_rowHeader + i_numRow]
+            if ROW[int_colBase-1].value == '' or ROW[int_colBase-1].value == None:  break
+            i_rowNumFin += 1
+        # include Header or not
+        if not bl_includeHeader:    int_rowHeader += 1
+        #---------------------
+        # Just on the column
+        if bl_column:
+            str_area = "{}{}:{}{}".format(str_colStart, int_rowHeader, str_colStart, i_rowNumFin)
+        else:
+            #---------------------
+            # Get the Max column
+            i_colIter = 0
+            i_colNumFin = int_colBase - 1
+            for cell in row_header:
+                if i_colIter < i_colNumFin:
+                    # If we start at column B we dont want to take column A into account
+                    i_colIter += 1
+                else:
+                    if cell.value == '' or cell.value == None:  break
+                    i_colNumFin += 1
+                    i_colIter += 1
+            # Final
+            str_area = "{}{}:{}{}".format(str_colStart, int_rowHeader, d_colNumber[i_colNumFin], i_rowNumFin)
+        #print(i_colNumFin, str_area)
+        #---------------------
+        # Define Range
+        rg_toSelect = xlWs[str_area]
+        #---------------------
+    except Exception as err:
+        print(' ERROR fRg_SelectRangeToApplyFormat')
+        print(' - Err :', err)
+        print(' - Param :', str_cell, bl_includeHeader)
+        print(' - i_colNumFin :', i_colNumFin)
+        print(' - i_rowNumFin :', i_rowNumFin)
+        print(' - str_area :', str_area)
+        raise
+    return rg_toSelect
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

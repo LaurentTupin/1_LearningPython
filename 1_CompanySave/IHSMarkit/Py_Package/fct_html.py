@@ -7,6 +7,10 @@ try:
     from bs4 import BeautifulSoup
     import unicodedata
     import selenium
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.common.keys import Keys
+    from selenium.webdriver.support import expected_conditions as EC
 except Exception as err:
     str_lib = str(err).replace("No module named ", "").replace("'", "")
     print(" ATTENTION,  Missing library: '{0}' \n * Please Open Anaconda prompt and type: 'pip install {0}'".format(str_lib))
@@ -41,14 +45,26 @@ def fBL_checkConnexion(o_page):
     except: 
         print('  ERROR in fBL_checkConnexion: Connexion fails because the input is not a page')
     return False
+
+
+#print(0)
+#d_headers = {'User-Agent': 'Chrome/71.0.3578.98'}
+#_headers = {"User-Agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1.1 Safari/605.1.15",
+#            "Accept-Language": "en-gb",
+#            "Accept-Encoding":"br, gzip, deflate",
+#            "Accept":"test/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+#            "Referer":"http://www.google.com/"}
+#o_page = requests.get(r'https://www.nseindia.com/get-quotes/equity?symbol=CPSEETF', headers=d_headers)
+
     
 
 def fDf_htmlGetArray_json(str_url, str_jsonCriteria = ""):
     try:
         o_page = requests.get(str_url)
-    except:
+    except Exception as error:
         print(' ERROR in fDf_htmlGetArray_json: requests.get(str_url)')
         print(' - ', str_url)
+        print(' - ', error)
         raise
     if not fBL_checkConnexion(o_page): 
         print(' ERROR in fDf_htmlGetArray_json: fBL_checkConnexion')
@@ -65,9 +81,6 @@ def fDf_htmlGetArray_json(str_url, str_jsonCriteria = ""):
         raise
     return df
 
-
-#ipath= "ajgvdf	"
-#print(fBl_ChineseInString(ipath))
 
 
 def fDf_htmlGetArray_Soup(str_url, bl_th = False, bl_waitForTranslation = False, int_waitTime = 1, bl_cleanXA0 = True):  
@@ -132,6 +145,7 @@ def fDf_htmlGetArray_Soup(str_url, bl_th = False, bl_waitForTranslation = False,
         print(' -  ', str_url)
         raise
     return df
+
 
 
 #str_url = r'http://www.yuantaetfs.com/en/#/Orders/1066'
@@ -199,57 +213,3 @@ class c_Selenium_InteractInternet():
             self.driver.switch_to.window(self.driver.window_handles[0])
 
 
-
-
-
-
-
-# ******************* Brouillon *******************
-    
-def fDf_htmlGetArray_Soup_brouillon(str_url):  
-    #str_url = "https://www.cmegroup.com/trading/energy/crude-oil/light-sweet-crude_quotes_settlements_futures.html"
-    #str_url = "http://www.data.jma.go.jp/obd/stats/etrn/view/monthly_s3_en.php?block_no=47401&view=1"
-    
-    d_headers = {'User-Agent': 'Mozilla/5.0'}     #Chrome/71.0.3578.98
-    o_page = requests.get(str_url, headers = d_headers)
-#    o_page = urlopen(str_url).read()
-#    print(o_page.content)
-    
-    if not fBL_checkConnexion(o_page): 
-        print(' - URL in fDf_htmlGetArray_Soup_brouillon is: ', str_url)
-        return False
-    bs_soup = BeautifulSoup(o_page.content, "html.parser")      # lxml   # html5lib
-    #print(bs_soup)
-    
-    ## Create a txt file to save the array
-    #with open('html.txt', 'w') as txt:
-        
-    # 'settlementsFuturesProductTable'
-    # 'cmeTable cmeSettlementsFutures cmeFloatingHead'
-    # 'cmeTable cmeSettlementsFutures'
-    for o_table in bs_soup.find_all('table'):
-    #for o_table in bs_soup.find_all('table', class_ = 'cmeTable cmeSettlementsFutures'):
-        print('-----table------')
-        time.sleep(0.5)
-        for o_row in o_table.find_all('tr'):
-            print('-----row------')
-            print(o_row)
-            o_ths = [o_th.text.strip() for o_th in o_row.find_all('th')]
-            if not o_ths == []:
-                print('-----th------')
-                print(o_ths)            
-            o_cells = [o_cell.text.strip() for o_cell in o_row.find_all('td')]
-            if not o_cells == []:
-                print('-----cell------')
-                print(o_cells)  # txt.write(o_cell.text + ',')
-            #txt.write('\n')
-
-
-
-
-#str_url = 'http://www.yuantaetfs.com/WebAccess/Orders/Index?fundid=1066&date=20190927'            
-#df_data = fDf_htmlGetArray_Soup(str_url)
-#str_Pcf = '\\\\uk-pdeqtfs01\\E\\Data\\Lucerne\\Data\\SOLA PCF\\Auto_Py\\Yuanta\\Yuanta 20191001\\abc.csv'
-#df_data.to_csv(str_Pcf, index = False, header = False, sep = ',')
-  
-            
