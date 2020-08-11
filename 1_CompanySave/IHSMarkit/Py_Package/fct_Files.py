@@ -1693,55 +1693,55 @@ def fStr_StyleIntoExcel(str_path, str_SheetName = '', l_row = [1], str_styleName
 
 # DOCUMENTATION : https://openpyxl.readthedocs.io/en/stable/_modules/openpyxl/styles/alignment.html
  
-# NIKKO - Basket & Fund
-{
-    'A10:H100':{'font':{'name':'Calibri', 'size':9}},
-    'C11:C100':{'font':{'name':'Calibri', 'size':9},'alignment':{'horizontal':'left'}},
-    'A1:H9':{'font':{'name':'Calibri', 'size':10, 'bold':True}},
-    'B1:B1':{'date':'dd-mmm-yy','font':{'name':'Calibri', 'size':10, 'bold':True}, 
-             'alignment':{'horizontal':'left'}, 
-             'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': 'F2F2F2'}},
-    'B2:B8':{'font':{'name':'Calibri', 'size':10, 'bold':True},
-             'alignment':{'horizontal':'right'}, 
-             'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': 'F2F2F2'}},
-    'A10:H10':{'font':{'size':9,'bold':True,'color':styl.colors.WHITE}, 
-               'alignment':{'vertical':'center', 'wrapText':True}, 
-               'fill':{'patternType':'solid','fill_type':'solid','fgColor': '4F81BD'}},
-    'A3:A3':{'font':{'size':10,'bold':True,'color':styl.colors.WHITE}, 'fill':{'patternType':'solid','fill_type':'solid','fgColor': '4F81BD'}},
-    'A1:A1':{'font':{'size':10,'bold':True,'color':styl.colors.WHITE}, 'fill':{'patternType':'solid','fill_type':'solid','fgColor': '808080'}},
-    'Column_size':{'A':34,'B':24},
-    'Row_size':{10:40},
-    'Table_bord':{'A2:B8':'normBlack', 'B2:B8':'normBlack'},
-    'Table_bord_full':{'A1:B1':'normBlack', 'A2:A2':'normBlack'},
-    'Table_bord_EndDown':{'A10':'normBlack'},
-    'num_format_col':{'E10':'#,##0','F10':'#,##0.00','G10':'#,##0.00','H10':'0.00%'},
-}
-    
-## NIKKO - SGX
-{
-    'A1:H100':{'font':{'name':'Arial', 'size':10}},
-    'B2:D16':{'font':{'name':'Arial', 'size':10, 'bold':True}},
-    'B6:B6':{'font':{'name':'Arial', 'size':10, 'bold':True,'color':styl.colors.WHITE},
-             'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': '002060'}},
-    'B4:B4':{'font':{'name':'Arial', 'size':10, 'bold':True,'color':styl.colors.WHITE},
-             'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': '808080'}},
-    'C4:C4':{'date':'dd-mmm-yy','font':{'name':'Arial', 'size':10, 'bold':True},
-              'alignment':{'horizontal':'left'}, 
-              'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': 'F2F2F2'}},
-    'C5:D16':{'font':{'name':'Arial', 'size':10, 'bold':True},
-              'alignment':{'horizontal':'right'}, 
-              'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': 'F2F2F2'}},
-    'B19':{'font':{'name':'Arial', 'size':10},
-           'alignment':{'horizontal':'left'}, 
-           'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': 'F2F2F2'}},
-    'B19:H19':{'font':{'name':'Arial', 'size':10, 'bold':True,'color':styl.colors.WHITE},
-               'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': '808080'}},
-    'Column_size':{'A':4,'B':73,'C':45,'D':14,'E':25,'F':25},
-    'Table_bord':{'B4:D16':'normBlack','B4:B16':'normBlack','C4:D4':'normBlack','B5:B5':'normBlack'},
-    'Table_bord_EndDown_full':{'B19':'normBlack'},
-    'num_format_col':{'D19':'0.00','E19':'0.0000'},
-    'num_format':{'C15:C15':'#,##0.00','C16:C16':'0.00'}
-}
+## NIKKO - Basket & Fund
+#{
+#    'A10:H100':{'font':{'name':'Calibri', 'size':9}},
+#    'C11:C100':{'font':{'name':'Calibri', 'size':9},'alignment':{'horizontal':'left'}},
+#    'A1:H9':{'font':{'name':'Calibri', 'size':10, 'bold':True}},
+#    'B1:B1':{'date':'dd-mmm-yy','font':{'name':'Calibri', 'size':10, 'bold':True}, 
+#             'alignment':{'horizontal':'left'}, 
+#             'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': 'F2F2F2'}},
+#    'B2:B8':{'font':{'name':'Calibri', 'size':10, 'bold':True},
+#             'alignment':{'horizontal':'right'}, 
+#             'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': 'F2F2F2'}},
+#    'A10:H10':{'font':{'size':9,'bold':True,'color':styl.colors.WHITE}, 
+#               'alignment':{'vertical':'center', 'wrapText':True}, 
+#               'fill':{'patternType':'solid','fill_type':'solid','fgColor': '4F81BD'}},
+#    'A3:A3':{'font':{'size':10,'bold':True,'color':styl.colors.WHITE}, 'fill':{'patternType':'solid','fill_type':'solid','fgColor': '4F81BD'}},
+#    'A1:A1':{'font':{'size':10,'bold':True,'color':styl.colors.WHITE}, 'fill':{'patternType':'solid','fill_type':'solid','fgColor': '808080'}},
+#    'Column_size':{'A':34,'B':24},
+#    'Row_size':{10:40},
+#    'Table_bord':{'A2:B8':'normBlack', 'B2:B8':'normBlack'},
+#    'Table_bord_full':{'A1:B1':'normBlack', 'A2:A2':'normBlack'},
+#    'Table_bord_EndDown':{'A10':'normBlack'},
+#    'num_format_col':{'E10':'#,##0','F10':'#,##0.00','G10':'#,##0.00','H10':'0.00%'},
+#}
+#    
+### NIKKO - SGX
+#{
+#    'A1:H100':{'font':{'name':'Arial', 'size':10}},
+#    'B2:D16':{'font':{'name':'Arial', 'size':10, 'bold':True}},
+#    'B6:B6':{'font':{'name':'Arial', 'size':10, 'bold':True,'color':styl.colors.WHITE},
+#             'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': '002060'}},
+#    'B4:B4':{'font':{'name':'Arial', 'size':10, 'bold':True,'color':styl.colors.WHITE},
+#             'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': '808080'}},
+#    'C4:D4':{'date':'dd-mmm-yy','font':{'name':'Arial', 'size':10, 'bold':True},
+#              'alignment':{'horizontal':'left'}, 
+#              'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': 'F2F2F2'}},
+#    'C5:D16':{'font':{'name':'Arial', 'size':10, 'bold':True},
+#              'alignment':{'horizontal':'right'}, 
+#              'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': 'F2F2F2'}},
+#    'B19':{'font':{'name':'Arial', 'size':10},
+#           'alignment':{'horizontal':'left'}, 
+#           'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': 'F2F2F2'}},
+#    'B19:H19':{'font':{'name':'Arial', 'size':10, 'bold':True,'color':styl.colors.WHITE},
+#               'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': '808080'}},
+#    'Column_size':{'A':4,'B':73,'C':45,'D':14,'E':25,'F':25},
+#    'Table_bord':{'B4:D16':'normBlack','B4:B16':'normBlack','C4:D4':'normBlack','B5:B5':'normBlack'},
+#    'Table_bord_EndDown_full':{'B19':'normBlack'},
+#    'num_format_col':{'D19':'0.00','E19':'0.0000'},
+#    'num_format':{'C15:C15':'#,##0.00','C16:C16':'0.00'}
+#}
  
 ## ChinaAMC
 #{'A1:K100':{'font':{'name':'Arial', 'size':10}},
