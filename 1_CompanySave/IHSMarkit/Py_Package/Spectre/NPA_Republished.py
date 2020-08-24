@@ -5,8 +5,7 @@ import fct_DB as db
 import fct_Files as fl
 
 
-str_dbUID = 'ltupin'
-str_dbPwd = db.fStr_Encrypt_GetPass('Tz5Ay92@')
+
 str_thisFilePath = os.path.abspath(__file__)
 str_thisFilefolder = os.path.dirname(str_thisFilePath)
 
@@ -24,7 +23,7 @@ def fstr_RePublished(str_SqlPath, str_assetType, i_limitMinutes = 30):
     # 2. Loop until request is empty
     while True:
         tm_start = time.time()
-        df_return = db.db_SelectReq(str_req, '', '', str_dbUID, str_dbPwd, True, False)
+        df_return = db.db_SelectReq(str_req, '', '', '', '', True, False)
         tm_end = time.time()
         # 3. Message to communicate & Getting Out of the loop
         str_message += fStr_Message('------------------------------------------------')

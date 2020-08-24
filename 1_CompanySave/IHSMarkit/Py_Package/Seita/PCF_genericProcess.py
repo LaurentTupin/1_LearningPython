@@ -632,7 +632,14 @@ def fStr_GetSourceDirectory(df_Param, row, dte_date, str_folderRoot):
     
     # Replace Date with Date of Folder
     dteFormat_folder = str(df_Param.loc[row, 'folderDate'])
-    folderDateOffset = str(df_Param.loc[row, 'folderDateOffset'])
+    folderDateOffset = df_Param.loc[row, 'folderDateOffset']
+    try:    folderDateOffset = int(folderDateOffset)
+    except Exception as err:
+        folderDateOffset = 0
+        print(' ERROR: {}'.format(err))
+        print(' - folderDateOffset: {}'.format(folderDateOffset))
+        print(' - folderDateOffset = int(folderDateOffset) did not work out')
+        print(' + Continue with :  folderDateOffset = 0')
     str_folderDate = dat.fDat_GetCorrectOffsetDate_Calendar(dte_date, dteFormat_folder, int(folderDateOffset), str(CalendarID))
     str_DirSource = str_DirSource.replace('{folderDate}', str_folderDate)
     

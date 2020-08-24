@@ -627,8 +627,17 @@ def pcf_EasyFi(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df):
     #-----------------------------------------------------------------------
     # NO need to use the function pcfCreate_createFiles as its only txt files
     #-----------------------------------------------------------------------
+    
+    # check the database
+    try:
+        inst_db = db.c_sqlDB()
+        str_server = inst_db.server
+        if not 'PRDSOLA' in str_server:
+            return 'Please change the database to PROD', []
+    except:     return 'ERROR: check the database - {}'.format(str_PCF), []
+    
     # List the files :)
-    try:        
+    try:
         str_folder = dic_df['Folder']
         str_folder = str_folder.replace('Easy Commodity - open','Easy FI - open')
         fl.fBl_createDir(str_folder)
@@ -1426,8 +1435,8 @@ def pcf_ChinaAMC(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df):
         str_modelFileName = 'ChinaAMC_model.xlsx'
         df_Result = pd.read_excel(fl.fStr_BuildPath(str_modelfolder,str_modelFileName), header = None, index_col = None)
         df_Result.fillna(value = '', inplace = True)
-        df_Result.iloc[4, 2] = dte_date.strftime('%m/%d/%Y')
-        df_Result.iloc[5, 2] = dte_DateNav.strftime('%m/%d/%Y')
+        df_Result.iloc[4, 2] = dte_date#.strftime('%m/%d/%Y')
+        df_Result.iloc[5, 2] = dte_DateNav#.strftime('%m/%d/%Y')
         df_Result.iloc[16, 2] = 'N/A '
         df_Result.iloc[19, 2] = str(int_CreationUnits)
         if str_FutName != '':       df_Result.iloc[22, 1] = str(str_FutName)

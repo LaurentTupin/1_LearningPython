@@ -1690,6 +1690,11 @@ def fStr_StyleIntoExcel(str_path, str_SheetName = '', l_row = [1], str_styleName
  #----------------------------------------
 
 
+#dte_date = dt.datetime.now().date()
+#dd  = dte_date.strftime("%-m")
+#print(dd)
+#print(type(dd))
+
 
 # DOCUMENTATION : https://openpyxl.readthedocs.io/en/stable/_modules/openpyxl/styles/alignment.html
  
@@ -1752,8 +1757,10 @@ def fStr_StyleIntoExcel(str_path, str_SheetName = '', l_row = [1], str_styleName
 #             'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': '808080'}},
 #    'B22:K22':{'font':{'name':'Arial', 'size':10, 'bold':True,'color':styl.colors.WHITE},
 #               'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': '808080'}},
-#    'C5:C6':{'font':{'name':'Arial', 'size':10, 'bold':True},
-#             'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': 'F2F2F2'}},
+#    'C5:C6':{'date':'m/d/yyyy',
+#             'font':{'name':'Arial', 'size':10, 'bold':True},
+#             'alignment':{'horizontal':'left'}, 
+#             'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': 'F2F2F2'}},             
 #    'C8:C20':{'font':{'name':'Arial', 'size':10, 'bold':True},'alignment':{'horizontal':'right'},
 #              'fill':{'patternType':'solid', 'fill_type':'solid', 'fgColor': 'F2F2F2'}},
 #    'B23':{'font':{'name':'Arial', 'size':10},'alignment':{'horizontal':'left'},
@@ -1762,7 +1769,7 @@ def fStr_StyleIntoExcel(str_path, str_SheetName = '', l_row = [1], str_styleName
 #    'Table_bord':{'B9:C20':'normBlack','C9:C20':'normBlack'},
 #    'Table_bord_full':{'B5:C6':'normBlack','B8:C8':'normBlack'},
 #    'Table_bord_EndDown_full':{'B22':'normBlack'},
-#    'num_format':{'C5:C6':'m/d/yyyy','C14:C14':'#,##0.0000','C15:C17':'#,##0','C18:C19':'#,##0.00','C20:C20':'#,##0'},
+#    'num_format':{'C14:C14':'#,##0.0000','C15:C17':'#,##0','C18:C19':'#,##0.00','C20:C20':'#,##0'},
 #    'num_format_col':{'E22':'0.00','F22':'0.00','G22':'0.00000000000000','K22':'0.00000000000000'}
 #}
 
