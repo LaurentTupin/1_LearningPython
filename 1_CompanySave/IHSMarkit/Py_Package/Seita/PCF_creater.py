@@ -628,12 +628,12 @@ def pcf_EasyFi(str_PCF, str_folderRoot, dte_date, str_resultFigures, dic_df):
     # NO need to use the function pcfCreate_createFiles as its only txt files
     #-----------------------------------------------------------------------
     
-    # check the database
+    # Check the database
     try:
         inst_db = db.c_sqlDB()
         str_server = inst_db.server
         if not 'PRDSOLA' in str_server:
-            return 'Please change the database to PROD', []
+            return 'Please change the database to PROD (list next to the date)', []
     except:     return 'ERROR: check the database - {}'.format(str_PCF), []
     
     # List the files :)
