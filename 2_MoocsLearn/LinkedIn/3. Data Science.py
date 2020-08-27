@@ -11,13 +11,14 @@
 import numpy as np
 from numpy.random import randn
 
+def part3():
 	#Round = 2 for the printing
 	np.set_printoptions(precision = 2)
 	
 	#Create Array
 	a = np.array(range(1,7))					# 1 row
 	d = np.arange(1, 35)						# 1 row
-	b = np.array([[10, 20, 30], [40, 50, 60])	# 2 rows
+	b = np.array([10, 20, 30], [40, 50, 60])	# 2 rows
 	
 	np.random.seed(25)
 	c = 36 * np.random.randn(5)
@@ -53,6 +54,7 @@ from pandas import Series, Dataframe
 import scipy
 from scipy import stats
 	
+def part3_stat():
 	#df
 	cars = pd.read_csv(path)
 	#Basics Stat
