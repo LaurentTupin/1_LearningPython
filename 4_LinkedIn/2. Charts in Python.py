@@ -3,81 +3,21 @@
 # Part of the LinkedIn course: Python for Data Science Essential Training
 #============================================================================================
 
-#2. Data Visualization Basics
-
-# Install
-pip install seaborn
 
 # First example
 	#Import
 	import matplotlib.pyplot as plt
 	from matplotlib import rcParams
-	import seaborn
+	import seaborn as sb
 
 	#Other Import
 	import numpy as np
-	from numpy.random import randn
 	import pandas as pd
 	from pandas import Series, Dataframe
 	
-	#To keep the chart in Jupyter and not opening an external thing
-	%matplotlib inline
 	
-	#Change the size & style of all charts
-	rcParams['figure.figsize'] = 5,4
-	seaborn.set_style('whitegrid')
 	
-	#Line Chart
-	plt.plot(x,y)		#x,y being list of point
-	
-	#Several Line chart on the same chart
-	plt.plot(x,y)
-	plt.plot(x1,y1)	
-	
-	#---------With pd------------
-	df_cars = pd.read_csv(path)
-	mpg = df_cars['mpg']
-	mpg.plot()
-	#---------With pd 2------------
-	df = [['cyl','wt','mpg']]
-	df.plot()
-	
-	#Bar Chart
-	plt.bar(x,y)		#x,y being list of point
-	#---------With pd------------
-	mpg.plot(kind = 'bar')
-	mpg.plot(kind = 'barh')		# Horizontal Bar
-	
-	#Pie Chart
-	plt.pie(x)		#x being list of point
-	plt.show()
-	
-	#Saving a plot
-	plt.savefig('FileName.jpeg')		#Working Directory		// To know it, type: %pwd
-	plt.show()
-
-	
-# Define Plot Elements
-	#Object Oriented Method
-	fig = plt.figure()						#Generate blank figure	
-	ax = fig.add_axes([0.1, 0.1, 1, 1])		#add axis	
-	ax.plot(x,y)							#Show
-	
-	#With limit on axis + tick + grid
-	fig = plt.figure()
-	ax = fig.add_axes([0.1, 0.1, 1, 1])
-	ax.set_xlim([1,9])
-	ax.set_ylim([0,5])
-	ax.set_xticks([1,2,4,5,6,8,9,10])
-	ax.set_yticks([0,1,2,3,4,5])
-	ax.grid()								#grid
-	ax.plot(x,y)			
-	
-	#sub plot
-	fig = plt.figure()
-	fig, (ax1, ax2) = plt.subplots(1,2)
-	ax1.plot(x)								#Function f(x) = x showed in this 1st Charts
-	ax1.plot(x, y)
+    
 	
 	
 #Format Plot
@@ -178,22 +118,22 @@ pip install seaborn
 	plt.hist(mpg)
 	plt.plot()
 		# with seaborn
-	seaborn.displot(mpg)			# show a Trend line as well (much better charts)
+	sb.displot(mpg)			# show a Trend line as well (much better charts)
 	
 	#scatter plots
 	cars.plot(kind='scatter', x='hp', y='mpg', c=['darkgray'], s = 150)
 		# with seaborn
-	seaborn.regplot(x='hp', y='mpg', data = cars, scatter = True)	# show a Trend line (much better charts)
+	sb.regplot(x='hp', y='mpg', data = cars, scatter = True)	# show a Trend line (much better charts)
 	
 	#scatter plots matrix
-	seaborn.pairplot(cars)
+	sb.pairplot(cars)
 		#Illisible
 	
 	cars_df = pd.DataFrame((cars.ix[:,(1,3,4,6)].values), columns = ['mpg','disp','hp','wt'])
 	cars_target = cars[:,9].values
 	target_names = [0, 1]
 	cars_df['group'] = dp.Series(cars_target, dty = "category")
-	seaborn.pairplot(cars_df, hue='group', palette='hls')
+	sb.pairplot(cars_df, hue='group', palette='hls')
 	 # Data Analysis:
 		# Heavy cars are automatic, light cars are manual
 		# Automatic cars have less Miles per gallon (but because they are heavier)
@@ -202,5 +142,5 @@ pip install seaborn
 	cars.boxplot(column='mpg', by ='am')
 	cars.boxplot(column='wt', by ='am')
 		# with seaborn
-	seaborn.boxplot(x='am', y='mpg', data = cars, palette='hls')
+	sb.boxplot(x='am', y='mpg', data = cars, palette='hls')
 #--------------------------------------------------------------------
