@@ -7,6 +7,7 @@ Part of the LinkedIn course: Python for Data Science Essential Training
 # Liste Entrance
 x = range(1, 10)
 y = [1,2,3,4,0,4,3,2,1]
+y1 = [9, 8,7, 6, 5, 4, 3, 2, 1]
 
 year = list(range(1950, 2101))
 pop = [2.53, 2.57, 2.62, 2.67, 2.71, 2.76, 2.81, 2.86, 2.92, 2.97, 3.03, 3.08, 
@@ -102,6 +103,12 @@ import seaborn
 #---------------------------------------------------------
 # Notes
 rcParams['figure.figsize'] = 10,4
+seaborn.set_style('whitegrid')
+
+# Colors
+d_color1 = {'color':['darkgray','lightsalmon','powderblue']}
+d_colorsPie1 = {'colors':['#A9A9A9','#FFA07A','#B0E0E6','#FFE4C4','#BDB76B']}
+
 
 def Notes():
     # JUPYTER : To keep the chart in Jupyter and not opening an external thing
@@ -115,32 +122,15 @@ def SavePlotAsImage(plt, str_path):
     plt.savefig(str_path)
     plt.show()
 
-
-
-
-
-#--- LINE CHART ------------------------------------------------------
-def LinePlot(x, y):
-    plt.plot(x, y)
-    plt.show()
-# With simple List
-#LinePlot(x = year, y = pop) 
-
-def LinePlot_listOfLines(l_x, l_y):
-    for x, y in (l_x, l_y):
-        plt.plot(x, y)
-    plt.show()
-# With several lines
-#LinePlot_listOfLines(l_x, l_y) 
-
-def LinePlot_df_path(str_path, l_column = []):
+def fDf_readDf_col(str_path, l_column = []):
     df = pd.read_csv(str_path)
     if l_column:
         df = df[l_column]
-    df.plot()
-#LinePlot_df_path(r'4_LinkedIn\mtcars.csv', ['mpg'])
+    return df
 
-    
+
+
+
 #--- Histogram ------------------------------------------------------
 def Histogram(int_bins = 10):
     plt.hist(life_exp, bins = int_bins)
@@ -148,32 +138,6 @@ def Histogram(int_bins = 10):
     # plt.clf() cleans it up again so you can start afresh ?????
     plt.clf()
 #Histogram()
-
-
-#--- Bar Chart ------------------------------------------------------
-def Bar_chart(x, y):
-    plt.bar(x,y)
-    plt.show() 
-# With simple List
-#Bar_chart(x = year, y = pop)
-
-def Bar_df_path(str_path, l_column = [], bl_vertical = True):
-    df = pd.read_csv(str_path)
-    if l_column:
-        df = df[l_column]
-    if bl_vertical:
-        df.plot(kind = 'bar')
-    else:
-        df.plot(kind = 'barh')		
-#Bar_df_path(r'4_LinkedIn\mtcars.csv', ['mpg'])
-
-
-#--- Pie Chart ------------------------------------------------------
-def Pie_chart(x):
-    plt.pie(x)
-    plt.show() 
-# With simple List
-#Pie_chart(popPerCountry)
 
 
 #--- Scatter plot ------------------------------------------------------
@@ -210,6 +174,7 @@ def ScatterPlot(bl_logX = False):
 
 
 #===================== Object Oriented Method ===============================
+
 def Define_figure(l_axes, xlim = [], ylim = [], xticks = [], yticks = [], bl_grid = False):
     #Generate blank figure
     fig = plt.figure()
@@ -222,22 +187,84 @@ def Define_figure(l_axes, xlim = [], ylim = [], xticks = [], yticks = [], bl_gri
     if yticks:  fig.set_yticks(yticks)
     if bl_grid: fig.grid()
     return fig
-fig = Define_figure([0.1, 0.1, 1, 1], xlim = [1,9], ylim = [0,5], 
-                    xticks = [1,2, 3,4,5,6,7,8,9,10], yticks = [0,1,2,3,4,5],
-                    bl_grid = True)	
+#fig = Define_figure([0.1, 0.1, 1, 1], xlim = [1,9], ylim = [0,5], 
+#                    xticks = [1,2, 3,4,5,6,7,8,9,10], yticks = [0,1,2,3,4,5],
+#                    bl_grid = True)	
+
+
 
 #--- LINE CHART ------------------------------------------------------
-def LinePlot_fig(o_fig, x, y):
-    o_fig.plot(x, y)
+def LinePlot(x, y, o_fig = None):
+    if o_fig:
+        o_fig.plot(x, y)
+    else:   
+        plt.plot(x, y)
+        #plt.show()
+## With simple List
+#LinePlot(x = x, y = y, o_fig = fig) 
+
+def LinePlot_listOfLines(l_Line):
+    for line in l_Line:
+        x = line[0]
+        y = line[1]
+        d_format = line[2]
+        plt.plot(x, y, **d_format)
+        #        plt.plot(x,y, ls = 'steps', lw = 5)
+        #    	 plt.plot(x1,y1, ls = '--', lw = 10)
+        #        plt.plot(x,y,   marker = '1', mew = 20)
+        #        plt.plot(x1,y1, marker = '+', mew = 15)
     plt.show()
+## With several lines
+#LinePlot_listOfLines([(x,y), (x,y1)]) 
+## With Format
+#LinePlot_listOfLines([(x,y, {'ls' : 'steps', 'lw': 5, 'marker':1}), (x,y1, {'ls' : '--', 'lw' : 10})])
+LinePlot_listOfLines([(x,y, {'marker':'1', 'mew':20}), (x,y1, {'marker':'+', 'mew':5})])
+
+
+
+
+
+
+
+
+
+def LinePlot_df(df, d_format = {}):
+    df.plot(**d_format)
+## With DataFrame
+#df = fDf_readDf_col(r'4_LinkedIn\mtcars.csv', ['cyl','mpg', 'wt'])
+#LinePlot_df(df, d_format = d_color1)      
+
+
+
+#--- Bar Chart ------------------------------------------------------
+def Bar_chart(x, y, d_format = {}, o_fig = None):
+    if o_fig:
+        o_fig.bar(x,y, **d_format)
+    else:   
+        plt.bar(x,y, **d_format)
 # With simple List
-LinePlot_fig(o_fig = fig, x = x, y = y) 
+#Bar_chart(x = year, y = pop, o_fig = fig)
+# Plus format
+#Bar_chart(x, y, d_format = {'width' : [0.5,0.5,0.5,0.9,0.5,0.5,0.5,0.5,0.5], 'color' : ['Salmon'], 'align' : 'center'})
+
+def Bar_df_path(str_path, l_column = [], bl_vertical = True):
+    df = pd.read_csv(str_path)
+    if l_column:
+        df = df[l_column]
+    if bl_vertical:
+        df.plot(kind = 'bar')
+    else:
+        df.plot(kind = 'barh')		
+#Bar_df_path(r'4_LinkedIn\mtcars.csv', ['mpg'])
 
 
 
-	  
-
-
-
-
+#--- Pie Chart ------------------------------------------------------
+def Pie_chart(x, d_format = {}):
+    plt.pie(x, **d_format)
+    plt.show() 
+## With simple List
+#Pie_chart(popPerCountry)
+## With Format
+#Pie_chart(x, d_format = d_colorsPie1)
 

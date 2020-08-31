@@ -17,32 +17,6 @@
 	
 	
 	
-    
-	
-	
-#Format Plot
-	wide = [0.5,0.5,0.5,0.9,0.5,0.5,0.5,0.5]
-	color = ['Salmon']
-	plt.bar(x,y, width = wide, color = color, align = 'center')
-	
-	#Format df
-	df = df_cars[['cyl','mpg','wt']]
-	color_theme = ['darkgray','lightsalmon','powderblue']
-	df.plot(color = color_theme)
-	
-	#Format Pie chart
-	color_theme = ['#A9A9A9','#FFA07A','...','...','...']
-	plt.pie(z, color = color_theme)
-	plt.show()
-	
-	#Line style
-	plt.plot(x,y, ls = 'steps', lw = 5)
-	plt.plot(x1,y1, ls = '--', lw = 10)
-	
-	#Marker
-	plt.plot(x,y,   marker = '1', mew = 20)
-	plt.plot(x1,y1, marker = '+', mew = 15)
-	
 	
 #Labels and Annotations
 	#A. Labels
