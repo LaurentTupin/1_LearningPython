@@ -148,22 +148,50 @@ https://campus.datacamp.com/courses/intermediate-python/
 #=====================5th Course===============================
 # Case Study: Hacker Statistics
 import numpy as np
+import matplotlib.pyplot as plt 
 
 # Simulate a coin toss: randomly generate 0 or 1
 def fInt_coinToss():
     np.random.seed(123)
     int_coin = np.random.randint(0, 2)
     return int_coin
-int_coin = fInt_coinToss()
-print(int_coin)
+#int_coin = fInt_coinToss()
+#print(int_coin)
 
 def fInt_runDice():
     np.random.seed(123)
     int_dice = np.random.randint(1, 7)
     return int_dice
-int_dice = fInt_runDice()
-print(int_dice)
+#int_dice = fInt_runDice()
+#print(int_dice)
 
-
-
+def fArr_ClimbTower():
+    all_walks = []
+    for i in range(500) :
+        random_walk = [0]
+        for x in range(100) :
+            step = random_walk[-1]
+            dice = np.random.randint(1,7)
+            if dice <= 2:
+                step = max(0, step - 1)
+            elif dice <= 5:
+                step = step + 1
+            else:
+                step = step + np.random.randint(1,7)
+            # Implement clumsiness
+            if np.random.rand() <= 0.001 :
+                step = 0
+    
+            random_walk.append(step)
+        all_walks.append(random_walk)
+    
+    # Create and plot np_aw_t
+    np_aw_t = np.transpose(np.array(all_walks))
+    arr_endPoint = np_aw_t[-1,:]
+    return arr_endPoint
+#arr_endPoint = fArr_ClimbTower()
+#plt.hist(arr_endPoint, bins = 25)
+#plt.show()
+#flt_proba60 = len(arr_endPoint[arr_endPoint>=60]) / len(arr_endPoint)
+#print(flt_proba60)
 
