@@ -187,9 +187,9 @@ def Define_figure(l_axes, xlim = [], ylim = [], xticks = [], yticks = [], bl_gri
     if yticks:  fig.set_yticks(yticks)
     if bl_grid: fig.grid()
     return fig
-#fig = Define_figure([0.1, 0.1, 1, 1], xlim = [1,9], ylim = [0,5], 
-#                    xticks = [1,2, 3,4,5,6,7,8,9,10], yticks = [0,1,2,3,4,5],
-#                    bl_grid = True)	
+fig = Define_figure([0.1, 0.1, 1, 1], xlim = [1,9], ylim = [0,5], 
+                    xticks = [1,2, 3,4,5,6,7,8,9,10], yticks = [0,1,2,3,4,5],
+                    bl_grid = True)	
 
 
 
@@ -218,15 +218,7 @@ def LinePlot_listOfLines(l_Line):
 #LinePlot_listOfLines([(x,y), (x,y1)]) 
 ## With Format
 #LinePlot_listOfLines([(x,y, {'ls' : 'steps', 'lw': 5, 'marker':1}), (x,y1, {'ls' : '--', 'lw' : 10})])
-LinePlot_listOfLines([(x,y, {'ls' : '--', 'marker':'1', 'mew':20}), (x,y1, {'ls' : '--', 'marker':'+', 'mew':5})])
-
-
-
-
-
-
-
-
+#LinePlot_listOfLines([(x,y, {'ls' : '--', 'marker':'1', 'mew':20}), (x,y1, {'ls' : '--', 'marker':'+', 'mew':5})])
 
 def LinePlot_df(df, d_format = {}):
     df.plot(**d_format)
@@ -260,11 +252,15 @@ def Bar_df_path(str_path, l_column = [], bl_vertical = True):
 
 
 #--- Pie Chart ------------------------------------------------------
-def Pie_chart(x, d_format = {}):
-    plt.pie(x, **d_format)
-    plt.show() 
+def Pie_chart(x, d_format = {}, o_fig = None):
+    if o_fig:
+        o_fig.pie(x, **d_format)
+    else:   
+        plt.pie(x, **d_format)
+        plt.show()
+    
 ## With simple List
-#Pie_chart(popPerCountry)
+Pie_chart(x)
 ## With Format
-#Pie_chart(x, d_format = d_colorsPie1)
+Pie_chart(x, d_format = d_colorsPie1)
 
