@@ -218,7 +218,7 @@ def LinePlot_listOfLines(l_Line):
 #LinePlot_listOfLines([(x,y), (x,y1)]) 
 ## With Format
 #LinePlot_listOfLines([(x,y, {'ls' : 'steps', 'lw': 5, 'marker':1}), (x,y1, {'ls' : '--', 'lw' : 10})])
-LinePlot_listOfLines([(x,y, {'marker':'1', 'mew':20}), (x,y1, {'marker':'+', 'mew':5})])
+LinePlot_listOfLines([(x,y, {'ls' : '--', 'marker':'1', 'mew':20}), (x,y1, {'ls' : '--', 'marker':'+', 'mew':5})])
 
 
 
