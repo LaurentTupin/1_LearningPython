@@ -11,7 +11,7 @@ https://campus.datacamp.com/courses/intermediate-python/
 
 ## Import 
 #import matplotlib.pyplot as plt
-#import numpy as np
+
 #
 ## Liste Entrance
 #year = list(range(1950, 2101))
@@ -142,10 +142,27 @@ https://campus.datacamp.com/courses/intermediate-python/
 
 
 #=====================2nd Course===============================
-# Dictionaries
-    
-    
+# Dictionaries & pandas
 
+
+#=====================5th Course===============================
+# Case Study: Hacker Statistics
+import numpy as np
+
+# Simulate a coin toss: randomly generate 0 or 1
+def fInt_coinToss():
+    np.random.seed(123)
+    int_coin = np.random.randint(0, 2)
+    return int_coin
+int_coin = fInt_coinToss()
+print(int_coin)
+
+def fInt_runDice():
+    np.random.seed(123)
+    int_dice = np.random.randint(1, 7)
+    return int_dice
+int_dice = fInt_runDice()
+print(int_dice)
 
 
 
