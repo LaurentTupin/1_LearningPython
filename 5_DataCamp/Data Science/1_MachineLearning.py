@@ -60,15 +60,14 @@ def EDA_countPlot():
     df = dDf_TransformXinDf(X, l_feature_names)
     df['flower'] = y    
     # Some Chart / plot
-    for xx in ['sepal length (cm)', 'sepal width (cm)', 'petal length (cm)','petal width (cm)']:
+    for xx in l_feature_names:
         #   Be sure to begin your plotting statements for each figure with plt.figure() 
         #   so that a new figure will be set up. 
         #   Otherwise, your plots will be overlayed onto the same figure.
         plt.figure()
-        sb.countplot(x=xx, hue='flower', data=df) #, palette='RdBu'
-        plt.xticks([0,1], ['No', 'Yes'])
+        sb.countplot(data=df, x=xx, hue='flower') #, palette='RdBu'
         plt.show()
-#EDA_countPlot()
+EDA_countPlot()
 
 def ClassificationChallenge():
     X, y, l_feature_names, l_target_names = IrisData()
@@ -87,6 +86,12 @@ def ClassificationChallenge():
 
 y_predict = ClassificationChallenge()
 print(y_predict)
+
+
+
+
+
+
 
 
 

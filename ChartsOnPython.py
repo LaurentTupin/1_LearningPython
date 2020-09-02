@@ -5,6 +5,18 @@ Part of the LinkedIn course: Python for Data Science Essential Training
 '''
 
 # Liste Entrance
+
+def IrisData():
+    from sklearn import datasets
+    iris = datasets.load_iris()
+    #    print(iris.keys())
+    l_feature_names = iris.feature_names
+    l_target_names = iris.target_names
+    # Build the data model
+    X = iris.data
+    y = iris.target
+    return X, y, l_feature_names, l_target_names
+
 x = range(1, 10)
 y = [1,2,3,4,0,4,3,2,1]
 y1 = [9, 8,7, 6, 5, 4, 3, 2, 1]
@@ -128,6 +140,15 @@ def fDf_readDf_col(str_path, l_column = [], d_param = {}):
     return df
 
 
+def fXy_transformDfIntoNpArr(df, str_targetName):
+    y = df[str_targetName].values
+    X = df.drop(str_targetName, axis=1).values
+    return X, y
+
+def dDf_TransformXinDf(X, l_feature_names):
+    df = pd.DataFrame(X, columns = l_feature_names)
+    return df
+
 
 #===================== Object Oriented Method ===============================
 
@@ -172,7 +193,7 @@ def LinePlot(x, y, o_fig = None):
         plt.ylabel('y')
         plt.show()
 ## With simple List
-LinePlot(x, y)
+#LinePlot(x, y)
 #LinePlot(x, y, o_fig = fig) 
 
 def LinePlot_listOfLines(l_Line):
@@ -254,6 +275,22 @@ def Hist_df_Trendline(df, d_param = {}):
 #Hist_df_Trendline(df_cars, d_param = dict(bins = 15))
 
 
+#--- CountPlot ------------------------------------------------------
+def CountPlot(df, str_colNameYcolor = None, d_param = {}):
+    for col_feature in [col for col in df.columns if col != str_colNameYcolor]:
+        #   Be sure to begin your plotting statements for each figure with plt.figure() 
+        #   so that a new figure will be set up. 
+        #   Otherwise, your plots will be overlayed onto the same figure.
+        print(col_feature)
+        plt.figure()
+        sb.countplot(data = df, x = col_feature, hue = str_colNameYcolor, **d_param)
+        plt.show()    
+#X, y, l_feature_names, l_target_names = IrisData()
+#df = dDf_TransformXinDf(X, l_feature_names)
+#df['flower'] = y
+#CountPlot(df, str_colNameYcolor = 'flower', d_param = dict(palette = 'RdBu'))    
+
+
 #--- Scatter plot ------------------------------------------------------
 def ScatterPlot(bl_logX = False):
     # Size = pop
@@ -278,7 +315,6 @@ def ScatterPlot(bl_logX = False):
     plt.text(5700, 80, 'China')    
     # Add grid() call
     plt.grid(True)
-    
     # SHOW
     plt.show()
 #ScatterPlot(True)
@@ -295,23 +331,29 @@ def ScatterPlot_df_Trendline(df, d_param = {}):
 #ScatterPlot_df_Trendline(df_cars, d_param = dict(x='hp', y='mpg'))
 
 
-
 #--- Scatter plot Matrix ------------------------------------------------------
-def ScatterPlotMatrix(df, d_param = {}):
+def ScatterPlotMatrix(df, str_colNameYcolor = None, d_param = {}):
+    pd.plotting.scatter_matrix(df, c = str_colNameYcolor, **d_param)
+#X, y, l_feature_names, l_target_names = IrisData()
+#df = dDf_TransformXinDf(X, l_feature_names)
+#ScatterPlotMatrix(df, str_colNameYcolor = y, d_param = dict(s = 100, marker = 'D', figsize = [12,8]))
+    
+def ScatterPlotMatrix_sb(df, d_param = {}):
     sb.pairplot(df, **d_param)
 #df_cars = fDf_readDf_col(r'4_LinkedIn\mtcars.csv', ['hp','mpg'])
 #ScatterPlotMatrix(df_cars)
 
-def ScatterPlotMatrix_yIsColor(df, str_colNameYcolor, d_param = {}):
+def ScatterPlotMatrix_yIsColor(df, str_colNameYcolor = None, d_param = {}):
     sb.pairplot(df, hue = str_colNameYcolor, **d_param)
 #df_cars = fDf_readDf_col(r'4_LinkedIn\mtcars.csv', ['mpg','disp','hp','wt', 'am'])
 #ScatterPlotMatrix_yIsColor(df_cars, str_colNameYcolor = 'am', d_param = dict(palette='hls'))
-    '''
-    # Data Analysis:
-    #   0 is automatic - 1 is manual transmission 
-    #   wt: Heavy cars are automatic, light cars are manual
-    #   mpg: Automatic cars have less Miles per gallon (but because they are heavier)
-    '''
+    #    '''
+    #    # Data Analysis:
+    #    #   0 is automatic - 1 is manual transmission 
+    #    #   wt: Heavy cars are automatic, light cars are manual
+    #    #   mpg: Automatic cars have less Miles per gallon (but because they are heavier)
+    #    '''
+
 
 
 #--- Box Plots ------------------------------------------------------
