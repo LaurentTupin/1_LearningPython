@@ -1,8 +1,9 @@
 
 #============================================================================================
 # Part of the LinkedIn course: Python for Data Science Essential Training
-#============================================================================================
 ## https://www.linkedin.com/learning/python-for-data-science-essential-training/introduction-to-machine-learning?u=69004890
+#============================================================================================
+
 
 #--------------------------------------------------------------------------------------------
 # 3. Basic Math and Statistics
@@ -207,6 +208,10 @@ def part3_stat():
     standardized_mpg = scale(mpg)
     plt.plot(standardized_mpg)
     #--> Standardized !!!
+
+
+
+
 
 
 #--------------------------------------------------------------------------------------------

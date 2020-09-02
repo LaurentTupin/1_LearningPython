@@ -149,7 +149,7 @@ def Define_figure(d_format):
     if 'legend' in d_format:        fig.legend(**d_format['legend'])
     if 'annotate' in d_format:      fig.annotate(**d_format['annotate']) 
     return fig
-#fig = Define_figure(d_format = dict(l_axes=[0.1, 0.1, 1, 1], set_xlim= [1,9], set_ylim= [0,5], bl_grid= True,
+#fig = Define_figure(d_format = dict(l_axes=[0.5, 0.5, 1, 1], set_xlim= [1,9], set_ylim= [0,5], bl_grid= True,
 #                                    set_xticks= range(1,10), set_yticks= range(6),
 #                                    set_xticklabels=['a','2','b','4','c','6','d','8','e'],
 #                                    set_title= 'Miles per galon of cars in mtcars',
@@ -159,7 +159,7 @@ def Define_figure(d_format):
 #                                    annotate= dict(s= 'Toyota Corrolla', xy= (4,4), xytext= (5,4.2), 
 #                                                   arrowprops= dict(facecolor='red', shrink= 0.05))
 #                                    ))
-    
+
 
     
 #--- LINE CHART ------------------------------------------------------
@@ -172,7 +172,7 @@ def LinePlot(x, y, o_fig = None):
         plt.ylabel('y')
         plt.show()
 ## With simple List
-#LinePlot(x, y)
+LinePlot(x, y)
 #LinePlot(x, y, o_fig = fig) 
 
 def LinePlot_listOfLines(l_Line):
@@ -314,8 +314,21 @@ def ScatterPlotMatrix_yIsColor(df, str_colNameYcolor, d_param = {}):
     '''
 
 
+#--- Box Plots ------------------------------------------------------
+def BoxPlot(df, str_column, str_colBy, d_param = {}):
+    df.boxplot(column = str_column, by = str_colBy)
+#df_cars = fDf_readDf_col(r'4_LinkedIn\mtcars.csv', ['mpg','disp','hp','wt', 'am'])     
+#BoxPlot(df_cars, 'wt', str_colBy = 'am')
+#BoxPlot(df_cars, 'mpg', str_colBy = 'am')
 
-
+def BoxPlot_sb(df, str_column, str_colBy, d_param = {}):
+    sb.boxplot(data = df, x = str_colBy, y = str_column)
+#df_cars = fDf_readDf_col(r'4_LinkedIn\mtcars.csv', ['mpg','disp','hp','wt', 'am'])     
+#BoxPlot_sb(df_cars, 'wt', str_colBy = 'am', d_param = dict(palette = 'hls'))
+#BoxPlot_sb(df_cars, 'mpg', str_colBy = 'am', d_param = dict(palette = 'hls'))
+    
+    
+    
 
 
 
@@ -330,8 +343,5 @@ def cours2_5():
     df2['Order Quantity'].plot()
     plt.ylabel('Order Quantity')
 #cours2_5()
-
-
-
 
 

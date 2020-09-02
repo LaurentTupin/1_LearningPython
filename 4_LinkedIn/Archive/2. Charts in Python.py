@@ -41,16 +41,9 @@
     target_names = [0, 1]
     cars_df['group'] = dp.Series(cars_target, dtype = "category")
     sb.pairplot(cars_df, hue='group', palette='hls')
-         # Data Analysis:
+        # Data Analysis:
         # Heavy cars are automatic, light cars are manual
         # Automatic cars have less Miles per gallon (but because they are heavier)
-
-
-    
-    
-    
-    
-    
     
 	#Box Plots
 	cars.boxplot(column='mpg', by ='am')
