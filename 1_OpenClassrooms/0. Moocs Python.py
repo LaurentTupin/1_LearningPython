@@ -402,11 +402,19 @@
 		s		--> set([1,3,'egg','spam'])
 		s.update([5,6])
 		s		--> set([1,3,5,6,'egg','spam'])
-	# Différence
+	# Différence (Set Operation)
 		s2 = {1,5,'ham'}
-		s - s2 	--> set([3,6,'egg','spam'])				# Différence
-		s | s2 	--> set([1,3,5,6,'egg','spam','ham'])	# Union
-		s & s2 	--> set([1,5])							# Intersection
+        # Union
+        s | s2 	--> set([1,3,5,6,'egg','spam','ham'])	
+            s.union(t)
+        # Différence
+		s - s2 	--> set([3,6,'egg','spam'])				
+    		s.difference(t)
+        # Intersection 
+		s & s2 	--> set([1,5])							
+            s.intersection(t)
+        
+        
 	
 	# FrozenSet (Set immuable)
 		fs = frozenset(s)

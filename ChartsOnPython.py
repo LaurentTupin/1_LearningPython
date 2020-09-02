@@ -168,7 +168,7 @@ def ScatterPlot(bl_logX = False):
     
     # SHOW
     plt.show()
-#ScatterPlot(True)
+ScatterPlot(True)
 
 
 
