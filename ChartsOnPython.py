@@ -96,14 +96,13 @@ import pandas as pd
 # Matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
-#seaborn
-import seaborn
+import seaborn as sb
 
 
 #---------------------------------------------------------
 # Notes
 rcParams['figure.figsize'] = 10,4
-seaborn.set_style('whitegrid')
+sb.set_style('whitegrid')
 
 # Colors
 d_color1 = {'color':['darkgray','lightsalmon','powderblue']}
@@ -116,7 +115,7 @@ def Notes():
     
     #Change the size & style of all charts
     rcParams['figure.figsize'] = 5,4
-    seaborn.set_style('whitegrid')
+    sb.set_style('whitegrid')
     
 def SavePlotAsImage(plt, str_path):
     plt.savefig(str_path)
@@ -127,49 +126,6 @@ def fDf_readDf_col(str_path, l_column = [], d_param = {}):
     if l_column:
         df = df[l_column]
     return df
-
-
-
-
-#--- Histogram ------------------------------------------------------
-def Histogram(int_bins = 10):
-    plt.hist(life_exp, bins = int_bins)
-    plt.show()
-    # plt.clf() cleans it up again so you can start afresh ?????
-    plt.clf()
-#Histogram()
-
-
-#--- Scatter plot ------------------------------------------------------
-def ScatterPlot(bl_logX = False):
-    # Size = pop
-    np_popPerCountry = np.array(popPerCountry) * 2
-    # color :       c
-    # opacity :     alpha
-    
-    plt.scatter(gdp_cap, life_exp, s = np_popPerCountry, c = CountryColor, alpha = 0.8)
-    if bl_logX:
-        # Put the x-axis on a logarithmic scale
-        plt.xscale('log')
-    # Add axis labels
-    plt.xlabel('GDP per Capita [in USD]')
-    plt.ylabel('Life Expectancy [in years]')
-    # Add title
-    plt.title('World Development in 2007')
-    # Ticks
-    tick_val = [1000, 10000, 100000]
-    tick_lab = ['1k', '10k', '100k']
-    plt.xticks(tick_val, tick_lab)
-    # Additional customizations
-    plt.text(1550, 71, 'India')
-    plt.text(5700, 80, 'China')    
-    # Add grid() call
-    plt.grid(True)
-    
-    # SHOW
-    plt.show()
-#ScatterPlot(True)
-
 
 
 
@@ -236,49 +192,128 @@ def LinePlot_listOfLines(l_Line):
 #LinePlot_listOfLines([(x,y, {'ls' : 'steps', 'lw': 5, 'marker':1}), (x,y1, {'ls' : '--', 'lw' : 10})])
 #LinePlot_listOfLines([(x,y, {'ls' : '--', 'marker':'1', 'mew':20}), (x,y1, {'ls' : '--', 'marker':'+', 'mew':5})])
 
-def LinePlot_df(df, d_format = {}):
-    df.plot(**d_format)
+def LinePlot_df(df, d_param = {}):
+    df.plot(**d_param)
 ## With DataFrame
-#df = fDf_readDf_col(r'4_LinkedIn\mtcars.csv', ['cyl','mpg', 'wt'])
-#LinePlot_df(df, d_format = d_color1)      
+#df_cars = fDf_readDf_col(r'4_LinkedIn\mtcars.csv', ['cyl','mpg', 'wt'])
+#LinePlot_df(df_cars, d_param = d_color1)
 
+
+#--- Pie Chart ------------------------------------------------------
+def Pie_chart(x, d_param = {}, o_fig = None):
+    if o_fig:
+        o_fig.pie(x, **d_param)
+    else:   
+        plt.pie(x, **d_param)
+        #plt.legend(['bicycle', 'moto','car','van'], loc = 'best')
+        plt.show()
+## With simple List
+#Pie_chart(x)
+## With Format
+#Pie_chart(x, d_param = {**d_colorsPie1, 'labels' : ['bicycle', 'moto','car','van','bicycle', 'moto','car','car','van']})
 
 
 #--- Bar Chart ------------------------------------------------------
-def Bar_chart(x, y, d_format = {}, o_fig = None):
+def Bar_chart(x, y, d_param = {}, o_fig = None):
     if o_fig:
-        o_fig.bar(x,y, **d_format)
+        o_fig.bar(x,y, **d_param)
     else:   
-        plt.bar(x,y, **d_format)
+        plt.bar(x,y, **d_param)
         # Label sur Abscisse et ordonne
         plt.xlabel('x')
         plt.ylabel('y')
 ## With simple List
 #Bar_chart(x = year, y = pop, o_fig = fig)
 ## Plus format
-#Bar_chart(x, y, d_format = {'width' : [0.5,0.5,0.5,0.9,0.5,0.5,0.5,0.5,0.5], 'color' : ['Salmon'], 'align' : 'center'})
+#Bar_chart(x, y, d_param = {'width' : [0.5,0.5,0.5,0.9,0.5,0.5,0.5,0.5,0.5], 'color' : ['Salmon'], 'align' : 'center'})
 
-def Bar_df_path(str_path, l_column = [], d_format = {}, bl_vertical = True):    
-    df = fDf_readDf_col(str_path, l_column)
-    if bl_vertical:
-        df.plot(kind = 'bar', **d_format)
-    else:
-        df.plot(kind = 'barh', **d_format)
-#Bar_df_path(r'4_LinkedIn\mtcars.csv', ['mpg'])
+def Bar_df_path(df, d_param = {}, bl_vertical = True):    
+    if bl_vertical:     df.plot(kind = 'bar', **d_param)
+    else:               df.plot(kind = 'barh', **d_param)
+#df_cars = fDf_readDf_col(r'4_LinkedIn\mtcars.csv', ['mpg'])
+#Bar_df_path(df_cars)
 
 
-#--- Pie Chart ------------------------------------------------------
-def Pie_chart(x, d_format = {}, o_fig = None):
-    if o_fig:
-        o_fig.pie(x, **d_format)
-    else:   
-        plt.pie(x, **d_format)
-        #plt.legend(['bicycle', 'moto','car','van'], loc = 'best')
-        plt.show()
-## With simple List
-#Pie_chart(x)
-## With Format
-#Pie_chart(x, d_format = {**d_colorsPie1, 'labels' : ['bicycle', 'moto','car','van','bicycle', 'moto','car','car','van']})
+#--- Histogram ------------------------------------------------------
+def Histogram(d_param):
+    plt.hist(life_exp, **d_param)
+    plt.show()
+    # plt.clf() cleans it up again so you can start afresh ?????
+    plt.clf()
+#Histogram(d_param = dict(bins = 50))
+
+def Histogram_df(df, d_param = {}):
+    df.plot(kind = 'hist', **d_param)      
+    ##     or   plt.hist(df, **d_param)
+#df_cars = fDf_readDf_col(r'4_LinkedIn\mtcars.csv', ['mpg'])
+#Histogram_df(df_cars, d_param = dict(bins = 50))
+
+def Hist_df_Trendline(df, d_param = {}):
+    sb.distplot(df, **d_param)
+#df_cars = fDf_readDf_col(r'4_LinkedIn\mtcars.csv', ['mpg'])
+#Hist_df_Trendline(df_cars, d_param = dict(bins = 15))
+
+
+#--- Scatter plot ------------------------------------------------------
+def ScatterPlot(bl_logX = False):
+    # Size = pop
+    np_popPerCountry = np.array(popPerCountry) * 2
+    # color :       c
+    # opacity :     alpha
+    plt.scatter(gdp_cap, life_exp, s = np_popPerCountry, c = CountryColor, alpha = 0.8)
+    if bl_logX:
+        # Put the x-axis on a logarithmic scale
+        plt.xscale('log')
+    # Add axis labels
+    plt.xlabel('GDP per Capita [in USD]')
+    plt.ylabel('Life Expectancy [in years]')
+    # Add title
+    plt.title('World Development in 2007')
+    # Ticks
+    tick_val = [1000, 10000, 100000]
+    tick_lab = ['1k', '10k', '100k']
+    plt.xticks(tick_val, tick_lab)
+    # Additional customizations
+    plt.text(1550, 71, 'India')
+    plt.text(5700, 80, 'China')    
+    # Add grid() call
+    plt.grid(True)
+    
+    # SHOW
+    plt.show()
+#ScatterPlot(True)
+
+def ScatterPlot_df(df, d_param = {}):
+    df.plot(kind = 'scatter', **d_param)
+#df_cars = fDf_readDf_col(r'4_LinkedIn\mtcars.csv', ['hp','mpg'])
+#ScatterPlot_df(df_cars, d_param = dict(x='hp', y='mpg', c=['darkgray'], s=150))
+
+def ScatterPlot_df_Trendline(df, d_param = {}):
+    '''show a Trend line (much better charts)'''
+    sb.regplot(data = df, scatter = True, **d_param)
+#df_cars = fDf_readDf_col(r'4_LinkedIn\mtcars.csv', ['hp','mpg'])
+#ScatterPlot_df_Trendline(df_cars, d_param = dict(x='hp', y='mpg'))
+
+
+
+#--- Scatter plot Matrix ------------------------------------------------------
+def ScatterPlotMatrix(df, d_param = {}):
+    sb.pairplot(df, **d_param)
+#df_cars = fDf_readDf_col(r'4_LinkedIn\mtcars.csv', ['hp','mpg'])
+#ScatterPlotMatrix(df_cars)
+
+def ScatterPlotMatrix_yIsColor(df, str_colNameYcolor, d_param = {}):
+    sb.pairplot(df, hue = str_colNameYcolor, **d_param)
+#df_cars = fDf_readDf_col(r'4_LinkedIn\mtcars.csv', ['mpg','disp','hp','wt', 'am'])
+#ScatterPlotMatrix_yIsColor(df_cars, str_colNameYcolor = 'am', d_param = dict(palette='hls'))
+    '''
+    # Data Analysis:
+    #   0 is automatic - 1 is manual transmission 
+    #   wt: Heavy cars are automatic, light cars are manual
+    #   mpg: Automatic cars have less Miles per gallon (but because they are heavier)
+    '''
+
+
 
 
 
@@ -286,12 +321,12 @@ def Pie_chart(x, d_format = {}, o_fig = None):
 
 #===================== Create Vizu from Time Series Data =====================
 def cours2_5():
-    df = fDf_readDf_col(r'4_LinkedIn\Superstore-Sales.csv', d_param = dict(index_col = 'Order Date', parse_dates = True))
-    print(df.head())
+    df_Superstore = fDf_readDf_col(r'4_LinkedIn\Superstore-Sales.csv', d_param = dict(index_col = 'Order Date', parse_dates = True))
+    print(df_Superstore.head())
     # too heavy to see anything
-    df['Order Quantity'].plot()
+    df_Superstore['Order Quantity'].plot()
     # need to take sample instead
-    df2 = df.sample(n = 100, random_state = 10, axis = 0)
+    df2 = df_Superstore.sample(n = 100, random_state = 10, axis = 0)
     df2['Order Quantity'].plot()
     plt.ylabel('Order Quantity')
 #cours2_5()

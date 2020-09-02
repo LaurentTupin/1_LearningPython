@@ -18,7 +18,6 @@
 	
 	
 #Construct Histograms, box plots and scatter plots
-	from pandas.tools.plotting import scatter_matrix
 	
 	#Call
 	mpg.plot(kind = 'hist')
@@ -29,23 +28,30 @@
 	sb.displot(mpg)			# show a Trend line as well (much better charts)
 	
 	#scatter plots
-	cars.plot(kind='scatter', x='hp', y='mpg', c=['darkgray'], s = 150)
+	cars.plot(kind='scatter', x='hp', y='mpg', c=['darkgray'], s=150)
 		# with seaborn
 	sb.regplot(x='hp', y='mpg', data = cars, scatter = True)	# show a Trend line (much better charts)
 	
 	#scatter plots matrix
 	sb.pairplot(cars)
 		#Illisible
-	
-	cars_df = pd.DataFrame((cars.ix[:,(1,3,4,6)].values), columns = ['mpg','disp','hp','wt'])
-	cars_target = cars[:,9].values
-	target_names = [0, 1]
-	cars_df['group'] = dp.Series(cars_target, dty = "category")
-	sb.pairplot(cars_df, hue='group', palette='hls')
-	 # Data Analysis:
-		# Heavy cars are automatic, light cars are manual
-		# Automatic cars have less Miles per gallon (but because they are heavier)
-		
+    # Make differently
+    cars_df = pd.DataFrame((df_cars.ix[:,(1,3,4,6)].values), columns = ['mpg','disp','hp','wt'])
+    cars_target = df_cars[:,9].values
+    target_names = [0, 1]
+    cars_df['group'] = dp.Series(cars_target, dtype = "category")
+    sb.pairplot(cars_df, hue='group', palette='hls')
+         # Data Analysis:
+        # Heavy cars are automatic, light cars are manual
+        # Automatic cars have less Miles per gallon (but because they are heavier)
+
+
+    
+    
+    
+    
+    
+    
 	#Box Plots
 	cars.boxplot(column='mpg', by ='am')
 	cars.boxplot(column='wt', by ='am')
