@@ -122,8 +122,8 @@ def SavePlotAsImage(plt, str_path):
     plt.savefig(str_path)
     plt.show()
 
-def fDf_readDf_col(str_path, l_column = []):
-    df = pd.read_csv(str_path)
+def fDf_readDf_col(str_path, l_column = [], d_param = {}):
+    df = pd.read_csv(str_path, **d_param)
     if l_column:
         df = df[l_column]
     return df
@@ -168,40 +168,56 @@ def ScatterPlot(bl_logX = False):
     
     # SHOW
     plt.show()
-ScatterPlot(True)
+#ScatterPlot(True)
 
 
 
 
 #===================== Object Oriented Method ===============================
 
-def Define_figure(l_axes, xlim = [], ylim = [], xticks = [], yticks = [], bl_grid = False):
+def Define_figure(d_format):
     #Generate blank figure
     fig = plt.figure()
     #add axis
-    fig = fig.add_axes(l_axes)
+    fig = fig.add_axes(d_format['l_axes'])
     #With limit on axis + tick + grid
-    if xlim:    fig.set_xlim(xlim)
-    if ylim:    fig.set_ylim(ylim)
-    if xticks:  fig.set_xticks(xticks)
-    if yticks:  fig.set_yticks(yticks)
-    if bl_grid: fig.grid()
+    if 'set_xlim' in d_format:        fig.set_xlim(d_format['set_xlim'])
+    if 'set_ylim' in d_format:        fig.set_ylim(d_format['set_ylim'])
+    if 'set_xticks' in d_format:      fig.set_xticks(d_format['set_xticks'])
+    if 'set_xticklabels' in d_format: fig.set_xticklabels(d_format['set_xticklabels'], rotation=60, fontsize = 'medium')
+    if 'set_yticks' in d_format:      fig.set_yticks(d_format['set_yticks'])
+    if 'set_title' in d_format:       fig.set_title(d_format['set_title'])
+    if 'set_xlabel' in d_format:      fig.set_xlabel(d_format['set_xlabel'])
+    if 'set_ylabel' in d_format:      fig.set_ylabel(d_format['set_ylabel'])
+    if 'bl_grid' in d_format:       fig.grid()
+    if 'legend' in d_format:        fig.legend(**d_format['legend'])
+    if 'annotate' in d_format:      fig.annotate(**d_format['annotate']) 
     return fig
-fig = Define_figure([0.1, 0.1, 1, 1], xlim = [1,9], ylim = [0,5], 
-                    xticks = [1,2, 3,4,5,6,7,8,9,10], yticks = [0,1,2,3,4,5],
-                    bl_grid = True)	
+#fig = Define_figure(d_format = dict(l_axes=[0.1, 0.1, 1, 1], set_xlim= [1,9], set_ylim= [0,5], bl_grid= True,
+#                                    set_xticks= range(1,10), set_yticks= range(6),
+#                                    set_xticklabels=['a','2','b','4','c','6','d','8','e'],
+#                                    set_title= 'Miles per galon of cars in mtcars',
+#                                    set_xlabel= 'Miles per galon of cars in mtcars',
+#                                    set_ylabel= 'Miles per gallon',
+#                                    legend= {'loc':'upper right'}, #best...
+#                                    annotate= dict(s= 'Toyota Corrolla', xy= (4,4), xytext= (5,4.2), 
+#                                                   arrowprops= dict(facecolor='red', shrink= 0.05))
+#                                    ))
+    
 
-
-
+    
 #--- LINE CHART ------------------------------------------------------
 def LinePlot(x, y, o_fig = None):
     if o_fig:
         o_fig.plot(x, y)
     else:   
         plt.plot(x, y)
-        #plt.show()
+        plt.xlabel('x')
+        plt.ylabel('y')
+        plt.show()
 ## With simple List
-#LinePlot(x = x, y = y, o_fig = fig) 
+#LinePlot(x, y)
+#LinePlot(x, y, o_fig = fig) 
 
 def LinePlot_listOfLines(l_Line):
     for line in l_Line:
@@ -210,13 +226,13 @@ def LinePlot_listOfLines(l_Line):
         d_format = line[2]
         plt.plot(x, y, **d_format)
         #        plt.plot(x,y, ls = 'steps', lw = 5)
-        #    	 plt.plot(x1,y1, ls = '--', lw = 10)
+        #         plt.plot(x1,y1, ls = '--', lw = 10)
         #        plt.plot(x,y,   marker = '1', mew = 20)
         #        plt.plot(x1,y1, marker = '+', mew = 15)
+    plt.xlabel('x')
+    plt.ylabel('y')
     plt.show()
 ## With several lines
-#LinePlot_listOfLines([(x,y), (x,y1)]) 
-## With Format
 #LinePlot_listOfLines([(x,y, {'ls' : 'steps', 'lw': 5, 'marker':1}), (x,y1, {'ls' : '--', 'lw' : 10})])
 #LinePlot_listOfLines([(x,y, {'ls' : '--', 'marker':'1', 'mew':20}), (x,y1, {'ls' : '--', 'marker':'+', 'mew':5})])
 
@@ -234,21 +250,21 @@ def Bar_chart(x, y, d_format = {}, o_fig = None):
         o_fig.bar(x,y, **d_format)
     else:   
         plt.bar(x,y, **d_format)
-# With simple List
+        # Label sur Abscisse et ordonne
+        plt.xlabel('x')
+        plt.ylabel('y')
+## With simple List
 #Bar_chart(x = year, y = pop, o_fig = fig)
-# Plus format
+## Plus format
 #Bar_chart(x, y, d_format = {'width' : [0.5,0.5,0.5,0.9,0.5,0.5,0.5,0.5,0.5], 'color' : ['Salmon'], 'align' : 'center'})
 
-def Bar_df_path(str_path, l_column = [], bl_vertical = True):
-    df = pd.read_csv(str_path)
-    if l_column:
-        df = df[l_column]
+def Bar_df_path(str_path, l_column = [], d_format = {}, bl_vertical = True):    
+    df = fDf_readDf_col(str_path, l_column)
     if bl_vertical:
-        df.plot(kind = 'bar')
+        df.plot(kind = 'bar', **d_format)
     else:
-        df.plot(kind = 'barh')		
+        df.plot(kind = 'barh', **d_format)
 #Bar_df_path(r'4_LinkedIn\mtcars.csv', ['mpg'])
-
 
 
 #--- Pie Chart ------------------------------------------------------
@@ -257,10 +273,30 @@ def Pie_chart(x, d_format = {}, o_fig = None):
         o_fig.pie(x, **d_format)
     else:   
         plt.pie(x, **d_format)
+        #plt.legend(['bicycle', 'moto','car','van'], loc = 'best')
         plt.show()
-    
 ## With simple List
-Pie_chart(x)
+#Pie_chart(x)
 ## With Format
-Pie_chart(x, d_format = d_colorsPie1)
+#Pie_chart(x, d_format = {**d_colorsPie1, 'labels' : ['bicycle', 'moto','car','van','bicycle', 'moto','car','car','van']})
+
+
+
+
+
+#===================== Create Vizu from Time Series Data =====================
+def cours2_5():
+    df = fDf_readDf_col(r'4_LinkedIn\Superstore-Sales.csv', d_param = dict(index_col = 'Order Date', parse_dates = True))
+    print(df.head())
+    # too heavy to see anything
+    df['Order Quantity'].plot()
+    # need to take sample instead
+    df2 = df.sample(n = 100, random_state = 10, axis = 0)
+    df2['Order Quantity'].plot()
+    plt.ylabel('Order Quantity')
+#cours2_5()
+
+
+
+
 
