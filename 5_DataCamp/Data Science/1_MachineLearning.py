@@ -56,12 +56,21 @@ def EDA_countPlot():
         sb.countplot(x=xx, hue='flower', data=df) #, palette='RdBu'
         plt.xticks([0,1], ['No', 'Yes'])
         plt.show()
-EDA_countPlot()
+#EDA_countPlot()
 
+def ClassificationChallenge():
+    df, y = IrisData()
+    # K-Nearest neighbors
+    from sklearn.neighbors import KNeighborsClassifier
+    knn = KNeighborsClassifier(n_neighbors = 6)
+    knn.fit(df, y)
+    y_predict = knn.predict(np.array([[5.6,2.8,3.9,1.1], 
+                                      [5.7, 2.6, 3.8, 1.3], 
+                                      [4.7, 3.2, 1.3, 0.2]]))
+    return y_predict
 
-
-
-
+y_predict = ClassificationChallenge()
+print(y_predict)
 
 
 
