@@ -333,9 +333,9 @@ def ScatterPlot_df_Trendline(df, d_param = {}):
 #--- Scatter plot Matrix ------------------------------------------------------
 def ScatterPlotMatrix(df, str_colNameYcolor = None, d_param = {}):
     pd.plotting.scatter_matrix(df, c = str_colNameYcolor, **d_param)
-#X, y, l_feature_names, l_target_names = IrisData()
-#df = dDf_TransformXinDf(X, l_feature_names)
-#ScatterPlotMatrix(df, str_colNameYcolor = y, d_param = dict(s = 100, marker = 'D', figsize = [12,8]))
+X, y, l_feature_names, l_target_names = IrisData()
+df = dDf_TransformXinDf(X, l_feature_names)
+ScatterPlotMatrix(df, str_colNameYcolor = y, d_param = dict(s = 100, marker = 'D', figsize = [12,8]))
     
 def ScatterPlotMatrix_sb(df, d_param = {}):
     sb.pairplot(df, **d_param)
@@ -344,23 +344,14 @@ def ScatterPlotMatrix_sb(df, d_param = {}):
 
 def ScatterPlotMatrix_yIsColor(df, str_colNameYcolor = None, d_param = {}):
     sb.pairplot(df, hue = str_colNameYcolor, **d_param)
-<<<<<<< Updated upstream
 #df_cars = fDf_readDf_col(r'4_LinkedIn\mtcars.csv', ['mpg','disp','hp','wt', 'am'])
 #ScatterPlotMatrix_yIsColor(df_cars, str_colNameYcolor = 'am', d_param = dict(palette='hls'))
-=======
-df_cars = fDf_readDf_col(r'4_LinkedIn\mtcars.csv', ['mpg','disp','hp','wt', 'am'])
-ScatterPlotMatrix_yIsColor(df_cars, str_colNameYcolor = 'am', d_param = dict(palette='hls'))
->>>>>>> Stashed changes
     #    '''
     #    # Data Analysis:
     #    #   0 is automatic - 1 is manual transmission 
     #    #   wt: Heavy cars are automatic, light cars are manual
     #    #   mpg: Automatic cars have less Miles per gallon (but because they are heavier)
     #    '''
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
 
 
 #--- Box Plots ------------------------------------------------------
