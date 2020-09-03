@@ -105,7 +105,6 @@ CountryColor = ['red', 'green', 'blue', 'blue', 'yellow', 'black', 'green', 'red
 # Import 
 import numpy as np
 import pandas as pd
-# Matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 import seaborn as sb
@@ -256,12 +255,12 @@ def Bar_df_path(df, d_param = {}, bl_vertical = True):
 
 
 #--- Histogram ------------------------------------------------------
-def Histogram(d_param):
-    plt.hist(life_exp, **d_param)
+def Histogram(df, d_param = {}):
+    plt.hist(df, **d_param)
     plt.show()
     # plt.clf() cleans it up again so you can start afresh ?????
     plt.clf()
-#Histogram(d_param = dict(bins = 50))
+#Histogram(life_exp, d_param = dict(bins = 50))
 
 def Histogram_df(df, d_param = {}):
     df.plot(kind = 'hist', **d_param)      
@@ -345,15 +344,23 @@ def ScatterPlotMatrix_sb(df, d_param = {}):
 
 def ScatterPlotMatrix_yIsColor(df, str_colNameYcolor = None, d_param = {}):
     sb.pairplot(df, hue = str_colNameYcolor, **d_param)
+<<<<<<< Updated upstream
 #df_cars = fDf_readDf_col(r'4_LinkedIn\mtcars.csv', ['mpg','disp','hp','wt', 'am'])
 #ScatterPlotMatrix_yIsColor(df_cars, str_colNameYcolor = 'am', d_param = dict(palette='hls'))
+=======
+df_cars = fDf_readDf_col(r'4_LinkedIn\mtcars.csv', ['mpg','disp','hp','wt', 'am'])
+ScatterPlotMatrix_yIsColor(df_cars, str_colNameYcolor = 'am', d_param = dict(palette='hls'))
+>>>>>>> Stashed changes
     #    '''
     #    # Data Analysis:
     #    #   0 is automatic - 1 is manual transmission 
     #    #   wt: Heavy cars are automatic, light cars are manual
     #    #   mpg: Automatic cars have less Miles per gallon (but because they are heavier)
     #    '''
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 
 
 #--- Box Plots ------------------------------------------------------

@@ -52,7 +52,7 @@ def cours1_scatter_matrix():
     df = dDf_TransformXinDf(X, l_feature_names)
     # Some Chart / plot
     pd.plotting.scatter_matrix(df, c = y, s = 100, marker = 'D', figsize = [12,8])
-#cours1_scatter_matrix()
+cours1_scatter_matrix()
 
 def EDA_countPlot():
     X, y, l_feature_names, l_target_names = IrisData()
