@@ -105,6 +105,7 @@ CountryColor = ['red', 'green', 'blue', 'blue', 'yellow', 'black', 'green', 'red
 # Import 
 import numpy as np
 import pandas as pd
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 import seaborn as sb
@@ -331,11 +332,12 @@ def ScatterPlot_df_Trendline(df, d_param = {}):
 
 
 #--- Scatter plot Matrix ------------------------------------------------------
-def ScatterPlotMatrix(df, str_colNameYcolor = None, d_param = {}):
-    pd.plotting.scatter_matrix(df, c = str_colNameYcolor, **d_param)
-X, y, l_feature_names, l_target_names = IrisData()
-df = dDf_TransformXinDf(X, l_feature_names)
-ScatterPlotMatrix(df, str_colNameYcolor = y, d_param = dict(s = 100, marker = 'D', figsize = [12,8]))
+def ScatterPlotMatrix(df, y_col = None, d_param = {}):
+    pd.plotting.scatter_matrix(df, c = y_col, **d_param)
+#X, y, l_feature_names, l_target_names = IrisData()
+#df = dDf_TransformXinDf(X, l_feature_names)
+#ScatterPlotMatrix(df, y_col = y, d_param = dict(s = 100, marker = 'D', figsize = [12,8],
+#                                                cmap = matplotlib.colors.ListedColormap(['red','green'])))
     
 def ScatterPlotMatrix_sb(df, d_param = {}):
     sb.pairplot(df, **d_param)
