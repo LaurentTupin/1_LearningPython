@@ -1,130 +1,26 @@
-
+'''
 #============================================================================================
 # Part of the LinkedIn course: Python for Data Science Essential Training
 ## https://www.linkedin.com/learning/python-for-data-science-essential-training/introduction-to-machine-learning?u=69004890
 #============================================================================================
+'''
 
-
-#--------------------------------------------------------------------------------------------
-# 3. Basic Math and Statistics
-
-#Use Numpy
+import pandas as pd
 import numpy as np
-from numpy.random import randn
-
-def part3():
-    #Round = 2 for the printing
-    np.set_printoptions(precision = 2)
-
-    #Create Array
-    a = np.array(range(1,7))                    # 1 row
-    d = np.arange(1, 35)                        # 1 row
-    b = np.array([10, 20, 30], [40, 50, 60])    # 2 rows
-
-    np.random.seed(25)
-    c = 36 * np.random.randn(5)
-
-    #Arithmetic on Array
-    a * 10
-    c + a
-    c * a
-    c / a
-
-    #Linear Algebra
-    try:
-        #Matrix multiplication
-        aa = np.array([2., 4., 6.], [1., 3., 5.], [10., 20., 30.])
-        bb = np.array([0., 1., 2.],[3., 5., 5.], [6., 20., 7.])
-
-        cc = aa * bb
-        #==> Matrix de 3*3 multiplication simple
-        #cc = np.array([0, 4, 12], [3, 15, 25], [60, 400, 210])
-
-        #Dot prodict (multiplication scalaire / scalar)
-        np.dot(aa,bb)
-        #==> Matrix de 3*3 multiplication matricielle
-        #aa = np.array([[48, xx, xx], [xx, xx, xx], [xx, xx, xx])
-        #48 = 2*0 + 4*3 + 6*6
-    except: pass
-
+import matplotlib.pyplot as plt
+import seaborn as sb
+from pylab import rcParams
 
 #Statistics
-import pandas as pd
-import scipy
-from scipy import stats
+from scipy.stats import spearmanr, chi2_contingency
+from scipy.stats.stats import pearsonr
 
-def part3_stat():
-    #df
-    cars = pd.read_csv(path)
-    #Basics Stat
-    cars.sum()
-    cars.sums(axis = 1)        #SUM by rows of all float columns
-    cars.median()
-    cars.mean()
-    cars.max()
-    cars['mpg'].idxmax()
-    cars.std()                #Vol
-    cars.var()                #vol ** 2
-    #Get them all
-    cars.describe()
-
-    #Unique values of a Series
-    cars['gear'].value_counts()        # => List of Unique values (index) in a Series with their recurence (Value)
+# Data Science: sklearn
+from sklearn.preprocessing import scale
+from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.metrics import classification_report
 
 
-#Categorical Data
-    cars['carb'].value_counts()
-    gears_group = cars_cat.groupby('gear')
-    #CrossTab
-    pd.crosstab(cars['am'], cars['gear'])
-
-#Parametric methods
-    #Pearson Correlation: Assumptions
-    '''
-    - Your data is normally distributed
-    - Continuous, numeric variables
-    - Variables are linearly related
-    '''
-
-    #Import
-    import numpy as np
-    import pandas as pd
-    import matplotlib.pyplot as plt
-    import seaborn as sb
-    from pylab import rcParams
-
-    import scipy
-    from scipy.stats.stats import pearsonr
-
-    #Visualisation settings
-    #%matplotlib inline
-    rcParams['figure.figsize'] = 8, 4
-    plt.style.use('seaborn-whitegrid')
-
-    #scatter plot metrix
-    sb.pairplot(cars)
-
-    #Pearson correlation calculation
-    mpg = cars['mpg']
-    hp = cars['hp']
-    qsec = cars['qsec']
-    wt = cars['wt']
-
-    pearsonr_coefficient, p_value = pearsonr(mpg, hp)
-    #--> -0.776 (R)
-
-    pearsonr_coefficient, p_value = pearsonr(mpg, qsec)
-    #--> 0.419 (R)
-
-    pearsonr_coefficient, p_value = pearsonr(mpg, wt)
-    #--> -0.868 (R)
-
-    #With Pandas
-    carr = X.corr()
-    #--> Array of correlation
-
-    #With Seaborn for Charts
-    sb.heatmap(corr, xticklabels = corr.columns.values, yticklabels = corr.columns.values)
 
 
 #Non - Parametric methods
@@ -136,9 +32,6 @@ def part3_stat():
     - Variables are NON-linearly related
     '''
 
-    #Import
-    from scipy.stats import spearmanr
-    from scipy.stats import chi2_contingency
 
     #series: Get R
     cyl = cars['cyl']
@@ -423,12 +316,6 @@ def part6_ClusterAnalysis():
 
 #--------------------------------------------------------------------------------------------
 # 7. Basic Algo Learning
-import seaborn as sb
-from sklearn.preprocessing import scale
-from sklearn.linear_model import LinearRegression, LogisticRegression
-from sklearn.metrics import classification_report
-from scipy.stats import spearmanr
-
 def part7_algo():
     #-----------------------------------
     # Checking for missing values
