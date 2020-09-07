@@ -7,22 +7,16 @@
 
 import pandas as pd
 import numpy as np
-from numpy.random import randn
 import matplotlib.pyplot as plt
 import seaborn as sb
 from pylab import rcParams
-
 #Statistics
-from scipy.stats import spearmanr, chi2_contingency
+from scipy.stats import chi2_contingency
 from scipy.stats.stats import pearsonr
-
 # Data Science: sklearn
 from sklearn import preprocessing
-from sklearn.linear_model import LinearRegression, LogisticRegression
-from sklearn.metrics import classification_report
 
 df_cars = pd.read_csv(r'mtcars.csv')
-
 
 
 #==============================================================================
