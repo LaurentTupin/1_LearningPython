@@ -203,15 +203,15 @@ def LinePlot_listOfLines(l_Line):
         d_format = line[2]
         plt.plot(x, y, **d_format)
         #        plt.plot(x,y, ls = 'steps', lw = 5)
-        #         plt.plot(x1,y1, ls = '--', lw = 10)
+        #        plt.plot(x1,y1, ls = '--', lw = 10)
         #        plt.plot(x,y,   marker = '1', mew = 20)
         #        plt.plot(x1,y1, marker = '+', mew = 15)
     plt.xlabel('x')
     plt.ylabel('y')
     plt.show()
 ## With several lines
-#LinePlot_listOfLines([(x,y, {'ls' : 'steps', 'lw': 5, 'marker':1}), (x,y1, {'ls' : '--', 'lw' : 10})])
-#LinePlot_listOfLines([(x,y, {'ls' : '--', 'marker':'1', 'mew':20}), (x,y1, {'ls' : '--', 'marker':'+', 'mew':5})])
+#LinePlot_listOfLines([(x,y, dict(ls= 'steps', lw= 5, marker= 1)),  (x,y1, dict(ls= '--', lw= 10))])
+#LinePlot_listOfLines([(x,y, dict(ls= '--', marker= 1, mew = 20)),  (x,y1, dict(ls= '--', marker= '+', mew = 5))])
 
 def LinePlot_df(df, d_param = {}):
     df.plot(**d_param)
@@ -348,13 +348,12 @@ def ScatterPlotMatrix_yIsColor(df, str_colNameYcolor = None, d_param = {}):
     sb.pairplot(df, hue = str_colNameYcolor, **d_param)
 #df_cars = fDf_readDf_col(r'4_LinkedIn\mtcars.csv', ['mpg','disp','hp','wt', 'am'])
 #ScatterPlotMatrix_yIsColor(df_cars, str_colNameYcolor = 'am', d_param = dict(palette='hls'))
-    #    '''
-    #    # Data Analysis:
-    #    #   0 is automatic - 1 is manual transmission 
-    #    #   wt: Heavy cars are automatic, light cars are manual
-    #    #   mpg: Automatic cars have less Miles per gallon (but because they are heavier)
-    #    '''
-
+    #    #    '''
+    #    #    # Data Analysis:
+    #    #    #   0 is automatic - 1 is manual transmission 
+    #    #    #   wt: Heavy cars are automatic, light cars are manual
+    #    #    #   mpg: Automatic cars have less Miles per gallon (but because they are heavier)
+    #    #    '''
 
 #--- Box Plots ------------------------------------------------------
 def BoxPlot(df, str_column, str_colBy, d_param = {}):

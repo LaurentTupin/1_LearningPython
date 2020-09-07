@@ -16,91 +16,10 @@ from scipy.stats import spearmanr, chi2_contingency
 from scipy.stats.stats import pearsonr
 
 # Data Science: sklearn
-from sklearn.preprocessing import scale
+from sklearn import preprocessing
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.metrics import classification_report
 
-
-
-
-#Non - Parametric methods
-    #Assumptions Spearman Rank Correlation
-    '''
-    - Your data is NON-normally distributed
-    - Variables are ordinal (numeric but able to be ranked like categorical variable)
-        * bin the variable, if x in [0, 100], put it in 10 groups for the Var to be Discrete (in Categroy): 0-10-20-...-100
-    - Variables are NON-linearly related
-    '''
-
-
-    #series: Get R
-    cyl = cars['cyl']
-    vs = cars['vs']
-    am = cars['am']
-    gear = cars['gear']
-
-    spearmanr_coef, p_value = spearmanr(cyl, vs)
-    #--> -0.814
-
-    spearmanr_coef, p_value = spearmanr(cyl, am)
-    #--> -0.522
-
-    spearmanr_coef, p_value = spearmanr(cyl, gear)
-    #--> -0.564
-
-    #Chi-Square
-    #IF p < 0.05 THEN variables are correlated
-    #IF p > 0.05 THEN variables are independent
-    def CrossTab():
-        #CrossTab
-        table = pd.crosstab(cyl, vs)
-        chi2, p, dof, expected = chi2_contingency(table.values)
-        #--> chi2 = 21.340, p = 0.000
-
-        table = pd.crosstab(cyl, am)
-        chi2, p, dof, expected = chi2_contingency(table.values)
-        #--> chi2 = 8.745, p = 0.013
-
-        table = pd.crosstab(cyl, gear)
-        chi2, p, dof, expected = chi2_contingency(table.values)
-        #--> chi2 = 18.036, p = 0.001
-
-        # --> No Variables are independant of each other
-
-# Transform dataset distributions
-    # You need to scale your variables, examples: Inflation when comparing 1990 and 2016 prices /revenues
-        # 1. Normalization: putting each observation on a relative scale between 0 & 1
-            # (Value of observation) / (Sum of all observation in variable)
-
-        # 2. Standardization - rescaling data so it has a zero mean and a unit variance
-
-    # Scikit-Learn Preprocessing
-    import sklearn
-    from sklearn import preprocessing
-    from sklearn.preprocessing import scale
-
-    ### %matplotlib inline
-    rcParams['figure.figsize'] = 5, 4
-    sb.set_style('whitegrid')
-
-    mpg = cars.mpg
-    plt.plot(mpg)
-    mpg.describe()
-
-    # 1. Normalization
-    mpg_matrix = mpg.reshape(-1,1)
-    scaled = preprocessing.MinMaxScaler(feature_range = (0,1))
-    scaled_mpg = scaled.fit_transform(mpg_matrix)
-    plt.plot(scaled_mpg)
-
-    # 2. Standardization
-    standardized_mpg = scale(mpg, axis=0, with_mean = False, with_std = False)
-    plt.plot(standardized_mpg)
-    #--> Same as the initial chart  of mpg
-
-    standardized_mpg = scale(mpg)
-    plt.plot(standardized_mpg)
-    #--> Standardized !!!
 
 
 
@@ -221,7 +140,7 @@ def part6_ClusterAnalysis():
     import sklearn.metrics as sm
 
     iris = datasets.load_iris()
-    X = scale(iris.data)
+    X = preprocessing.scale(iris.data)
     Y = pd.DataFrame(iris.target)
     variables_names = iris.feature_names
 
@@ -291,7 +210,7 @@ def part6_ClusterAnalysis():
     X_prime = cars.ix[:,(1,3,4,6)].values
     y = cars.ix[:,9].values
 
-    X = preprocessing.scale(X_prime)
+    X = preprocessing.preprocessing.scale(X_prime)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = .33, random_state = 17)
 
     # Building and training your model with training data
@@ -364,7 +283,7 @@ def part7_algo():
         fBl_matrixCorrel(df_enroll)
         
         # Choose coluns input / col result
-        X = scale(df_enroll.iloc[:,2:4].values)
+        X = preprocessing.scale(df_enroll.iloc[:,2:4].values)
         y = df_enroll.iloc[:,1]
         
         LinReg = LinearRegression(normalize = True)
@@ -393,7 +312,7 @@ def part7_algo():
         
         # Choose coluns input / col result
         cars_data = df_cars.iloc[:,[5,11]].values
-        X = scale(cars_data)
+        X = preprocessing.scale(cars_data)
         y = df_cars.iloc[:,9].values
         
         LogReg = LogisticRegression()

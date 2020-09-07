@@ -16,10 +16,53 @@ from pylab import rcParams
 from scipy.stats import spearmanr, chi2_contingency
 from scipy.stats.stats import pearsonr
 
+# Data Science: sklearn
+from sklearn import preprocessing
+from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.metrics import classification_report
 
 df_cars = pd.read_csv(r'mtcars.csv')
 
-#--------------------------------------------------------------------------------------------
+
+
+#==============================================================================
+# Function
+#==============================================================================
+def cross_Tab(df, str_varRow, str_varCol):
+    cT = pd.crosstab(df[str_varRow], df[str_varCol])
+    return cT
+
+# Find the R and deduct Linear Correlated
+def fBl_IsLinearCorrelated(ser1, ser2):
+    R, p_value = pearsonr(ser1, ser2)
+    print(R, ' || ', p_value)
+    if R > 0.75 or R < -0.75:   return True
+    else:                       return False
+    
+# Find the p and deduct Correlation
+def fBl_nonParametricCorrelation(df, str_varRow, str_varCol):
+    # Put data into Cross Table
+    cT = cross_Tab(df, str_varRow, str_varCol)
+    # Apply the function chi2_contingency on the Table
+    chi2, p, dof, expected = chi2_contingency(cT.values)
+    print('p: %0.3f || chi2: %0.1f  || dof: %0.0f '%(p, chi2, dof))
+    ### print(expected)
+    if p < 0.05:        return True     #IF p < 0.05 THEN variables are correlated
+    elif p >= 0.05:     return False    #IF p > 0.05 THEN variables are independent
+    else:               return 'ERROR in fBl_nonParametricCorrelation'
+
+def fArr_normalization(ser, t_rangeLimit = (0,1)):
+    arr_matrix = ser.values.reshape(-1,1)
+    o_scaled = preprocessing.MinMaxScaler(feature_range = t_rangeLimit)
+    arr_scaled_matrix = o_scaled.fit_transform(arr_matrix)
+    return arr_scaled_matrix
+
+
+
+
+#==============================================================================
+# Course
+#==============================================================================
 # 3. Basic Math and Statistics
 def Operation_OnNumpy():
     #Round = 2 for the printing
@@ -99,16 +142,10 @@ def Statistics(df_cars):
     print(' value_counts: \n', df_cars['gear'].value_counts(), 
           '\n--------------------')        
         # => List of Unique values (index) in a Series with their recurence (Value)
-    
 #Statistics(df_cars)
 
 
-
 def Categorical_Data(df_cars):
-    def cross_Tab(df, str_varRow, str_varCol):
-        cT = pd.crosstab(df[str_varRow], df[str_varCol])
-        return cT
-    
     ValCount_carb = df_cars['carb'].value_counts()
     print(ValCount_carb, 
           '\n--------------------')
@@ -119,25 +156,25 @@ def Categorical_Data(df_cars):
     gears_group = df_cars_cat.groupby('gear')
     print(gears_group.describe(), 
           '\n--------------------')
-    
     # adding a new column
     df_cars['group'] = pd.Series(df_cars.gear, dtype = 'category')
     print(type(df_cars['group']))
     print(df_cars['group'].value_counts(), 
           '\n--------------------')
-    
     #CrossTab
     cT = cross_Tab(df_cars, 'am', 'gear')
     print(cT)
-    
 #Categorical_Data(df_cars)
 
+
+
+    
 
 def Parametric_methods(df):
     # R is the Pearson Correlation Coefficient
     '''
-    - Your data is normally distributed
     - Continuous, numeric variables
+    - Your data is normally distributed
     - Variables are linearly related
     '''
     # Visualisation settings
@@ -150,12 +187,6 @@ def Parametric_methods(df):
     # scatter plot metrix  - refer to ScatterPlotMatrix_sb
     ###  sb.pairplot(df_cars)
     
-    # Find the R and deduct Linear Correlated
-    def fBl_IsLinearCorrelated(ser1, ser2):
-        R, p_value = pearsonr(ser1, ser2)
-        print(R, ' || ', p_value)
-        if R > 0.75 or R < -0.75:   return True
-        else:                       return False
     bl_linearCor = fBl_IsLinearCorrelated(df_cars['mpg'], df_cars['hp'])
     bl_linearCor = fBl_IsLinearCorrelated(df_cars['mpg'], df_cars['qsec'])
     bl_linearCor = fBl_IsLinearCorrelated(df_cars['mpg'], df_cars['wt'])
@@ -170,10 +201,93 @@ def Parametric_methods(df):
     
     # With Seaborn for Charts
     sb.heatmap(corr, xticklabels = corr.columns.values, yticklabels = corr.columns.values)
+#Parametric_methods(df_cars)
 
-Parametric_methods(df_cars)
 
 
+def NonParametric_methods(df):
+    '''   Assumptions Spearman Rank Correlation
+    - Your data is NON-normally distributed
+    - Variables are ordinal (numeric but able to be ranked like categorical variable)
+        * bin the variable, if x in [0, 100], put it in 10 groups for the Var to be Discrete (in Categroy): 0-10-20-...-100
+    - Variables are NON-linearly related
+    '''
+    # Visualisation settings
+    ### %matplotlib inline
+    rcParams['figure.figsize'] = 6, 2
+    plt.style.use('seaborn-whitegrid')
+    
+    df_cars = df[['cyl','vs','am','gear']].copy()
+    # scatter plot metrix  - refer to ScatterPlotMatrix_sb
+    ###      sb.pairplot(df_cars)
+    
+    # Find the R and deduct Linear Correlated
+    bl_linearCor = fBl_IsLinearCorrelated(df_cars['cyl'], df_cars['vs'])
+    #--> -0.814
+    bl_linearCor = fBl_IsLinearCorrelated(df_cars['cyl'], df_cars['am'])
+    #--> -0.522
+    bl_linearCor = fBl_IsLinearCorrelated(df_cars['cyl'], df_cars['gear'])
+    #--> -0.564
+    print(bl_linearCor)
+    
+    # Chi-Square Test of independance
+    bl_Correlation = fBl_nonParametricCorrelation(df_cars, 'cyl', 'vs')
+    bl_Correlation = fBl_nonParametricCorrelation(df_cars, 'cyl', 'am')
+    bl_Correlation = fBl_nonParametricCorrelation(df_cars, 'cyl', 'gear')
+    print(bl_Correlation)
+    #    cT = cross_Tab(df_cars, 'cyl', 'am')
+    #    print(cT)
+    #    chi2, p, dof, expected = chi2_contingency(cT.values)
+    #    #IF p < 0.05 THEN variables are correlated
+    #    #IF p > 0.05 THEN variables are independent
+#NonParametric_methods(df_cars)
+
+
+
+
+def fArr_standardization(ser, d_param = {}):
+    arr_standard = preprocessing.scale(ser, **d_param)
+    # print(arr_standard)
+    return arr_standard
+
+
+
+
+def ReShapedatasets(df):
+    '''
+    # You need to scale your variables, examples: Inflation when comparing 1990 and 2016 prices /revenues
+        # 1. Normalization: putting each observation on a relative scale between 0 & 1
+            # (Value of observation) / (Sum of all observation in variable)
+        # 2. Standardization - rescaling data so it has a zero mean and a unit variance
+    '''
+    # Visualisation settings
+    ### %matplotlib inline
+    rcParams['figure.figsize'] = 10, 4
+    plt.style.use('seaborn-whitegrid')
+    
+    # plot
+    df_cars = df[['mpg']].copy()
+    ###         plt.plot(df_cars['mpg'])
+    ###         print(df_cars.describe())
+    
+    # 1. Normalization: putting each observation on a relative scale between 0 & 1
+    arr_Norm = fArr_normalization(df_cars['mpg'])
+    plt.plot(arr_Norm)
+    
+    # 2. Standardization: rescaling data so it has a zero mean and a unit variance
+    arr_std_1 = fArr_standardization(df_cars['mpg'], d_param = dict(with_mean = False, with_std = False)) 
+        # Just like the original ## df_cars ##
+    arr_std_2 = fArr_standardization(df_cars['mpg'], d_param = dict(with_std = False))          # Minus the mean
+    arr_std_3 = fArr_standardization(df_cars['mpg'], d_param = dict(with_mean = False))         # Divided by the Std Deviation
+    arr_std_4 = fArr_standardization(df_cars['mpg'])                                            # Standardized
+    
+    # Chart
+    df_cars['Minus_Mean'] = pd.Series(arr_std_2)   #, dtype = 'category'
+    df_cars['DivBy_Std'] = pd.Series(arr_std_3)   #, dtype = 'category'
+    df_cars['Standardized'] = pd.Series(arr_std_4)   #, dtype = 'category'
+    df_cars.plot(alpha = 0.5, lw = 3, ls= '--')
+      
+ReShapedatasets(df_cars)
 
 
 
