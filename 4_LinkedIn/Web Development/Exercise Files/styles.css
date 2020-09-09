@@ -1,0 +1,132 @@
+@charset "UTF-8";
+html {
+	background: #BDD4DE;
+}
+body {
+	font: 100% Georgia, "Times New Roman", Times, serif;
+	line-height: 1.4;
+	width: 80%;
+	margin: 0 auto;
+	color: #2B3A42;
+}
+/*micro-clearfix by Nicolas Gallagher http://nicolasgallagher.com/micro-clearfix-hack/*/
+/* For modern browsers */
+.cf:before, .cf:after {
+	content:"";
+	display:table;
+}
+
+.cf:after {
+	clear:both;
+}
+
+/* For IE 6/7 (trigger hasLayout) */
+.cf {
+	zoom:1;
+}
+h1, h2, h3 {
+	font-size: 2.4em;
+	font-weight: normal;
+	text-shadow: 0 1px 0 rgba(239, 239, 239, 0.75);
+	color: #2B3A42;
+}
+h2 {
+	font-size: 2em;
+	margin: 0 0 .5em;
+	border-bottom: 1px solid #333;
+}
+h3 {
+	font-size: 1.4em;
+	margin: 0 0 .5em;
+}
+p {
+	margin: 0 0 2em;
+}
+a:link, a:visited {
+	color: #7F3719;
+}
+a:hover {
+	color: white;
+}
+a:active {
+	outline: 0;
+	background: rgb(210,183,143);
+}
+a:focus {
+	outline: 1px solid red;
+}
+h2 a:link, h2 a:visited {
+	color: #7F3719;
+	text-decoration: none;
+}
+h2 a:hover, h2 a:focus {
+	color: white;
+}
+nav ul {
+	list-style: none;
+	margin: 0;
+	padding: 0.2em 0.5em;
+	margin-bottom: 1em;
+	background: #2B3A42;
+}
+nav li {
+	display: inline-block;
+	font-size: 1.6em;
+	margin-right: 1.6em;
+}
+nav a:link, nav a:visited {
+	color: white;
+	text-decoration: none;
+	text-shadow: none;
+}
+nav a:hover, nav a:focus {
+	color: #FF530D;
+}
+a.current:link, a.current:visited, a.current:hover {
+	color: #ccc;
+	cursor:default;
+}
+
+.author {
+	font-weight:bold;
+	display:block;
+}
+
+@media only screen and (min-width: 830px) {
+
+section {
+	display: -webkit-flex;
+	display: -ms-flexbox;
+	display: flex;
+	-webkit-flex-flow: row wrap;
+	-ms-flex-flow: row wrap;
+	flex-flow: row wrap;
+	-webkit-justify-content: space-between;
+	-ms-flex-pack: justify;
+	justify-content: space-between;
+	margin-bottom: 2em;
+}
+section h2 {
+	font-size: 1.4em;
+	margin: 0 0 .2em;
+}
+
+.item {
+	display: inline-block;
+	width:30%;
+}
+
+@media only screen and (max-width: 829px) {
+body {
+	width: 90%;
+}
+section h2 {
+	font-size: 1.4em;
+	margin: 0 0 .2em;
+}
+section p {
+	font-size: 1em;
+	margin: 0 0 2em;
+}
+}
+
