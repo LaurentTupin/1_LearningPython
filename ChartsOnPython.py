@@ -105,7 +105,7 @@ CountryColor = ['red', 'green', 'blue', 'blue', 'yellow', 'black', 'green', 'red
 # Import 
 import numpy as np
 import pandas as pd
-import matplotlib
+import matplotlib.colors as matpltlib_color
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 import seaborn as sb
@@ -113,7 +113,7 @@ import seaborn as sb
 
 #---------------------------------------------------------
 # Notes
-rcParams['figure.figsize'] = 10,4
+rcParams['figure.figsize'] = 10,5
 sb.set_style('whitegrid')
 
 # Colors
@@ -126,7 +126,7 @@ def Notes():
     ### %matplotlib inline
     
     #Change the size & style of all charts
-    rcParams['figure.figsize'] = 5,4
+    rcParams['figure.figsize'] = 20,10
     sb.set_style('whitegrid')
     
 def SavePlotAsImage(plt, str_path):
@@ -172,7 +172,7 @@ def Define_figure(d_format):
     return fig
 #fig = Define_figure(d_format = dict(l_axes=[0.5, 0.5, 1, 1], set_xlim= [1,9], set_ylim= [0,5], bl_grid= True,
 #                                    set_xticks= range(1,10), set_yticks= range(6),
-#                                    set_xticklabels=['a','2','b','4','c','6','d','8','e'],
+#                                    set_xticklabels=['a','2','b','4','f','6','d','8','e'],
 #                                    set_title= 'Miles per galon of cars in mtcars',
 #                                    set_xlabel= 'Miles per galon of cars in mtcars',
 #                                    set_ylabel= 'Miles per gallon',
@@ -284,7 +284,7 @@ def CountPlot(df, str_colNameYcolor = None, d_param = {}):
         print(col_feature)
         plt.figure()
         sb.countplot(data = df, x = col_feature, hue = str_colNameYcolor, **d_param)
-        plt.show()    
+        plt.show()
 #X, y, l_feature_names, l_target_names = IrisData()
 #df = dDf_TransformXinDf(X, l_feature_names)
 #df['flower'] = y
@@ -321,8 +321,9 @@ def ScatterPlot(bl_logX = False):
 
 def ScatterPlot_df(df, d_param = {}):
     df.plot(kind = 'scatter', **d_param)
-#df_cars = fDf_readDf_col(r'4_LinkedIn\mtcars.csv', ['hp','mpg'])
-#ScatterPlot_df(df_cars, d_param = dict(x='hp', y='mpg', c=['darkgray'], s=150))
+#df_cars = fDf_readDf_col(r'4_LinkedIn\mtcars.csv', ['hp','mpg', 'am'])
+#c_theme = np.array(['darkgray', 'green']) #'darkgray', 'lightsalmon', 'powderblue'
+#ScatterPlot_df(df_cars, d_param = dict(x='hp', y='mpg', c = c_theme[df_cars['am']], s=150))
 
 def ScatterPlot_df_Trendline(df, d_param = {}):
     '''show a Trend line (much better charts)'''
@@ -333,11 +334,16 @@ def ScatterPlot_df_Trendline(df, d_param = {}):
 
 #--- Scatter plot Matrix ------------------------------------------------------
 def ScatterPlotMatrix(df, y_col = None, d_param = {}):
-    pd.plotting.scatter_matrix(df, c = y_col, **d_param)
+    if not y_col is None:       d_param['c'] = y_col
+    pd.plotting.scatter_matrix(df, **d_param)
 #X, y, l_feature_names, l_target_names = IrisData()
 #df = dDf_TransformXinDf(X, l_feature_names)
-#ScatterPlotMatrix(df, y_col = y, d_param = dict(s = 100, marker = 'D', figsize = [12,8],
-#                                                cmap = matplotlib.colors.ListedColormap(['red','green'])))
+##ScatterPlotMatrix(df, y_col = y, d_param = dict(s = 100, marker = 'D', figsize = [12,8],
+##                                                cmap = matpltlib_color.ListedColormap(['darkgray', 'red','green'])))
+#c_theme = np.array(['darkgray', 'red','green'])         #'lightsalmon', 'powderblue'    
+#ScatterPlotMatrix(df, y_col = c_theme[y], d_param = dict(s = 100, marker = 'D', figsize = [12,8]))
+    
+    
     
 def ScatterPlotMatrix_sb(df, d_param = {}):
     sb.pairplot(df, **d_param)
@@ -357,19 +363,24 @@ def ScatterPlotMatrix_yIsColor(df, str_colNameYcolor = None, d_param = {}):
 
 #--- Box Plots ------------------------------------------------------
 def BoxPlot(df, str_column, str_colBy, d_param = {}):
-    df.boxplot(column = str_column, by = str_colBy)
+    df.boxplot(column = str_column, by = str_colBy, **d_param)
 #df_cars = fDf_readDf_col(r'4_LinkedIn\mtcars.csv', ['mpg','disp','hp','wt', 'am'])     
 #BoxPlot(df_cars, 'wt', str_colBy = 'am')
 #BoxPlot(df_cars, 'mpg', str_colBy = 'am')
-
-def BoxPlot_sb(df, str_column, str_colBy, d_param = {}):
-    sb.boxplot(data = df, x = str_colBy, y = str_column)
+    
+def BoxPlot_sb(df, str_column = '', str_colBy = '', d_param = {}):
+    #   Be sure to begin your plotting statements for each figure with plt.figure()  so that a new figure will be set up. 
+    #   Otherwise, your plots will be overlayed onto the same figure.
+    plt.figure()
+    if not str_column == '':    d_param['y'] = str_column
+    if not str_colBy == '':     d_param['x'] = str_colBy
+    sb.boxplot(data = df, **d_param)
+    plt.show()
 #df_cars = fDf_readDf_col(r'4_LinkedIn\mtcars.csv', ['mpg','disp','hp','wt', 'am'])     
 #BoxPlot_sb(df_cars, 'wt', str_colBy = 'am', d_param = dict(palette = 'hls'))
 #BoxPlot_sb(df_cars, 'mpg', str_colBy = 'am', d_param = dict(palette = 'hls'))
-    
-    
-    
+
+
 
 
 

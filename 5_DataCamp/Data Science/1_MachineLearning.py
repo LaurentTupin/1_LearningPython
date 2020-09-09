@@ -7,9 +7,42 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sb
 
-####################################################
-#### METTRE les charts dans le chart
-####################################################
+# Data Science: scikit-learn (sklearn)
+from sklearn import datasets
+
+
+#==============================================================================
+# Data
+#==============================================================================
+sb.set_style('whitegrid')
+#rcParams['figure.figsize'] = 10, 4
+plt.style.use('ggplot')
+##  %matplotlib inline
+
+def IrisData():
+    df_iris = datasets.load_iris()
+    #    print(iris.keys())
+    l_feature_names = df_iris.feature_names
+    l_target_names = df_iris.target_names
+    # Build the data model
+    X = df_iris.data
+    y = df_iris.target
+    return X, y, l_feature_names, l_target_names
+
+
+#==============================================================================
+# Function
+#==============================================================================
+def fXy_transformDfIntoNpArr(df, str_targetName):
+    y = df[str_targetName].values
+    X = df.drop(str_targetName, axis=1).values
+    return X, y
+
+def dDf_TransformXinDf(X, l_feature_names):
+    df = pd.DataFrame(X, columns = l_feature_names)
+    return df
+
+
 
 
 #==============================================================================
@@ -23,36 +56,13 @@ import seaborn as sb
 #-----------------------------------------------------
 # 1.1 Classification
 #-----------------------------------------------------
-
-plt.style.use('ggplot')
-
-def fXy_transformDfIntoNpArr(df, str_targetName):
-    y = df[str_targetName].values
-    X = df.drop(str_targetName, axis=1).values
-    return X, y
-
-def dDf_TransformXinDf(X, l_feature_names):
-    df = pd.DataFrame(X, columns = l_feature_names)
-    return df
-
-def IrisData():
-    from sklearn import datasets
-    iris = datasets.load_iris()
-    #    print(iris.keys())
-    l_feature_names = iris.feature_names
-    l_target_names = iris.target_names
-    # Build the data model
-    X = iris.data
-    y = iris.target
-    return X, y, l_feature_names, l_target_names
-
 def cours1_scatter_matrix():
     X, y, l_feature_names, l_target_names = IrisData()
     print(l_target_names)
     df = dDf_TransformXinDf(X, l_feature_names)
     # Some Chart / plot
     pd.plotting.scatter_matrix(df, c = y, s = 100, marker = 'D', figsize = [12,8])
-cours1_scatter_matrix()
+#cours1_scatter_matrix()
 
 def EDA_countPlot():
     X, y, l_feature_names, l_target_names = IrisData()
@@ -67,7 +77,7 @@ def EDA_countPlot():
         plt.figure()
         sb.countplot(data=df, x=xx, hue='flower') #, palette='RdBu'
         plt.show()
-EDA_countPlot()
+#EDA_countPlot()
 
 def ClassificationChallenge():
     X, y, l_feature_names, l_target_names = IrisData()
@@ -98,7 +108,11 @@ print(y_predict)
 #==============================================================================
 # Course 2: Unsupervised Learning in Python
 #==============================================================================
-
+    
+    
+    
+    
+    
 
 #==============================================================================
 # Course 3: Linear Classifiers in Python

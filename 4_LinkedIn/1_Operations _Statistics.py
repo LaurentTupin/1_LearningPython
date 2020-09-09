@@ -51,6 +51,12 @@ def fArr_normalization(ser, t_rangeLimit = (0,1)):
     arr_scaled_matrix = o_scaled.fit_transform(arr_matrix)
     return arr_scaled_matrix
 
+def fArr_standardization(ser, d_param = {}):
+    arr_standard = preprocessing.scale(ser, **d_param)
+    # print(arr_standard)
+    return arr_standard
+
+
 
 
 
@@ -161,9 +167,6 @@ def Categorical_Data(df_cars):
 #Categorical_Data(df_cars)
 
 
-
-    
-
 def Parametric_methods(df):
     # R is the Pearson Correlation Coefficient
     '''
@@ -238,15 +241,6 @@ def NonParametric_methods(df):
 
 
 
-
-def fArr_standardization(ser, d_param = {}):
-    arr_standard = preprocessing.scale(ser, **d_param)
-    # print(arr_standard)
-    return arr_standard
-
-
-
-
 def ReShapedatasets(df):
     '''
     # You need to scale your variables, examples: Inflation when comparing 1990 and 2016 prices /revenues
@@ -280,8 +274,7 @@ def ReShapedatasets(df):
     df_cars['DivBy_Std'] = pd.Series(arr_std_3)   #, dtype = 'category'
     df_cars['Standardized'] = pd.Series(arr_std_4)   #, dtype = 'category'
     df_cars.plot(alpha = 0.5, lw = 3, ls= '--')
-      
-ReShapedatasets(df_cars)
+#ReShapedatasets(df_cars)
 
 
 
