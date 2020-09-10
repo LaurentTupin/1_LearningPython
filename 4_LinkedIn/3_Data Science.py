@@ -25,12 +25,13 @@ from scipy.spatial.distance import pdist
 from scipy.cluster.hierarchy import dendrogram, linkage, fcluster, cophenet
 
 # Data Science: scikit-learn (sklearn)
-from sklearn import preprocessing, datasets, metrics
+from sklearn import preprocessing, datasets, metrics, neighbors
 from sklearn.linear_model import LinearRegression, LogisticRegression
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import confusion_matrix
 from sklearn.decomposition import FactorAnalysis, PCA
 from sklearn.cluster import DBSCAN, KMeans, AgglomerativeClustering
-
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import train_test_split
 
 
 
@@ -86,6 +87,16 @@ def ScatterPlotMatrix_yIsColor(df, str_colNameYcolor = None, d_param = {}):
 
 def ScatterPlot_df(df, d_param = {}):
     df.plot(kind = 'scatter', **d_param)
+
+def fXy_dfIntoScaleTrainTestSplit(df, str_targetColName = 'y', flt_testSize = 0.3, int_rdn = 0):
+    X_noScale, y = fXy_transformDfIntoNpArr(df, str_targetColName)
+    X = preprocessing.scale(X_noScale)
+    X_train, X_test, y_train, y_expect = train_test_split(X, y, test_size = flt_testSize, random_state = int_rdn)
+    return X_train, X_test, y_train, y_expect
+
+def ComparePredictionVsReality(y_exepect, y_pred):
+    comp = metrics.classification_report(y_exepect, y_pred)
+    return comp
 
 
 #==============================================================================
@@ -157,8 +168,8 @@ def PCA_Principal_Component_Analysis():
 def part4_DimensionalityReduction():
     df_factor = Factor_Analysis()
     df_comps = PCA_Principal_Component_Analysis()
-    #    sb.heatmap(df_factor)
-    #    sb.heatmap(df_comps)
+    sb.heatmap(df_factor)
+    sb.heatmap(df_comps)
 #part4_DimensionalityReduction()
 
 
@@ -291,11 +302,12 @@ def K_Means(df):
     '''
     int_clusters = len(df['y_Species'].unique())
     X = df[['sepal length (cm)','sepal width (cm)','petal length (cm)','petal width (cm)']]
+    X_scale = preprocessing.scale(X)
     
     # Clustering
-    clustering = KMeans(n_clusters = int_clusters, random_state = 5)
-    clustering.fit(X)
-    y_predictRelabel = np.choose(clustering.labels_, [1, 0, 2]).astype(np.int64)
+    model_KMeans = KMeans(n_clusters = int_clusters, random_state = 5)
+    model_KMeans.fit(X_scale)
+    y_predictRelabel = np.choose(model_KMeans.labels_, [1, 0, 2]).astype(np.int64)
     
     # plot
     c_theme = np.array(['darkgray', 'lightsalmon', 'powderblue'])
@@ -309,91 +321,105 @@ def K_Means(df):
     plt.title('K-Means')
     
     # precision
-    arr_precision = classification_report(df['y_Species'], y_predictRelabel)
-    print(arr_precision)
-    
-    return clustering
+    comp = ComparePredictionVsReality(df['y_Species'], y_predictRelabel)
+    print(comp)
+    return model_KMeans
 
 
-def part6_ClusterAnalysis():
-    # Data
-    X, y, l_feature_names, l_target_names = IrisData()
-    df = dDf_TransformX_y_inDf(X, y, l_feature_names, 'y_Species')
-    print(l_target_names)
-    df_cars = fDf_readDf_col(r'4_LinkedIn\mtcars.csv', ['cyl','mpg', 'wt'])
-    
-    # K-Means Clustering
-    K_Means(df)
-    
-    # Hierarchical methods (Hierarchical Clustering Dendrogram)
-    np.set_printoptions(precision = 4, suppress = True)        # pas trop de chiffre ap. virgule
-    
-
-part6_ClusterAnalysis()
-
-
-
-
-
-
-
-def part6_ClterAnalysis():
-    
-    
-
-    X = cars.ix[:,(1,3,4,6)].values
-    Y = cars.ix[:,(9)].values
-    Z = linkage(X, 'ward')
-    dendrogram(Z, truncate_mode='lastp', p=12, leaf_rotation = 45., leaf_font_size = 15., show_contracted = True)
-
+def dendrogram_show(X):
+    ward_linkage = linkage(X, 'ward')
+    #    print(ward_linkage)
+    plt.figure()
+    dendrogram(ward_linkage, truncate_mode='lastp', p = 12, leaf_font_size = 15., show_contracted = True) # leaf_rotation = 45., 
+    # plot details
+    plt.title('Truncated Hierarchial Clustering Dendogram')
     plt.xlabel('Cluster Size')
     plt.ylabel('Distance')
     plt.axhline(y = 500)
     plt.axhline(y = 150)
     plt.show()
 
-    k=2
-    Hclustering = AgglomerativeClustering(n_clusters = k, affinity = 'euclidian', linkage = 'ward')                #BEST
-    Hclustering.fit(X)
-    metrics.accuracy_score(y, Hclustering.labels_)
-    # -->0.78125
-
-    Hclustering = AgglomerativeClustering(n_clusters = k, affinity = 'euclidian', linkage = 'complete')
-    Hclustering.fit(X)
-    sm.accuracy_score(y, Hclustering.labels_)
-    # -->0.4375
-
-    Hclustering = AgglomerativeClustering(n_clusters = k, affinity = 'euclidian', linkage = 'average')            #BEST
-    Hclustering.fit(X)
-    metrics.accuracy_score(y, Hclustering.labels_)
-    # -->0.78125
-
-    Hclustering = AgglomerativeClustering(n_clusters = k, affinity = 'manhattan', linkage = 'average')
-    Hclustering.fit(X)
-    metrics.accuracy_score(y, Hclustering.labels_)
-    # --> 0.71875
-
-    # Instance-based learning with k-Nearest Neighbor
-    from sklearn import neighbors
-    from sklearn import preprocessing
-    from sklearn.neighbors import KNeighborsClassifier
-    from sklearn.cross_validation import train_test_split
-
-    X_prime = cars.ix[:,(1,3,4,6)].values
-    y = cars.ix[:,9].values
-
-    X = preprocessing.preprocessing.scale(X_prime)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = .33, random_state = 17)
+def Hierarchical_Clustering(df):
+    '''
+    UnSupervised ML algo to predict subgroups by their distance btw neighbors
+     - Always Scale you variables
+     - Look at scatterplot to estimate number of cluster centers, to set the parameter k
+    '''
+    X, y = fXy_transformDfIntoNpArr(df, 'am')
+    dendrogram_show(X)
+    #   ==> Datasets y is am (= 0 or 1), so lets subgroups by !!! 2 !!!
+    #   ==> From the dendogram, we see that we have to set the MAX distance > 400 (otherwise we have more than 2 cluster)
+    k_nbCLusters = 2
+    #int_maxDist = 500
+    d_result = {}
+    l_affinity = ['euclidean', 'manhattan']
+    l_linkage = ['ward','complete', 'average']
+    for aff in l_affinity:
+        for lnkg in l_linkage:
+            try:
+                Hclustering = AgglomerativeClustering(n_clusters = k_nbCLusters, affinity = aff, linkage = lnkg)
+                Hclustering.fit(X)
+            except Exception as err:    print(' ERROR in Hierarchical_Clustering: ({}, {}) || {} \n'.format(aff, lnkg, err))
+            else:
+                int_score = metrics.accuracy_score(y, Hclustering.labels_)
+                if int_score in d_result:   
+                    int_len = len(d_result[int_score])
+                    d_result[int_score] = {**d_result[int_score], int_len: (aff, lnkg)}
+                else:   d_result[int_score] = {0: (aff, lnkg)}
+    flt_best = max(list(d_result.keys()))
+    print('Best accuracy_score: ', flt_best)
+    print('With the parameters: ', d_result[flt_best], '\n\n')
+    
+    
+def K_NearestNeighbor(df):
+    '''
+    SUPERVISED ML algo to predict classification fo new unlabeled observations
+     - Always Scale you variables
+     - Too long on large datasets == SHITTY
+    '''
+    # Prepare your data
+    X_train, X_test, y_train, y_expect = fXy_dfIntoScaleTrainTestSplit(df, str_targetColName = 'am', flt_testSize = 0.33, int_rdn = 17)
 
     # Building and training your model with training data
-    clf = neighbors.KNeighborsClassifier()
-    clf.fit(X_train, y_train)
-    print(clf)
-
+    model_KNear = neighbors.KNeighborsClassifier()
+    model_KNear.fit(X_train, y_train)
+    # print(model_KNear)
+    
     # Evaluating your model's predictions against the test dataset
-    y_exepect = y_test
-    y_pred = clf.predict(X_test)
-    print(metrics.classification_report(y_exepect, y_pred))
+    y_pred = model_KNear.predict(X_test)
+    comp = ComparePredictionVsReality(y_expect, y_pred)
+    print(comp)
+    return model_KNear
+    
+    
+def part6_ClusterAnalysis():
+    # pas trop de chiffre ap. virgule
+    np.set_printoptions(precision = 4, suppress = True)
+    # Data
+    X, y, l_feature_names, l_target_names = IrisData()
+    df_iris = dDf_TransformX_y_inDf(X, y, l_feature_names, 'y_Species')
+    df_cars = fDf_readDf_col(r'mtcars.csv', ['mpg', 'disp', 'hp', 'wt', 'am'])
+    
+    # K-Means Clustering
+    print(l_target_names)
+    K_Means(df_iris)
+    
+    # Hierarchical methods (Hierarchical Clustering Dendrogram)
+    Hierarchical_Clustering(df_cars)
+    
+    # K-Nearest Neighbor
+    K_NearestNeighbor(df_cars)
+    # RECALL means missing, Precision means right / wonrg
+#part6_ClusterAnalysis()
+
+
+
+
+
+
+
+
+
 
 
 #--------------------------------------------------------------------------------------------
@@ -492,7 +518,7 @@ def part8_algo():
         
         # Predict
         y_pred = LogReg.predict(X)
-        matrix_report = classification_report(y, y_pred)
+        matrix_report = metrics.classification_report(y, y_pred)
         print(matrix_report)
         
         flt_score = LogReg.score(X,y)
