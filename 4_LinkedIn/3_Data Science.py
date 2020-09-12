@@ -25,9 +25,9 @@ from scipy.spatial.distance import pdist
 from scipy.cluster.hierarchy import dendrogram, linkage, fcluster, cophenet
 
 # Data Science: scikit-learn (sklearn)
-from sklearn import preprocessing, datasets, metrics, neighbors
+from sklearn import preprocessing, datasets, metrics, neighbors, naive_bayes
 from sklearn.linear_model import LinearRegression, LogisticRegression
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, accuracy_score
 from sklearn.decomposition import FactorAnalysis, PCA
 from sklearn.cluster import DBSCAN, KMeans, AgglomerativeClustering
 from sklearn.neighbors import KNeighborsClassifier
@@ -58,9 +58,66 @@ def fDf_readDf_col(str_path, l_column = [], d_param = {}):
         df = df[l_column]
     return df
 
+  
+#==============================================================================
+# Charts
+#==============================================================================
+def BoxPlot_sb(df, str_column = '', str_colBy = '', d_param = {}):
+    plt.figure()
+    if not str_column == '':    d_param['y'] = str_column
+    if not str_colBy == '':     d_param['x'] = str_colBy
+    sb.boxplot(data = df, **d_param)
+    plt.show()
+def ScatterPlotMatrix_yIsColor(df, str_colNameYcolor = None, d_param = {}):
+    sb.pairplot(df, hue = str_colNameYcolor, **d_param)  
+def ch_pairplot(df):
+    ScatterPlotMatrix_yIsColor(df)
+def ScatterPlot_df(df, d_param = {}):
+    df.plot(kind = 'scatter', **d_param)
+def ch_regplot(df, str_col1, str_col2, bl_scatter = True):
+    sb.regplot(x = str_col1, y = str_col2, data = df, scatter = bl_scatter)
+def ch_countplot(df, str_col1, str_palette = 'hls'):
+    sb.countplot(x = str_col1, data = df, palette = str_palette)
+
+
+
 #==============================================================================
 # Function
 #==============================================================================
+def fXy_dfInto_TrainTestSplit(df, str_targetColName = 'y', flt_testSize = 0.3, int_rdn = 0):
+    X, y = fXy_transformDfIntoNpArr(df, str_targetColName)
+    X_train, X_test, y_train, y_expect = train_test_split(X, y, test_size = flt_testSize, random_state = int_rdn)
+    return X_train, X_test, y_train, y_expect
+        
+def fXy_dfInto_Scale_TrainTestSplit(df, str_targetColName = 'y', flt_testSize = 0.3, int_rdn = 0):
+    X, y = fXy_dfInto_Scale(df, str_targetColName)
+    X_train, X_test, y_train, y_expect = train_test_split(X, y, test_size = flt_testSize, random_state = int_rdn)
+    return X_train, X_test, y_train, y_expect
+
+def f_compScore_R_onModel(model,X,y):
+    score_RegLin = model.score(X,y)
+    print('Linear Regression R is : ', score_RegLin)
+    return score_RegLin
+
+def CompareScore_PredictionVsReality(y_exepect, y_pred):
+    comp = metrics.classification_report(y_exepect, y_pred)
+    print(comp)
+    return comp
+
+def f_compScore_accuracy(y_exepect, y_pred):
+    comp = accuracy_score(y_exepect, y_pred)
+    print('accuracy_score is : ', round(comp, 4))
+    return comp
+
+
+#-----------------------------------
+# df <==> X, y
+#-----------------------------------
+def fXy_dfInto_Scale(df, str_targetColName = 'y'):
+    X_noScale, y = fXy_transformDfIntoNpArr(df, str_targetColName)
+    X = preprocessing.scale(X_noScale)
+    return X, y
+
 def fXy_transformDfIntoNpArr(df, str_targetName):
     y = df[str_targetName].values
     X = df.drop(str_targetName, axis=1).values
@@ -75,32 +132,47 @@ def dDf_TransformX_y_inDf(X, y, l_feature_names, str_yName = 'y_'):
     df[str_yName] = y
     return df
 
-def BoxPlot_sb(df, str_column = '', str_colBy = '', d_param = {}):
-    plt.figure()
-    if not str_column == '':    d_param['y'] = str_column
-    if not str_colBy == '':     d_param['x'] = str_colBy
-    sb.boxplot(data = df, **d_param)
-    plt.show()
+#-----------------------------------
+# Checking for missing values
+#-----------------------------------
+def fDf_HasMissingValue(X):
+    missing_values = X==np.NAN
+    x_missValue = X[missing_values == True]
+    return x_missValue
+def fSer_MissingValue(df):
+    ser_null = df.isnull().sum()
+    return ser_null
+def check_enoughValues(df, int_nbColInput):
+    int_len = len(df)
+    int_len = int_len / int_nbColInput
+    if int_len > 50:
+        return True
+    else: return False
     
-def ScatterPlotMatrix_yIsColor(df, str_colNameYcolor = None, d_param = {}):
-    sb.pairplot(df, hue = str_colNameYcolor, **d_param)  
+#-----------------------------------
+#Checking for independence between features
+#-----------------------------------
+def fBl_matrixCorrel(df):
+    # Matrix of correlation
+    m_corel = df.corr()
+    print(m_corel)
+    return m_corel
+def fFlt_spearmanrCorrel(seri_1, seri_2):
+    spearmanr_coef, p_value = spearmanr(seri_1, seri_2)
+    print ('Spearman Rank Correlation Coefficient %0.3f' % (spearmanr_coef))
+    return spearmanr_coef
+def fBl_Independant_spearmanr(seri_1, seri_2):
+    spearmanr_coef = fFlt_spearmanrCorrel(seri_1, seri_2)
+    bl_indep = (spearmanr_coef < 0.8) and (spearmanr_coef > -0.8)
+    print(' Series are indep: {}'.format(bl_indep))
+    return bl_indep
 
-def ScatterPlot_df(df, d_param = {}):
-    df.plot(kind = 'scatter', **d_param)
 
-def fXy_dfIntoScaleTrainTestSplit(df, str_targetColName = 'y', flt_testSize = 0.3, int_rdn = 0):
-    X_noScale, y = fXy_transformDfIntoNpArr(df, str_targetColName)
-    X = preprocessing.scale(X_noScale)
-    X_train, X_test, y_train, y_expect = train_test_split(X, y, test_size = flt_testSize, random_state = int_rdn)
-    return X_train, X_test, y_train, y_expect
 
-def ComparePredictionVsReality(y_exepect, y_pred):
-    comp = metrics.classification_report(y_exepect, y_pred)
-    return comp
 
 
 #==============================================================================
-# Course: Dimensionality Reduction
+# Course 4: Dimensionality Reduction
 #==============================================================================
 def Factor_Analysis():
     '''
@@ -321,8 +393,7 @@ def K_Means(df):
     plt.title('K-Means')
     
     # precision
-    comp = ComparePredictionVsReality(df['y_Species'], y_predictRelabel)
-    print(comp)
+    CompareScore_PredictionVsReality(df['y_Species'], y_predictRelabel)
     return model_KMeans
 
 
@@ -378,7 +449,7 @@ def K_NearestNeighbor(df):
      - Too long on large datasets == SHITTY
     '''
     # Prepare your data
-    X_train, X_test, y_train, y_expect = fXy_dfIntoScaleTrainTestSplit(df, str_targetColName = 'am', flt_testSize = 0.33, int_rdn = 17)
+    X_train, X_test, y_train, y_expect = fXy_dfInto_Scale_TrainTestSplit(df, str_targetColName = 'am', flt_testSize = 0.33, int_rdn = 17)
 
     # Building and training your model with training data
     model_KNear = neighbors.KNeighborsClassifier()
@@ -387,8 +458,7 @@ def K_NearestNeighbor(df):
     
     # Evaluating your model's predictions against the test dataset
     y_pred = model_KNear.predict(X_test)
-    comp = ComparePredictionVsReality(y_expect, y_pred)
-    print(comp)
+    CompareScore_PredictionVsReality(y_expect, y_pred)
     return model_KNear
     
     
@@ -415,131 +485,132 @@ def part6_ClusterAnalysis():
 
 
 
-
-
-
-
-
-
-
 #--------------------------------------------------------------------------------------------
 # 7. Network Analysis with NetworkX
-    #
+    ## NOTHING NOTED
+
+#--------------------------------------------------------------------------------------------
+# 8. Basic Algo Learning 
+def Linear__Regression():
+    '''
+    Simple ML method you use to quantify and make predictions based on relations btw NUMERICAL Values
+    '''
+    df_enroll = pd.read_csv(r'enrollment_forecast.csv')
+    df_enroll = df_enroll[['year','roll','unem','hgrad','inc']]
+    # Graph to see correlation btw columns
+    ch_pairplot(df_enroll)
+    #   roll is linear with all. Unem is not great but acceptable
+    #   All variables are numeric
+    
+    # Matrix of correlation - Check there is no correlation between variables
+    fBl_matrixCorrel(df_enroll)
+    #   hgrad and unem are not correlated, we will keep those 2
+    
+    # Choose coluns input / col result
+    X, y = fXy_dfInto_Scale(df_enroll[['unem','hgrad','roll']], str_targetColName = 'roll')
+
+    # Linear Reg
+    model_LinReg = LinearRegression(normalize = True)
+    model_LinReg.fit(X,y)
+    
+    # Score
+    score_RegLin = f_compScore_R_onModel(model_LinReg, X, y)
+    return score_RegLin
 
 
+def Logictic__Regression():
+    '''
+    Simple ML method you use to predict numeric / categorical variable
+    Diff with Linear Reg is that you predict Categroies for ordinal Var
+     - Free of missing values
+     - Predictant variable is binary / ordinal
+    '''
+    df_cars = pd.read_csv(r'mtcars.csv')
+    df_cars.columns = ['car_names','mpg','cyl','disp', 'hp', 'drat', 'wt', 'qsec', 'vs', 'am', 'gear', 'carb']
+    
+    # Checking for missing values
+    print('Nb of missing values in df: ', fSer_MissingValue(df_cars).sum())
+    print('enough values in df: ', check_enoughValues(df_cars, 2))
+    
+    # Graph to see correlation btw columns
+    ch_regplot(df_cars, 'drat', 'carb')
+    # Spearman Rank Correlation Coefficient (Need to be low: no correlation btw different inputs)
+    fBl_Independant_spearmanr(df_cars['drat'], df_cars['carb'])
+    
+    # Checking that your target is binary or ordinal
+    #    ch_countplot(df_cars, 'am')
+    
+    # Choose coluns input / col result
+    X, y = fXy_dfInto_Scale(df_cars[['drat','carb','am']], str_targetColName = 'am')
 
+    moel_LogReg = LogisticRegression(solver = 'lbfgs')
+    moel_LogReg.fit(X,y)
+    
+    # Score
+    f_compScore_R_onModel(moel_LogReg, X, y) # close to 1 means the model fit the data
+    
+    # Predict
+    y_pred = moel_LogReg.predict(X)
+    CompareScore_PredictionVsReality(y, y_pred)
+    
+    
+    
+def NaiveBayes_Multinomial(X_train, X_test, y_train, y_expect):
+    model_ = naive_bayes.MultinomialNB()
+    model_.fit(X_train, y_train)
+    # Evaluating your model's predictions against the test dataset
+    y_pred = model_.predict(X_test)
+    f_compScore_accuracy(y_expect, y_pred)
+     
+def NaiveBayes_Bernoulli(X_train, X_test, y_train, y_expect, o_binarize = True):
+    model_ = naive_bayes.BernoulliNB(binarize = o_binarize)
+    model_.fit(X_train, y_train)
+    # Evaluating your model's predictions against the test dataset
+    y_pred = model_.predict(X_test)
+    f_compScore_accuracy(y_expect, y_pred)
+    
+def NaiveBayes_Gaussian(X_train, X_test, y_train, y_expect):
+    model_ = naive_bayes.GaussianNB()
+    model_.fit(X_train, y_train)
+    # Evaluating your model's predictions against the test dataset
+    y_pred = model_.predict(X_test)
+    f_compScore_accuracy(y_expect, y_pred)
+    
+def NaiveBayes_Classifier():
+    '''
+    Likelyhood of an event to occur (Conditional Probability)
+     - Multinomial  - Good when your feature describe discrete frequency counts (ex: words counting)
+     - Bernoulli    - Good for make predictions from binary features
+     - Gaussian     - When distribution is normal
+    '''
+    # Prepare your data
+    df_spam = pd.read_csv(r'spambase.data.csv', header = None)
+    X_train, X_test, y_train, y_expect = fXy_dfInto_TrainTestSplit(df_spam, str_targetColName = 57, flt_testSize = 0.33, int_rdn = 17)
+    X_train = X_train[:, :48]
+    X_test = X_test[:, :48]
+    
+    # NaiveBayes_Multinomial
+    NaiveBayes_Multinomial(X_train, X_test, y_train, y_expect)
+    # Bernoulli
+    NaiveBayes_Bernoulli(X_train, X_test, y_train, y_expect)
+    NaiveBayes_Bernoulli(X_train, X_test, y_train, y_expect, o_binarize = 0.1)
+    # Gaussian
+    NaiveBayes_Gaussian(X_train, X_test, y_train, y_expect)
+
+def part8_algo():
+    #    Linear__Regression()
+    #    Logictic__Regression()
+    NaiveBayes_Classifier()
+part8_algo()
 
 
 
 #--------------------------------------------------------------------------------------------
-# 8. Basic Algo Learning
-def part8_algo():
-    #-----------------------------------
-    # Checking for missing values
-    #-----------------------------------
-    def fDf_HasMissingValue(X):
-        missing_values = X==np.NAN
-        x_missValue = X[missing_values == True]
-        return x_missValue
-    def fSer_MissingValue(df):
-        ser_null = df.isnull().sum()
-        return ser_null
-    def check_enoughValues(df, int_nbColInput):
-        int_len = len(df)
-        int_len = int_len / int_nbColInput
-        if int_len > 50:
-            return True
-        else: return False
-    #-----------------------------------
-    #Checking for independence between features
-    #-----------------------------------
-    def fBl_matrixCorrel(df):
-        # Matrix of correlation
-        m_corel = df.corr()
-        print(m_corel)
-    def fBl_spearmanrCorrel(seri_1, seri_2):
-        spearmanr_coefficient, p_value = spearmanr(seri_1, seri_2)
-        print ('Spearman Rank Correlation Coefficient %0.3f' % (spearmanr_coefficient))
-        #print(p_value)
-    #-----------------------------------
-    # Charts
-    #-----------------------------------
-    def ch_pairplot(df):
-        sb.pairplot(df)
-    def ch_regplot(df, str_col1, str_col2, bl_scatter = True):
-        sb.regplot(x = str_col1, y = str_col2, data = df, scatter = bl_scatter)
-    def ch_countplot(df, str_col1, str_palette = 'hls'):
-        sb.countplot(x = str_col1, data = df, palette = str_palette)
-    
-    #____CHAPTERS______________________________________________________________
-    def A_LinearRegression(bl_showChart = False):
-        df_enroll = pd.read_csv(r'enrollment_forecast.csv')
-        # Graph to see correlation btw columns
-        if bl_showChart:
-            ch_pairplot(df_enroll)
-        # Matrix of correlation
-        fBl_matrixCorrel(df_enroll)
-        
-        # Choose coluns input / col result
-        X = preprocessing.scale(df_enroll.iloc[:,2:4].values)
-        y = df_enroll.iloc[:,1]
-        
-        LinReg = LinearRegression(normalize = True)
-        LinReg.fit(X,y)
-        return LinReg.score(X,y)
-#    r = A_LinearRegression()
-#    print(r)
-     
-    def B_LogicticRegression(bl_showChart = False):
-        df_cars = pd.read_csv(r'mtcars.csv')
-        df_cars.columns = ['car_names','mpg','cyl','disp', 'hp', 'drat', 'wt', 'qsec', 'vs', 'am', 'gear', 'carb']
-        
-        # Checking for missing values
-        fSer_MissingValue(df_cars)
-        print('enough values in df: ', check_enoughValues(df_cars, 2))
-        
-        # Graph to see correlation btw columns
-        if bl_showChart:
-            ch_regplot(df_cars, 'drat', 'carb')
-        # Spearman Rank Correlation Coefficient (Need to be low:: no correlation btw different inputs)
-        fBl_spearmanrCorrel(df_cars['drat'], df_cars['carb'])
-        
-        # Checking that your target is binary or ordinal
-        if bl_showChart:
-            ch_countplot(df_cars, 'am')
-        
-        # Choose coluns input / col result
-        cars_data = df_cars.iloc[:,[5,11]].values
-        X = preprocessing.scale(cars_data)
-        y = df_cars.iloc[:,9].values
-        
-        LogReg = LogisticRegression()
-        LogReg.fit(X,y)
-        
-        # Predict
-        y_pred = LogReg.predict(X)
-        matrix_report = metrics.classification_report(y, y_pred)
-        print(matrix_report)
-        
-        flt_score = LogReg.score(X,y)
-        return flt_score
-#    r = B_LogicticRegression(True)
-#    print(r)
-    
-#part8_algo()
+# 9. Web Based Data Visualization
+    ## NOTHING NOTED
 
 
 
-
-
-
-
-
-
-
-
-
-#=========================================================================================
 
 
 
