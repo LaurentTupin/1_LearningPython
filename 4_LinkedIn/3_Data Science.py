@@ -99,13 +99,13 @@ def f_compScore_R_onModel(model,X,y):
     print('Linear Regression R is : ', score_RegLin)
     return score_RegLin
 
-def CompareScore_PredictionVsReality(y_exepect, y_pred):
-    comp = metrics.classification_report(y_exepect, y_pred)
-    print(comp)
+def CompareScore_PredictionVsReality(y_expect, y_pred):
+    comp = metrics.classification_report(y_expect, y_pred)
+    print('classification report is : ', round(comp, 4))
     return comp
 
-def f_compScore_accuracy(y_exepect, y_pred):
-    comp = accuracy_score(y_exepect, y_pred)
+def f_compScore_accuracy(y_expect, y_pred):
+    comp = accuracy_score(y_expect, y_pred)
     print('accuracy_score is : ', round(comp, 4))
     return comp
 
@@ -115,7 +115,11 @@ def f_compScore_accuracy(y_exepect, y_pred):
 #-----------------------------------
 def fXy_dfInto_Scale(df, str_targetColName = 'y'):
     X_noScale, y = fXy_transformDfIntoNpArr(df, str_targetColName)
-    X = preprocessing.scale(X_noScale)
+    #X = preprocessing.scale(X_noScale)    # (CANNOT TAKE too long df)
+    # Create the Scaler object
+    scaler = preprocessing.StandardScaler()
+    # Fit your data on the scaler object
+    X = scaler.fit_transform(X_noScale)
     return X, y
 
 def fXy_transformDfIntoNpArr(df, str_targetName):
@@ -242,7 +246,7 @@ def part4_DimensionalityReduction():
     df_comps = PCA_Principal_Component_Analysis()
     sb.heatmap(df_factor)
     sb.heatmap(df_comps)
-#part4_DimensionalityReduction()
+part4_DimensionalityReduction()
 
 
 
@@ -543,14 +547,14 @@ def Logictic__Regression():
     # Choose coluns input / col result
     X, y = fXy_dfInto_Scale(df_cars[['drat','carb','am']], str_targetColName = 'am')
 
-    moel_LogReg = LogisticRegression(solver = 'lbfgs')
-    moel_LogReg.fit(X,y)
+    model_LogReg = LogisticRegression(solver = 'lbfgs')
+    model_LogReg.fit(X,y)
     
     # Score
-    f_compScore_R_onModel(moel_LogReg, X, y) # close to 1 means the model fit the data
+    f_compScore_R_onModel(model_LogReg, X, y) # close to 1 means the model fit the data
     
     # Predict
-    y_pred = moel_LogReg.predict(X)
+    y_pred = model_LogReg.predict(X)
     CompareScore_PredictionVsReality(y, y_pred)
     
     
@@ -579,6 +583,7 @@ def NaiveBayes_Gaussian(X_train, X_test, y_train, y_expect):
 def NaiveBayes_Classifier():
     '''
     Likelyhood of an event to occur (Conditional Probability)
+    DO NOT SCALE DATA
      - Multinomial  - Good when your feature describe discrete frequency counts (ex: words counting)
      - Bernoulli    - Good for make predictions from binary features
      - Gaussian     - When distribution is normal
@@ -598,19 +603,13 @@ def NaiveBayes_Classifier():
     NaiveBayes_Gaussian(X_train, X_test, y_train, y_expect)
 
 def part8_algo():
-    #    Linear__Regression()
-    #    Logictic__Regression()
+    Linear__Regression()
+    Logictic__Regression()
     NaiveBayes_Classifier()
-part8_algo()
+#part8_algo()
 
 
 
 #--------------------------------------------------------------------------------------------
 # 9. Web Based Data Visualization
     ## NOTHING NOTED
-
-
-
-
-
-
