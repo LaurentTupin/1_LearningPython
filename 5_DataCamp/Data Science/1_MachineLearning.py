@@ -94,10 +94,8 @@ def ClassificationChallenge():
     #                         weights='uniform')
     return y_predict
 
-y_predict = ClassificationChallenge()
-print(y_predict)
-
-
+#y_predict = ClassificationChallenge()
+#print(y_predict)
 
 
 
