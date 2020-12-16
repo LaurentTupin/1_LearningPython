@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>UTA - Home Page</title>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+              integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+        <link rel="stylesheet" href="{{ url_for('static', filename = 'css/main.css') }}"/>
+    </head>
+
+    <body>
+        {# This is the TOP #}
+        <div class="container-fluid text-center top-container">
+            <img src="{{ url_for('static', filename = 'images/Orpheus.png') }} ">
+{#            <h1> ORPHEUS </h1>#}
+        </div>
+
+        {# This is the Page #}
+        <div class="container">
+
+            {% if session['username'] %}
+                <span class="user">Welcome to Orpheus {{ session['username'] }}</span>
+            {% endif %}
+
+            {% include "includes/nav.html" %}
+
+            {# Message Management with Flash#}
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            <p>{{ message }}</p>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}
+            {% endblock %}
+        </div>
+
+        {# This is the Footer #}
+        {% include "includes/footer.html" %}
+
+    </body>
+</html>    
