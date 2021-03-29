@@ -1,4 +1,6 @@
---https://www.youtube.com/watch?v=02_H3LjqMr8&list=PLYIxT-vN4kRpGt0F4j5PL5ggFtYYnoxdn&index=7&t=27s
+--https://www.youtube.com/watch?v=02_H3LjqMr8
+--26 min
+
 
 -- Init Terminal to compile everything
 gsci
@@ -82,7 +84,6 @@ int_max = maximum l_num
 int_sum = sum l_num	
 int_product = product l_num
 
-	
 -- Access list by index
 int_SecondNumber = l_num4 !! 1
 int_fistNum = head l_num4
@@ -91,18 +92,26 @@ l_allExceptLastVal = init l_num4
 l_3firstValues = take 3 l_num4
 	-- > [1, 2, 7]
 
+--filter list
+l_bigger5 = filter (>5) l_num4
+l_evensTo20 = takeWhile (<=20) [2, 4..]
 
+--Map or fold
+l_map = foldl (*) 1 [2,3,4,5]
+	-- > 120
 
+-- Comprehension Liste
+l_timesTwo = [x * 2 | x <- [1..10]]
+l_conditon = [x * 32 | x <- [1..10], x * 3 <= 20]
+	-- > [3,6,9,12,15,18]
+l_divBy13N9 = [x | x <- [1..500], x `mod` 13 == 0, x `mod` 9 == 0]
 
+--sort List
+l_sorted = sort [9, 1, 5, 6, 85, 24]
 
-
-
-
-
-
-
-
-
+--Sum List el by el
+l_sum = zipWith (+) [1,2,3,4,5] [9,8,7,6,5]
+	-- > [10,10,10,10,10]
 
 
 
