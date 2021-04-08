@@ -76,22 +76,65 @@ ls -l
 ls -lh
 	# size readable: k , M, G
 	
+# Create folder
+mkdir new_folder
+mkdir department/new_folder
+mkdir department/new_folder department/new_folder2 department/new_folder3
+# Parent + child folder
+mkdir -p department/parent_new_folder/child_new_folder
+# Remove empty directory
+rmdir department/legal/folder_to_delete
+	# only delete the folder if he is empty
+
+# Copy files
+cp file.txt file_copy.txt
+cp file.txt department/legal/
+
+# Moving a file
+mv file.txt department/legal/
+mv department/legal/file.txt .
+	#   . is the current folder, check with LS that the file is right there
+
+# Several file at a time
+mv *.txt department/legal/
+	# All txt file has gone to LEGAL
+mv department/legal/* .
+	# All the files in LEGAL in current folder
+
+# Delete files
+rm file.txt
+	# NO TRASH CAN !!!!
+	# DELETED FOREVER
+rm file?.txt	
+	# delete file2, file3, file4  .txt
+
+# Delete all files in a Directory
+rm -r department/legal/
+# delet the directory
+rmdir department/legal
+
+# Find files
+find . -name "poe*"
+find . -name "d*"
+find ~/Documents/ -name "d*"
+
+# User roles and sudo
+ls /root
+	# cant work: Perimission denied
+sudo ls /root
+sudo -k
+	# Give up privilege - password not saved anymore
+sudo -s
+	# Go to be a SUPER USER
+exit
+	# Exit SUPER USER privilege
+
+# File Permissions
 
 
 
 
 
-
-
-
-
-
-
-2. For a no-show (that NEVER happens anyway) a high majority is in favor of sanction: 75%
-The highest result (40%) is in favor of exclusion for the next game.
-Let's replace that by an whole hour in goal !!!
-An exclusion is no Sanction to our friends outside of IHS because they already are coming partially.
-Once again... It never happens so it should not be an issue.
 
 
 
