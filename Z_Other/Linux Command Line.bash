@@ -110,8 +110,11 @@ rm file?.txt
 
 # Delete all files in a Directory
 rm -r department/legal/
-# delet the directory
+# delete the directory
 rmdir department/legal
+
+# Delete all files in a Directory + the sub-Dirs + the Directory
+rm -rf department/legal/
 
 # Find files
 find . -name "poe*"
@@ -129,7 +132,98 @@ sudo -s
 exit
 	# Exit SUPER USER privilege
 
+
+
 # File Permissions
+rwxrwxrwx
+rwxr-xr-x
+	# 3 first letter: User
+	# 3 after: group
+	# 3 ending: Others
+	# Read / write / execute
+	
+# Change permissions
+chmod 
+
+# Tableau des valeurs
+		Read : 4		Write: 2		Execute: 1			Result		Letters 
+User	r 				w				x					7			u+rwx
+Group	r				-				x					5			g=r
+Others	r				-				-					4			o-rwr
+All																		a=rwx
+	# + Add permissions
+	# - Remove permissions
+	# = Reset permissions (add permissions but remove all the one not here)
+
+# Exemples
+chmod 777 filename.sh
+chmod a=rwx filename.sh
+==>	rwxrwxrwx
+chmod 755 filename.sh
+chmod u+rwx, g=rx, o=rx filename.sh
+==> rwxr-xr-x
+chmod 700 filename.sh
+chmod u=rwx, g-rwx, o-rwx filename.sh
+==>	rwx------
+
+# Print out content of file
+cat filename.sh
+	"
+	#! /usr/bin/env bash
+	echo -e "Hello From test Script"
+	"
+
+# Create Blank Files
+touch newFile.sh
+
+# open the file in text editor
+nano newFile.sh
+
+# Links (pointer of file)
+	# Hard link (link to the underlying data and not to the file itself)
+	# All file are actually HARD LINK to their underlying datas
+ln fileToLink.txt linkName.txt
+	# Symbolic (link to the original file) (relative path) 
+ln -s fileToLink.txt linkName.txt
+
+
+# Pipe
+Send command as input for another command
+#wc: function that say: nb of rows, nb of words, nb of char (+1)
+echo "hello"
+	hello
+echo "hello" | wc
+	1	1	6
+
+# cat (Print content of file) / head (First 10 lines) / tail (Last 10 lines)
+head -n5 file.txt	
+	# First 5 rows
+cat file.txt | cat -n
+	# Ca numerote le texte
+cat file.txt | cat -n | tail -n5
+	# Last 5 lines with numerotation  (51 to 55)
+cat file.txt | tail -n5 | cat -n 
+	# Last 5 lines with numerotation  (1 to 5)
+# less: navigate through a long file (f / b / space / enter)
+less file.txt
+
+# grep : print depending on patterns / regex
+grep "the" file.txt
+	# Will show the text with 'the' highlighted (only the rows with 'the' present
+grep -n "the" file.txt
+	# With numerotation of lines
+grep -i "the" file.txt
+	# Case NON Sensitive
+grep -v "the" file.txt
+	# print all the one WITHOUT 'the'
+
+# REGEX : -E
+grep -E "[hijk]" file.txt
+	# []: means 'or'
+grep -E "\w{6,}" file.txt
+	# words of 6 or more characters
+
+
 
 
 
