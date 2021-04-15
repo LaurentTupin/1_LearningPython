@@ -74,7 +74,9 @@ ls -l
 	#	Authorization
 	# 	size in BITES
 ls -lh
-	# size readable: k , M, G
+	# size readable: k, M, G
+ls -lah
+	# -a: hidden files
 	
 # Create folder
 mkdir new_folder
@@ -207,6 +209,11 @@ cat file.txt | tail -n5 | cat -n
 # less: navigate through a long file (f / b / space / enter)
 less file.txt
 
+# rev
+	# Print the fil in reverse sequence
+# tac
+	# concatenate and print file in reverse
+
 # grep : print depending on patterns / regex
 grep "the" file.txt
 	# Will show the text with 'the' highlighted (only the rows with 'the' present
@@ -223,10 +230,63 @@ grep -E "[hijk]" file.txt
 grep -E "\w{6,}" file.txt
 	# words of 6 or more characters
 
+# AWK
+awk '{print $2}' dataFile.txt
+	# Will show the second column when dataFile is a table
+awk '{print $2 "\t" $1}' dataFile.txt
+	# Will show the second column + first col 
+awk '{print $2 "\t" $1}' dataFile.txt | sort -n
+	# Numeric sort on column 2, ASC
 
+# SED
+sed "s/Orange/Red/" dataFile.txt
+	# s/ equal substitute
+	# ORANGE by RED
 
+# SORT
+sort dataFile.txt
+	# Sort Alpha on 1st column
+sort -k2 dataFile.txt
+	# k = Key, k2 is the second columns, Alphabetic
+sort -k2 -n dataFile.txt
+	# k = Key, k2 is the second columns, Numeric sort
+sort -u
+	# Unique only
 
+# COMPRESS files: TAR
+tar cvf myCompress.tar folderToCompress/
+tar caf myCompress.tar.gz folderToCompress/
+tar caf myCompress.tar.bz2 folderToCompress/
+# UN-COMPRESS
+mkdir unpackFolder
+mv myCompress.tar unpackFolder/
+cd unpackFolder/
+tar xf myCompress.tar
 
+# ZIP
+zip -r myCompress.zip folderToCompress/
+	# without the -r, the folder will be empty
+# UNZIP
+mv myCompress.zip unpackFolder/
+cd unpackFolder/
+unzip myCompress.zip
+
+# put info in a file
+ls 1> fileList.txt
+	1: means OUTPUT, > into
+	2. mean standard ERROR
+	0: INPUT
+	>>: appending instead of replacing
+	ls: list of file sin folder
+
+# Environment variables
+env
+	...
+	PATH= list of path in the env
+	...
+
+# version on the kernel version...
+uname -a
 
 
 
